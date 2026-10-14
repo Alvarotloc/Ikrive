@@ -1,0 +1,103 @@
+{
+  "app": {
+    "name": "Ikrive",
+    "tagline": "Your vehicles, your data."
+  },
+  "nav": {
+    "dashboard": "Home",
+    "vehicles": "Vehicles",
+    "settings": "Settings",
+    "logout": "Log out"
+  },
+  "auth": {
+    "login": "Log in",
+    "register": "Create account",
+    "name": "Name",
+    "email": "Email",
+    "password": "Password",
+    "noAccount": "Don't have an account?",
+    "haveAccount": "Already have an account?",
+    "invalidCredentials": "Wrong email or password",
+    "firstUserHint": "The first account created becomes the administrator of this instance.",
+    "eyebrow": "Maintenance history",
+    "headline": "Take better care of your car today. Prove its value tomorrow.",
+    "pitch": "Keep maintenance, invoices and mileage in one place, on your own server.",
+    "proof": [
+      {
+        "title": "Quick tracking",
+        "description": "Log entries in seconds from your phone."
+      },
+      {
+        "title": "History that adds value",
+        "description": "Every record counts when you sell."
+      },
+      {
+        "title": "Total privacy",
+        "description": "Self-hosted: your data never leaves home."
+      }
+    ],
+    "loginSubtitle": "Access your history.",
+    "registerSubtitle": "Start building your car's history."
+  },
+  "dashboard": {
+    "welcome": "Hi, {{name}}",
+    "comingSoon": "Vehicle management arrives in the next phase.",
+    "eyebrow": "Your garage",
+    "emptyTitle": "You haven't added any vehicles yet",
+    "steps": [
+      {
+        "title": "Add your vehicle",
+        "description": "Make, model, year and current mileage."
+      },
+      {
+        "title": "Log maintenance",
+        "description": "Oil, inspections, tires, services and any expense."
+      },
+      {
+        "title": "Keep invoices",
+        "description": "Receipts, invoices and documents in one place."
+      },
+      {
+        "title": "Generate your report",
+        "description": "A clear, professional history for when you sell."
+      }
+    ]
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "Units, currency and reminder preferences.",
+    "currency": "Currency",
+    "distanceUnit": "Distance unit",
+    "volumeUnit": "Volume unit",
+    "locale": "Language",
+    "timezone": "Time zone",
+    "odometerReminderWeekday": "Odometer reminder day",
+    "theme": "Theme",
+    "themes": {
+      "system": "System",
+      "light": "Light",
+      "dark": "Dark"
+    },
+    "saved": "Settings saved",
+    "eyebrow": "Your account",
+    "preferences": "Preferences",
+    "appearance": "Appearance",
+    "appearanceDescription": "Interface theme on this device."
+  },
+  "units": {
+    "km": "Kilometers",
+    "mi": "Miles",
+    "l": "Liters",
+    "gal": "Gallons"
+  },
+  "locales": {
+    "es": "Español",
+    "en": "English"
+  },
+  "weekdays": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+  "common": {
+    "save": "Save",
+    "loading": "Loading…",
+    "error": "Something went wrong"
+  }
+}

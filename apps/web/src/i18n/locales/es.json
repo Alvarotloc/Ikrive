@@ -1,0 +1,103 @@
+{
+  "app": {
+    "name": "Ikrive",
+    "tagline": "Tus vehículos, tus datos."
+  },
+  "nav": {
+    "dashboard": "Inicio",
+    "vehicles": "Vehículos",
+    "settings": "Ajustes",
+    "logout": "Cerrar sesión"
+  },
+  "auth": {
+    "login": "Iniciar sesión",
+    "register": "Crear cuenta",
+    "name": "Nombre",
+    "email": "Email",
+    "password": "Contraseña",
+    "noAccount": "¿No tienes cuenta?",
+    "haveAccount": "¿Ya tienes cuenta?",
+    "invalidCredentials": "Email o contraseña incorrectos",
+    "firstUserHint": "La primera cuenta creada será la administradora de esta instancia.",
+    "eyebrow": "Historial de mantenimiento",
+    "headline": "Cuida mejor tu coche hoy. Demuestra su valor mañana.",
+    "pitch": "Guarda mantenimientos, facturas y kilómetros en un solo lugar, en tu propio servidor.",
+    "proof": [
+      {
+        "title": "Seguimiento ágil",
+        "description": "Registra en segundos desde el móvil."
+      },
+      {
+        "title": "Historial de valor",
+        "description": "Cada dato suma cuando vendas."
+      },
+      {
+        "title": "Privacidad total",
+        "description": "Autoalojado: tus datos no salen de tu casa."
+      }
+    ],
+    "loginSubtitle": "Accede a tu historial.",
+    "registerSubtitle": "Empieza a construir el historial de tu coche."
+  },
+  "dashboard": {
+    "welcome": "Hola, {{name}}",
+    "comingSoon": "La gestión de vehículos llega en la siguiente fase.",
+    "eyebrow": "Tu garaje",
+    "emptyTitle": "Todavía no has añadido ningún vehículo",
+    "steps": [
+      {
+        "title": "Añade tu vehículo",
+        "description": "Marca, modelo, año y kilometraje actual."
+      },
+      {
+        "title": "Registra mantenimientos",
+        "description": "Aceite, ITV, neumáticos, revisiones y cualquier gasto."
+      },
+      {
+        "title": "Guarda facturas",
+        "description": "Tickets, facturas y documentos en un único lugar."
+      },
+      {
+        "title": "Genera tu informe",
+        "description": "Un historial claro y profesional para cuando vendas."
+      }
+    ]
+  },
+  "settings": {
+    "title": "Ajustes",
+    "description": "Preferencias de unidades, moneda y recordatorios.",
+    "currency": "Moneda",
+    "distanceUnit": "Unidad de distancia",
+    "volumeUnit": "Unidad de volumen",
+    "locale": "Idioma",
+    "timezone": "Zona horaria",
+    "odometerReminderWeekday": "Día del recordatorio de kilometraje",
+    "theme": "Tema",
+    "themes": {
+      "system": "Sistema",
+      "light": "Claro",
+      "dark": "Oscuro"
+    },
+    "saved": "Ajustes guardados",
+    "eyebrow": "Tu cuenta",
+    "preferences": "Preferencias",
+    "appearance": "Apariencia",
+    "appearanceDescription": "Tema de la interfaz en este dispositivo."
+  },
+  "units": {
+    "km": "Kilómetros",
+    "mi": "Millas",
+    "l": "Litros",
+    "gal": "Galones"
+  },
+  "locales": {
+    "es": "Español",
+    "en": "English"
+  },
+  "weekdays": ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"],
+  "common": {
+    "save": "Guardar",
+    "loading": "Cargando…",
+    "error": "Algo ha ido mal"
+  }
+}

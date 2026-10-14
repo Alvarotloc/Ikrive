@@ -1,0 +1,137 @@
+@import "tailwindcss";
+@import "./fonts.css";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Design tokens aligned with the Ikrive landing (ikrive.com):
+ * ink #2d3a3a, mint accent #c5e8e0, soft gray background, Outfit for display and Plus Jakarta Sans for text.
+ */
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+
+  --color-background: var(--bg);
+  --color-foreground: var(--ink);
+  --color-card: var(--paper);
+  --color-card-foreground: var(--ink);
+  --color-muted: var(--subtle);
+  --color-muted-foreground: var(--muted);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-ink);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-dark);
+  --color-accent-foreground: var(--accent-ink);
+  --color-success: var(--success);
+  --color-destructive: var(--destructive);
+  --color-border: var(--line);
+  --color-input: var(--line);
+  --color-ring: var(--focus);
+  --color-deep: var(--deep);
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  --shadow-soft: 0 8px 32px rgba(45, 58, 58, 0.06);
+  --shadow-float: 0 16px 48px rgba(45, 58, 58, 0.1);
+}
+
+:root {
+  --bg: #f9fafb;
+  --paper: #ffffff;
+  --ink: #2d3a3a;
+  --muted: #6b7280;
+  --subtle: #f3f4f6;
+  --line: rgba(45, 58, 58, 0.1);
+  --primary: #2d3a3a;
+  --primary-ink: #ffffff;
+  --accent: #c5e8e0;
+  --accent-dark: #a8d9cd;
+  --accent-ink: #2d3a3a;
+  --deep: #1a3638;
+  --success: #355647;
+  --destructive: #c2410c;
+  --focus: rgba(45, 58, 58, 0.3);
+  --glow: rgba(197, 232, 224, 0.5);
+}
+
+/* Dark variant derived from the same palette: deep teal surfaces, mint as primary. */
+.dark {
+  --bg: #121a1a;
+  --paper: #1a2424;
+  --ink: #e7efed;
+  --muted: #9aaba8;
+  --subtle: #223030;
+  --line: rgba(197, 232, 224, 0.12);
+  --primary: #c5e8e0;
+  --primary-ink: #1a3638;
+  --accent: #24413c;
+  --accent-dark: #2e524b;
+  --accent-ink: #c5e8e0;
+  --deep: #0e1616;
+  --success: #a8d9cd;
+  --destructive: #fca5a5;
+  --focus: rgba(197, 232, 224, 0.35);
+  --glow: rgba(197, 232, 224, 0.08);
+  color-scheme: dark;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-display tracking-tight;
+  }
+}
+
+@utility eyebrow {
+  @apply text-sm font-medium text-muted-foreground;
+}
+
+@utility label-caps {
+  @apply text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground;
+}
+
+/* Soft mint glow in the top-right corner, as on the landing. */
+@utility glow-shell {
+  position: relative;
+  isolation: isolate;
+  &::before {
+    content: "";
+    position: fixed;
+    top: -10rem;
+    right: -10rem;
+    width: 40rem;
+    height: 40rem;
+    border-radius: 999px;
+    background: radial-gradient(circle, var(--glow) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: -1;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility reveal {
+  animation: rise 600ms ease both;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
