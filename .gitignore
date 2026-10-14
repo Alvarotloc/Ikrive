@@ -17,5 +17,6 @@ test-results/
 
 # === AUTOSKILLS / AI AGENTS ===
 .agents/skills/
-.claude/skills/
+.claude/skills/*
+!.claude/skills/sdd-*/
 .cursor/skills/
