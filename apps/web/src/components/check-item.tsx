@@ -4,7 +4,7 @@ import { Check } from 'lucide-react';
 export function CheckItem({ title, description }: { title: string; description: string }) {
   return (
     <div className="flex items-start gap-2.5">
-      <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-accent text-[#2d3a3a]">
+      <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-accent text-accent-foreground">
         <Check className="size-3" strokeWidth={2.5} aria-hidden />
       </span>
       <div>
