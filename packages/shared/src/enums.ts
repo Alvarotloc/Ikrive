@@ -13,6 +13,10 @@ export type Locale = (typeof LOCALES)[number];
 export const VEHICLE_TYPES = ['car', 'motorcycle', 'van', 'truck', 'other'] as const;
 export type VehicleType = (typeof VEHICLE_TYPES)[number];
 
+/** Derived from `soldAt`/`archivedAt`: sold wins over archived. */
+export const VEHICLE_STATUSES = ['active', 'archived', 'sold'] as const;
+export type VehicleStatus = (typeof VEHICLE_STATUSES)[number];
+
 export const FUEL_TYPES = [
   'gasoline',
   'diesel',
