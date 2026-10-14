@@ -1,0 +1,21 @@
+services:
+  ikrive:
+    image: ghcr.io/alvarotloc/ikrive:latest
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: ikrive
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file: .env
+    volumes:
+      - ./data:/data
+
+  # Optional: self-hosted push notifications (configure an ntfy channel in Ikrive settings).
+  # ntfy:
+  #   image: binwiederhier/ntfy
+  #   command: serve
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8080:80"
