@@ -14,3 +14,8 @@ test-results/
 
 # TanStack Router plugin scratch files
 .tanstack/
+
+# === AUTOSKILLS / AI AGENTS ===
+.agents/skills/
+.claude/skills/
+.cursor/skills/
