@@ -15,7 +15,8 @@
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "db:generate": "pnpm --filter @ikrive/api db:generate",
-    "db:migrate": "pnpm --filter @ikrive/api db:migrate"
+    "db:migrate": "pnpm --filter @ikrive/api db:migrate",
+    "harness": "node scripts/harness/check.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",
