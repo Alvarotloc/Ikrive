@@ -1,9 +1,10 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate } from '@tanstack/react-router';
-import { Home, LogOut, Settings } from 'lucide-react';
+import { Car, Gauge, Home, LogOut, Settings } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Brand } from '@/components/brand';
 import { Button } from '@/components/ui/button';
 import { meQuery } from '@/features/auth/queries';
+import { settingsQuery } from '@/features/settings/queries';
 import { authClient } from '@/lib/auth-client';
 
 export const Route = createFileRoute('/_app')({
@@ -12,11 +13,17 @@ export const Route = createFileRoute('/_app')({
     if (!me) throw redirect({ to: '/login' });
     return { me };
   },
+  // Units and currency used by the formatters; not awaited so navigation is never blocked by it.
+  loader: ({ context }) => {
+    void context.queryClient.prefetchQuery(settingsQuery);
+  },
   component: AppLayout,
 });
 
 const navItems = [
   { to: '/', icon: Home, label: 'nav.dashboard' },
+  { to: '/vehicles', icon: Car, label: 'nav.vehicles' },
+  { to: '/odometer', icon: Gauge, label: 'nav.odometer' },
   { to: '/settings', icon: Settings, label: 'nav.settings' },
 ] as const;
 

@@ -13,7 +13,12 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppOdometerRouteImport } from './routes/_app/odometer'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
+import { Route as AppVehiclesIndexRouteImport } from './routes/_app/vehicles/index'
+import { Route as AppVehiclesNewRouteImport } from './routes/_app/vehicles/new'
+import { Route as AppVehiclesVehicleIdIndexRouteImport } from './routes/_app/vehicles/$vehicleId/index'
+import { Route as AppVehiclesVehicleIdEditRouteImport } from './routes/_app/vehicles/$vehicleId/edit'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -34,39 +39,109 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppOdometerRoute = AppOdometerRouteImport.update({
+  id: '/odometer',
+  path: '/odometer',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
+const AppVehiclesIndexRoute = AppVehiclesIndexRouteImport.update({
+  id: '/vehicles/',
+  path: '/vehicles/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppVehiclesNewRoute = AppVehiclesNewRouteImport.update({
+  id: '/vehicles/new',
+  path: '/vehicles/new',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppVehiclesVehicleIdIndexRoute =
+  AppVehiclesVehicleIdIndexRouteImport.update({
+    id: '/vehicles/$vehicleId/',
+    path: '/vehicles/$vehicleId/',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppVehiclesVehicleIdEditRoute =
+  AppVehiclesVehicleIdEditRouteImport.update({
+    id: '/vehicles/$vehicleId/edit',
+    path: '/vehicles/$vehicleId/edit',
+    getParentRoute: () => AppRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/odometer': typeof AppOdometerRoute
   '/settings': typeof AppSettingsRoute
+  '/vehicles/new': typeof AppVehiclesNewRoute
+  '/vehicles/': typeof AppVehiclesIndexRoute
+  '/vehicles/$vehicleId/edit': typeof AppVehiclesVehicleIdEditRoute
+  '/vehicles/$vehicleId/': typeof AppVehiclesVehicleIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/odometer': typeof AppOdometerRoute
   '/settings': typeof AppSettingsRoute
   '/': typeof AppIndexRoute
+  '/vehicles/new': typeof AppVehiclesNewRoute
+  '/vehicles': typeof AppVehiclesIndexRoute
+  '/vehicles/$vehicleId/edit': typeof AppVehiclesVehicleIdEditRoute
+  '/vehicles/$vehicleId': typeof AppVehiclesVehicleIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/_app/odometer': typeof AppOdometerRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/vehicles/new': typeof AppVehiclesNewRoute
+  '/_app/vehicles/': typeof AppVehiclesIndexRoute
+  '/_app/vehicles/$vehicleId/edit': typeof AppVehiclesVehicleIdEditRoute
+  '/_app/vehicles/$vehicleId/': typeof AppVehiclesVehicleIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/register' | '/settings'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/register'
+    | '/odometer'
+    | '/settings'
+    | '/vehicles/new'
+    | '/vehicles/'
+    | '/vehicles/$vehicleId/edit'
+    | '/vehicles/$vehicleId/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/register' | '/settings' | '/'
+  to:
+    | '/login'
+    | '/register'
+    | '/odometer'
+    | '/settings'
+    | '/'
+    | '/vehicles/new'
+    | '/vehicles'
+    | '/vehicles/$vehicleId/edit'
+    | '/vehicles/$vehicleId'
   id:
-    '__root__' | '/_app' | '/login' | '/register' | '/_app/settings' | '/_app/'
+    | '__root__'
+    | '/_app'
+    | '/login'
+    | '/register'
+    | '/_app/odometer'
+    | '/_app/settings'
+    | '/_app/'
+    | '/_app/vehicles/new'
+    | '/_app/vehicles/'
+    | '/_app/vehicles/$vehicleId/edit'
+    | '/_app/vehicles/$vehicleId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -105,6 +180,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/odometer': {
+      id: '/_app/odometer'
+      path: '/odometer'
+      fullPath: '/odometer'
+      preLoaderRoute: typeof AppOdometerRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/settings': {
       id: '/_app/settings'
       path: '/settings'
@@ -112,17 +194,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/vehicles/': {
+      id: '/_app/vehicles/'
+      path: '/vehicles'
+      fullPath: '/vehicles/'
+      preLoaderRoute: typeof AppVehiclesIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/vehicles/new': {
+      id: '/_app/vehicles/new'
+      path: '/vehicles/new'
+      fullPath: '/vehicles/new'
+      preLoaderRoute: typeof AppVehiclesNewRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/vehicles/$vehicleId/': {
+      id: '/_app/vehicles/$vehicleId/'
+      path: '/vehicles/$vehicleId'
+      fullPath: '/vehicles/$vehicleId/'
+      preLoaderRoute: typeof AppVehiclesVehicleIdIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/vehicles/$vehicleId/edit': {
+      id: '/_app/vehicles/$vehicleId/edit'
+      path: '/vehicles/$vehicleId/edit'
+      fullPath: '/vehicles/$vehicleId/edit'
+      preLoaderRoute: typeof AppVehiclesVehicleIdEditRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppOdometerRoute: typeof AppOdometerRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppVehiclesNewRoute: typeof AppVehiclesNewRoute
+  AppVehiclesIndexRoute: typeof AppVehiclesIndexRoute
+  AppVehiclesVehicleIdEditRoute: typeof AppVehiclesVehicleIdEditRoute
+  AppVehiclesVehicleIdIndexRoute: typeof AppVehiclesVehicleIdIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppOdometerRoute: AppOdometerRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
+  AppVehiclesNewRoute: AppVehiclesNewRoute,
+  AppVehiclesIndexRoute: AppVehiclesIndexRoute,
+  AppVehiclesVehicleIdEditRoute: AppVehiclesVehicleIdEditRoute,
+  AppVehiclesVehicleIdIndexRoute: AppVehiclesVehicleIdIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

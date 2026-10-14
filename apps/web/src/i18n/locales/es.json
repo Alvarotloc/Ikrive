@@ -7,7 +7,8 @@
     "dashboard": "Inicio",
     "vehicles": "Vehículos",
     "settings": "Ajustes",
-    "logout": "Cerrar sesión"
+    "logout": "Cerrar sesión",
+    "odometer": "Kilómetros"
   },
   "auth": {
     "login": "Iniciar sesión",
@@ -41,7 +42,6 @@
   },
   "dashboard": {
     "welcome": "Hola, {{name}}",
-    "comingSoon": "La gestión de vehículos llega en la siguiente fase.",
     "eyebrow": "Tu garaje",
     "emptyTitle": "Todavía no has añadido ningún vehículo",
     "steps": [
@@ -61,7 +61,9 @@
         "title": "Genera tu informe",
         "description": "Un historial claro y profesional para cuando vendas."
       }
-    ]
+    ],
+    "emptyDescription": "Añade tu primer vehículo para empezar a construir su historial.",
+    "addFirst": "Añadir mi primer vehículo"
   },
   "settings": {
     "title": "Ajustes",
@@ -98,6 +100,140 @@
   "common": {
     "save": "Guardar",
     "loading": "Cargando…",
-    "error": "Algo ha ido mal"
+    "error": "Algo ha ido mal",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar"
+  },
+  "vehicles": {
+    "eyebrow": "Tu garaje",
+    "title": "Vehículos",
+    "add": "Añadir vehículo",
+    "newTitle": "Nuevo vehículo",
+    "newDescription": "Solo la marca y el modelo son obligatorios. Puedes completar el resto más adelante.",
+    "editTitle": "Editar vehículo",
+    "created": "Vehículo añadido",
+    "updated": "Cambios guardados",
+    "filterLabel": "Filtrar por estado",
+    "filters": {
+      "active": "Activos",
+      "archived": "Archivados",
+      "sold": "Vendidos",
+      "all": "Todos"
+    },
+    "empty": {
+      "active": "No tienes vehículos activos.",
+      "archived": "No hay vehículos archivados.",
+      "sold": "No hay vehículos vendidos.",
+      "all": "Todavía no has añadido ningún vehículo."
+    },
+    "noOdometer": "Sin kilometraje",
+    "dossier": "Expediente del vehículo",
+    "details": "Datos del vehículo",
+    "manage": "Gestión",
+    "manageDescription": "Archiva los vehículos que ya no usas o márcalos como vendidos: su historial se conserva.",
+    "notFound": "No encontramos este vehículo",
+    "backToList": "Volver a mis vehículos",
+    "fields": {
+      "name": "Alias (opcional)",
+      "make": "Marca",
+      "model": "Modelo",
+      "version": "Versión",
+      "year": "Año",
+      "plate": "Matrícula",
+      "vin": "Número de bastidor (VIN)",
+      "type": "Tipo",
+      "fuelType": "Combustible",
+      "purchaseDate": "Fecha de compra",
+      "purchasePrice": "Precio de compra",
+      "purchaseOdometer": "Kilometraje en la compra ({{unit}})",
+      "currentOdometer": "Kilometraje actual ({{unit}})",
+      "notes": "Notas",
+      "soldAt": "Fecha de venta"
+    },
+    "form": {
+      "identity": "Identificación",
+      "namePlaceholder": "Por ejemplo: el coche de diario",
+      "registration": "Matrícula y kilometraje",
+      "currentOdometerHint": "Se guardará como la primera lectura, con fecha de hoy.",
+      "purchase": "Compra y notas",
+      "purchaseDescription": "Sirven para calcular el coste de propiedad y para el informe de venta."
+    },
+    "types": {
+      "car": "Coche",
+      "motorcycle": "Moto",
+      "van": "Furgoneta",
+      "truck": "Camión",
+      "other": "Otro"
+    },
+    "fuels": {
+      "gasoline": "Gasolina",
+      "diesel": "Diésel",
+      "hybrid": "Híbrido",
+      "plugin_hybrid": "Híbrido enchufable",
+      "electric": "Eléctrico",
+      "lpg": "GLP",
+      "cng": "GNC",
+      "other": "Otro"
+    },
+    "status": {
+      "active": "Activo",
+      "archived": "Archivado",
+      "sold": "Vendido",
+      "soldOn": "Vendido el {{date}}"
+    },
+    "metrics": {
+      "odometer": "Kilometraje",
+      "perYear": "Media anual",
+      "perYearPending": "Necesita un mes de lecturas",
+      "sincePurchase": "Desde la compra"
+    },
+    "actions": {
+      "archive": "Archivar",
+      "archived": "Vehículo archivado",
+      "restore": "Restaurar",
+      "restored": "Vehículo restaurado",
+      "markSold": "Marcar como vendido",
+      "markSoldTitle": "¿Has vendido {{name}}?",
+      "markSoldDescription": "El vehículo dejará de aparecer en tu garaje, pero conservarás todo su historial.",
+      "sold": "Vehículo marcado como vendido",
+      "undoSold": "Deshacer venta",
+      "unsold": "Venta deshecha",
+      "deleteTitle": "¿Eliminar {{name}}?",
+      "deleteDescription": "Se borrarán el vehículo, su foto y todas sus lecturas de kilometraje. Esta acción no se puede deshacer. Si solo quieres ocultarlo, archívalo.",
+      "deleteConfirm": "Eliminar para siempre",
+      "deleted": "Vehículo eliminado"
+    },
+    "photo": {
+      "add": "Añadir foto",
+      "change": "Cambiar foto",
+      "remove": "Quitar foto",
+      "saved": "Foto actualizada",
+      "invalid": "No se pudo usar esa imagen. Prueba con un JPG, PNG o WebP más pequeño."
+    }
+  },
+  "odometer": {
+    "eyebrow": "Puesta al día",
+    "pageTitle": "Actualizar kilómetros",
+    "pageDescription": "Apunta los kilómetros que marca cada vehículo. Ikrive te lo recordará cada semana para que las alertas por kilometraje sean precisas.",
+    "title": "Kilometraje",
+    "description": "Cada lectura alimenta las alertas y las estadísticas.",
+    "history": "Últimas lecturas",
+    "current": "Kilómetros actuales ({{unit}})",
+    "last": "Última: {{value}} el {{date}}",
+    "date": "Fecha de la lectura",
+    "otherDate": "Otra fecha",
+    "saved": "Guardado: {{value}}",
+    "empty": "Todavía no hay lecturas.",
+    "delete": "Eliminar la lectura de {{value}}",
+    "sources": {
+      "manual": "Manual",
+      "maintenance": "Taller",
+      "fuel": "Repostaje"
+    },
+    "errors": {
+      "backwards": "El kilometraje no puede ser menor que una lectura anterior ni mayor que una posterior.",
+      "future": "La fecha no puede ser futura."
+    }
   }
 }

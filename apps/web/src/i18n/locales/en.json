@@ -7,7 +7,8 @@
     "dashboard": "Home",
     "vehicles": "Vehicles",
     "settings": "Settings",
-    "logout": "Log out"
+    "logout": "Log out",
+    "odometer": "Mileage"
   },
   "auth": {
     "login": "Log in",
@@ -41,7 +42,6 @@
   },
   "dashboard": {
     "welcome": "Hi, {{name}}",
-    "comingSoon": "Vehicle management arrives in the next phase.",
     "eyebrow": "Your garage",
     "emptyTitle": "You haven't added any vehicles yet",
     "steps": [
@@ -61,7 +61,9 @@
         "title": "Generate your report",
         "description": "A clear, professional history for when you sell."
       }
-    ]
+    ],
+    "emptyDescription": "Add your first vehicle to start building its history.",
+    "addFirst": "Add my first vehicle"
   },
   "settings": {
     "title": "Settings",
@@ -98,6 +100,140 @@
   "common": {
     "save": "Save",
     "loading": "Loading…",
-    "error": "Something went wrong"
+    "error": "Something went wrong",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit"
+  },
+  "vehicles": {
+    "eyebrow": "Your garage",
+    "title": "Vehicles",
+    "add": "Add vehicle",
+    "newTitle": "New vehicle",
+    "newDescription": "Only make and model are required. You can fill in the rest later.",
+    "editTitle": "Edit vehicle",
+    "created": "Vehicle added",
+    "updated": "Changes saved",
+    "filterLabel": "Filter by status",
+    "filters": {
+      "active": "Active",
+      "archived": "Archived",
+      "sold": "Sold",
+      "all": "All"
+    },
+    "empty": {
+      "active": "You have no active vehicles.",
+      "archived": "There are no archived vehicles.",
+      "sold": "There are no sold vehicles.",
+      "all": "You haven't added any vehicle yet."
+    },
+    "noOdometer": "No mileage yet",
+    "dossier": "Vehicle file",
+    "details": "Vehicle details",
+    "manage": "Manage",
+    "manageDescription": "Archive vehicles you no longer use or mark them as sold: their history is kept.",
+    "notFound": "We couldn't find this vehicle",
+    "backToList": "Back to my vehicles",
+    "fields": {
+      "name": "Nickname (optional)",
+      "make": "Make",
+      "model": "Model",
+      "version": "Trim",
+      "year": "Year",
+      "plate": "Number plate",
+      "vin": "VIN",
+      "type": "Type",
+      "fuelType": "Fuel",
+      "purchaseDate": "Purchase date",
+      "purchasePrice": "Purchase price",
+      "purchaseOdometer": "Mileage at purchase ({{unit}})",
+      "currentOdometer": "Current mileage ({{unit}})",
+      "notes": "Notes",
+      "soldAt": "Sale date"
+    },
+    "form": {
+      "identity": "Identification",
+      "namePlaceholder": "For example: the daily driver",
+      "registration": "Plate and mileage",
+      "currentOdometerHint": "It will be saved as the first reading, dated today.",
+      "purchase": "Purchase and notes",
+      "purchaseDescription": "Used to work out the cost of ownership and for the sale report."
+    },
+    "types": {
+      "car": "Car",
+      "motorcycle": "Motorcycle",
+      "van": "Van",
+      "truck": "Truck",
+      "other": "Other"
+    },
+    "fuels": {
+      "gasoline": "Petrol",
+      "diesel": "Diesel",
+      "hybrid": "Hybrid",
+      "plugin_hybrid": "Plug-in hybrid",
+      "electric": "Electric",
+      "lpg": "LPG",
+      "cng": "CNG",
+      "other": "Other"
+    },
+    "status": {
+      "active": "Active",
+      "archived": "Archived",
+      "sold": "Sold",
+      "soldOn": "Sold on {{date}}"
+    },
+    "metrics": {
+      "odometer": "Mileage",
+      "perYear": "Yearly average",
+      "perYearPending": "Needs a month of readings",
+      "sincePurchase": "Since purchase"
+    },
+    "actions": {
+      "archive": "Archive",
+      "archived": "Vehicle archived",
+      "restore": "Restore",
+      "restored": "Vehicle restored",
+      "markSold": "Mark as sold",
+      "markSoldTitle": "Have you sold {{name}}?",
+      "markSoldDescription": "The vehicle will leave your garage, but you'll keep its whole history.",
+      "sold": "Vehicle marked as sold",
+      "undoSold": "Undo sale",
+      "unsold": "Sale undone",
+      "deleteTitle": "Delete {{name}}?",
+      "deleteDescription": "The vehicle, its photo and all its mileage readings will be erased. This can't be undone. If you just want to hide it, archive it.",
+      "deleteConfirm": "Delete forever",
+      "deleted": "Vehicle deleted"
+    },
+    "photo": {
+      "add": "Add photo",
+      "change": "Change photo",
+      "remove": "Remove photo",
+      "saved": "Photo updated",
+      "invalid": "That image couldn't be used. Try a smaller JPG, PNG or WebP."
+    }
+  },
+  "odometer": {
+    "eyebrow": "Check-in",
+    "pageTitle": "Update mileage",
+    "pageDescription": "Write down what each vehicle's odometer shows. Ikrive will remind you every week so mileage-based alerts stay accurate.",
+    "title": "Mileage",
+    "description": "Every reading feeds the alerts and the statistics.",
+    "history": "Latest readings",
+    "current": "Current mileage ({{unit}})",
+    "last": "Last: {{value}} on {{date}}",
+    "date": "Reading date",
+    "otherDate": "Another date",
+    "saved": "Saved: {{value}}",
+    "empty": "No readings yet.",
+    "delete": "Delete the {{value}} reading",
+    "sources": {
+      "manual": "Manual",
+      "maintenance": "Service",
+      "fuel": "Fuel"
+    },
+    "errors": {
+      "backwards": "The mileage can't be lower than an earlier reading or higher than a later one.",
+      "future": "The date can't be in the future."
+    }
   }
 }

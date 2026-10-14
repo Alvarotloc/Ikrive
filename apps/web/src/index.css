@@ -118,6 +118,17 @@
   }
 }
 
+/* Ruled paper behind the vehicle file, as in the "Expediente del vehículo" mockup of the landing. */
+@utility dossier-paper {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--paper) 84%, transparent), var(--paper)),
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 30px,
+      color-mix(in srgb, var(--ink) 4%, transparent) 30px 31px
+    );
+}
+
 @keyframes rise {
   from {
     opacity: 0;
