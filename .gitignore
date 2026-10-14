@@ -11,3 +11,6 @@ playwright-report/
 test-results/
 .DS_Store
 .claude/settings.local.json
+
+# TanStack Router plugin scratch files
+.tanstack/
