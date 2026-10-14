@@ -41,6 +41,10 @@ La interfaz sigue la identidad de la landing (ikrive.com). Los tokens están en 
 - Utilidades propias: `eyebrow`, `label-caps`, `glow-shell` (resplandor menta) y `reveal` (animación de entrada).
 - Componentes de marca reutilizables: `Brand`, `PageHeader`, `Badge` (`status` y `stamp`) y `CheckItem`.
 
+## Flujo de trabajo
+
+Las features nuevas siguen el flujo de [docs/sdd.md](docs/sdd.md): se añaden a `feature_list.json`, se especifican en `specs/<name>/` (requirements en EARS, design y tasks), se implementan en una rama `feat/<name>` y se integran en `main` con un merge `--no-ff` tras la revisión. Con Claude Code, el arnés (`AGENTS.md`, `.claude/agents/`, hooks) automatiza el flujo y para en las dos aprobaciones humanas.
+
 ## Tests
 
 - Unitarios para la lógica pura (`packages/shared`).

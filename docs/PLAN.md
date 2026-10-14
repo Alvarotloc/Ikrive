@@ -25,6 +25,7 @@ Ikrive es una aplicación open source y autoalojada (Docker) para gestionar tus 
 - **Fechas sin hora** (compra, venta, lecturas) como texto `YYYY-MM-DD`; se formatean en UTC para que el día no se desplace. «Hoy» se calcula con la zona horaria del usuario.
 - **Kilometraje en la unidad del usuario:** los valores se guardan tal cual, sin convertir. Cambiar `distanceUnit` no reescribe datos antiguos.
 - **Autorización por propiedad:** un recurso de otro usuario responde 404 (no 403) para no revelar que existe.
+- **Desarrollo guiado por specs** (desde la fase 3): cada feature pasa por spec (EARS) → aprobación humana → implementación → review → aprobación humana → merge `--no-ff` de su rama `feat/<name>` a `main`. El backlog vive en `feature_list.json` y el proceso en [docs/sdd.md](sdd.md).
 - **Fotos de vehículos:** se reescalan a 1600 px y se recodifican a WebP con `sharp`, lo que elimina el EXIF (GPS). Se guardan en `/data/uploads/vehicles/<uuid>.webp` y se sirven por `GET /api/vehicles/:id/photo?v=…` (inmutable, con control de acceso).
 
 ---
@@ -88,6 +89,10 @@ ikrive/
 ├── docker/Dockerfile             # multi-stage; una imagen sirve API + SPA
 ├── docker-compose.yml, .env.example
 ├── docs/PLAN.md                  # este documento (referenciado desde CLAUDE.md)
+├── docs/sdd.md, docs/verification.md  # proceso SDD y cómo verificar
+├── AGENTS.md, CHECKPOINTS.md     # arnés SDD: mapa para agentes y criterios de revisión
+├── feature_list.json             # backlog por features; specs/<name>/ y progress/ guardan su rastro
+├── scripts/harness/              # pnpm harness y los hooks de Claude Code (.claude/settings.json)
 └── README.md, CONTRIBUTING.md, LICENSE
 ```
 
@@ -207,6 +212,7 @@ Fuente de verdad: `apps/web/src/index.css` (tokens) y la landing en `~/dev/perso
 
 ## Verificación
 
+- `pnpm harness` valida el estado del backlog y los specs; `pnpm harness --full` añade lint, typecheck y tests. Detalle en [docs/verification.md](verification.md).
 - `pnpm lint && pnpm typecheck && pnpm test` en verde.
 - `pnpm dev`: la API queda en `:3000` y la web en `:5173` (con proxy de `/api`).
 - `docker build -f docker/Dockerfile -t ikrive:dev .` y después `docker run -p 3000:3000 -e AUTH_SECRET=… ikrive:dev`. Comprobar health, registro, `/api/me` y que la SPA carga.
