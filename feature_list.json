@@ -1,0 +1,127 @@
+{
+  "project": "ikrive",
+  "description": "Backlog del arnés SDD. Una feature = un spec = una rama feat/<name> = un merge a main. Proceso en docs/sdd.md.",
+  "rules": {
+    "one_active_feature_at_a_time": true,
+    "require_approved_spec_to_implement": true,
+    "require_reviewer_approval_to_merge": true,
+    "require_human_approval_to_merge": true,
+    "valid_status": ["pending", "spec_ready", "in_progress", "ready_to_merge", "done", "blocked"],
+    "sdd_required_when": "feature has \"sdd\": true"
+  },
+  "features": [
+    {
+      "id": 1,
+      "name": "foundations",
+      "phase": "1",
+      "title": "Fundaciones",
+      "description": "Monorepo, API Fastify + Drizzle + Better Auth, SPA, Docker y CI. Anterior al arnés SDD.",
+      "status": "done"
+    },
+    {
+      "id": 2,
+      "name": "landing-visual-alignment",
+      "phase": "1b",
+      "title": "Alineación visual con la landing",
+      "description": "Tokens, tipografías y componentes de marca alineados con ikrive.com. Anterior al arnés SDD.",
+      "status": "done"
+    },
+    {
+      "id": 3,
+      "name": "vehicles-odometer",
+      "phase": "2",
+      "title": "Vehículos y odómetro",
+      "description": "CRUD de vehículos con foto, ficha del vehículo y lecturas de km. Anterior al arnés SDD.",
+      "status": "done"
+    },
+    {
+      "id": 4,
+      "name": "maintenance-records-api",
+      "phase": "3",
+      "title": "API de mantenimientos",
+      "description": "CRUD de registros de mantenimiento por vehículo, enlazados con el odómetro.",
+      "acceptance": [
+        "Existe la tabla maintenance_records (vehículo, fecha, km opcional, categoría, título, descripción, taller, coste, include_in_report) con su migración generada por drizzle-kit",
+        "Los esquemas zod de alta, edición y respuesta viven en @ikrive/shared y la categoría usa MAINTENANCE_CATEGORIES",
+        "GET y POST /api/vehicles/:id/maintenance listan (más reciente primero) y crean mantenimientos",
+        "GET, PATCH y DELETE /api/vehicles/:id/maintenance/:recordId leen, editan y borran un mantenimiento",
+        "Crear o editar un mantenimiento con km crea o actualiza una lectura de odómetro con source 'maintenance', validada con findOdometerConflict",
+        "Si la lectura entra en conflicto con las vecinas, la API responde 4xx problem+json y no guarda ni el mantenimiento ni la lectura",
+        "Borrar un mantenimiento borra su lectura de odómetro asociada",
+        "Un vehículo o mantenimiento de otro usuario responde 404",
+        "apps/api/test/maintenance.test.ts cubre CRUD, sincronización con el odómetro y autorización"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 5,
+      "name": "maintenance-attachments-api",
+      "phase": "3",
+      "title": "API de facturas adjuntas",
+      "description": "Subida, descarga, miniaturas y borrado de facturas (PDF o imagen) de un mantenimiento.",
+      "acceptance": [
+        "Existe la tabla attachments (propietario, entity_type/entity_id, nombre original, mime, tamaño, sha256, clave en disco aleatoria) con su migración",
+        "POST /api/vehicles/:id/maintenance/:recordId/attachments sube una factura; un mantenimiento admite varias",
+        "Solo se aceptan PDF, JPEG, PNG y WebP, detectados por contenido y no solo por la cabecera; el resto responde 4xx problem+json",
+        "Un fichero mayor que MAX_UPLOAD_MB responde 4xx problem+json y no deja nada en disco",
+        "Los ficheros se guardan con lib/storage.ts bajo /data/uploads con un nombre aleatorio",
+        "GET .../attachments/:attachmentId descarga el original con su nombre y mime, y solo para su propietario (404 al resto)",
+        "GET .../attachments/:attachmentId/thumbnail devuelve una miniatura WebP de las imágenes",
+        "DELETE de un adjunto borra el registro y el fichero; borrar el mantenimiento borra sus adjuntos",
+        "apps/api/test/attachments.test.ts cubre subida, validación de tipo y tamaño, descarga, miniatura, borrado y autorización"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 6,
+      "name": "maintenance-timeline-web",
+      "phase": "3",
+      "title": "Timeline y formulario de mantenimientos",
+      "description": "Timeline de mantenimientos en la ficha del vehículo con alta, edición y borrado.",
+      "acceptance": [
+        "La ficha del vehículo muestra la timeline de mantenimientos, del más reciente al más antiguo",
+        "La timeline se puede filtrar por categoría y cada registro muestra su categoría con Badge variant=\"stamp\"",
+        "Se puede crear y editar un mantenimiento con react-hook-form y los esquemas de @ikrive/shared",
+        "Borrar un mantenimiento pide confirmación",
+        "Un conflicto de odómetro devuelto por la API se muestra en el campo de km del formulario",
+        "Todos los textos están en es.json y en.json",
+        "La vista funciona a ancho de móvil y en modo oscuro",
+        "La lógica pura nueva (filtrado, agrupación, formateo) tiene tests unitarios"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 7,
+      "name": "maintenance-attachments-web",
+      "phase": "3",
+      "title": "Facturas en la interfaz",
+      "description": "Adjuntar, ver y borrar facturas desde un mantenimiento.",
+      "acceptance": [
+        "Desde un mantenimiento se pueden subir una o varias facturas",
+        "Las imágenes se muestran con su miniatura y los PDF con un icono; al pulsar se abren o descargan",
+        "Se puede borrar una factura con confirmación",
+        "Los errores de tipo o tamaño de la API se muestran al usuario con sonner",
+        "Todos los textos están en es.json y en.json"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 8,
+      "name": "vehicle-maintenance-spending",
+      "phase": "3",
+      "title": "Gasto acumulado en la ficha",
+      "description": "Gasto total de mantenimiento de cada vehículo en su ficha.",
+      "acceptance": [
+        "La API expone el gasto acumulado de mantenimiento de un vehículo (suma de costes; 0 si no hay registros con coste)",
+        "La ficha del vehículo muestra ese gasto formateado con la moneda del usuario",
+        "Un test de integración cubre la suma, el caso sin mantenimientos y la autorización"
+      ],
+      "sdd": true,
+      "status": "pending"
+    }
+  ]
+}
