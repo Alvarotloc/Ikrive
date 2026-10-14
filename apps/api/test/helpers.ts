@@ -1,14 +1,23 @@
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { buildApp } from '../src/app';
 import { loadConfig } from '../src/config';
 import { createDb, runMigrations } from '../src/db/client';
 
 export async function createTestApp(env: Record<string, string> = {}) {
-  const config = loadConfig({ NODE_ENV: 'test', BASE_URL: 'http://localhost:3000', ...env });
+  const dataDir = mkdtempSync(join(tmpdir(), 'ikrive-test-'));
+  const config = loadConfig({
+    NODE_ENV: 'test',
+    BASE_URL: 'http://localhost:3000',
+    DATA_DIR: dataDir,
+    ...env,
+  });
   const db = createDb(':memory:');
   runMigrations(db);
   const app = await buildApp({ config, db });
   await app.ready();
-  return { app, db };
+  return { app, db, dataDir };
 }
 
 type TestApp = Awaited<ReturnType<typeof createTestApp>>['app'];
