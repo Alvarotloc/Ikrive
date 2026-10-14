@@ -17,7 +17,9 @@ export function createAuth(db: Db, config: Config) {
     basePath: '/api/auth',
     secret: config.AUTH_SECRET,
     trustedOrigins:
-      config.NODE_ENV === 'development' ? [config.BASE_URL, 'http://localhost:5173'] : [config.BASE_URL],
+      config.NODE_ENV === 'development'
+        ? [config.BASE_URL, 'http://localhost:5173', 'http://localhost:5174']
+        : [config.BASE_URL],
     database: drizzleAdapter(db, { provider: 'sqlite', schema }),
     emailAndPassword: { enabled: true, minPasswordLength: 8 },
     user: {
