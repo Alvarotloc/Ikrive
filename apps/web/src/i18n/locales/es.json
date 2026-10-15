@@ -105,6 +105,23 @@
     "delete": "Eliminar",
     "edit": "Editar"
   },
+  "validation": {
+    "required": "Este campo es obligatorio.",
+    "minLength_one": "Debe tener al menos {{count}} carácter.",
+    "minLength_other": "Debe tener al menos {{count}} caracteres.",
+    "maxLength_one": "No puede superar {{count}} carácter.",
+    "maxLength_other": "No puede superar los {{count}} caracteres.",
+    "exactLength_one": "Debe tener exactamente {{count}} carácter.",
+    "exactLength_other": "Debe tener exactamente {{count}} caracteres.",
+    "min": "El valor mínimo es {{min}}.",
+    "max": "El valor máximo es {{max}}.",
+    "number": "Introduce un número válido.",
+    "integer": "Introduce un número entero.",
+    "email": "Introduce un email válido.",
+    "date": "Introduce una fecha válida.",
+    "option": "Elige una opción válida.",
+    "invalid": "El valor no es válido."
+  },
   "vehicles": {
     "eyebrow": "Tu garaje",
     "title": "Vehículos",

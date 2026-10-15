@@ -105,6 +105,23 @@
     "delete": "Delete",
     "edit": "Edit"
   },
+  "validation": {
+    "required": "This field is required.",
+    "minLength_one": "Must be at least {{count}} character long.",
+    "minLength_other": "Must be at least {{count}} characters long.",
+    "maxLength_one": "Can't be longer than {{count}} character.",
+    "maxLength_other": "Can't be longer than {{count}} characters.",
+    "exactLength_one": "Must be exactly {{count}} character long.",
+    "exactLength_other": "Must be exactly {{count}} characters long.",
+    "min": "The minimum value is {{min}}.",
+    "max": "The maximum value is {{max}}.",
+    "number": "Enter a valid number.",
+    "integer": "Enter a whole number.",
+    "email": "Enter a valid email.",
+    "date": "Enter a valid date.",
+    "option": "Choose a valid option.",
+    "invalid": "The value isn't valid."
+  },
   "vehicles": {
     "eyebrow": "Your garage",
     "title": "Vehicles",
