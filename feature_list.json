@@ -91,7 +91,7 @@
         "La lógica pura nueva (filtrado, agrupación, formateo) tiene tests unitarios"
       ],
       "sdd": true,
-      "status": "in_progress"
+      "status": "done"
     },
     {
       "id": 7,
