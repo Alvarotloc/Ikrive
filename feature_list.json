@@ -139,7 +139,7 @@
         "CONTRIBUTING.md y docs/verification.md explican cuándo escribir tests de componentes y dónde van"
       ],
       "sdd": false,
-      "status": "pending"
+      "status": "done"
     }
   ]
 }

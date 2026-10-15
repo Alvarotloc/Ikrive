@@ -47,8 +47,13 @@ Las features nuevas siguen el flujo de [docs/sdd.md](docs/sdd.md): se añaden a 
 
 ## Tests
 
-- Unitarios para la lógica pura (`packages/shared`).
+- Unitarios para la lógica pura (`packages/shared` y `apps/web/src/features/**`, `*.test.ts`). Corren en Node.
 - De integración en la API con `app.inject()` sobre SQLite en memoria (`apps/api/test/`).
+- De componentes en la web con Vitest + jsdom + Testing Library (`*.test.tsx`, junto al componente). Escríbelos cuando un componente tenga comportamiento propio que la lógica pura no cubre: errores de la API mapeados a un campo, validación visible, estados vacío/cargando/error, accesibilidad (`role`, `aria-*`). No para maquetación estática.
+  - Renderiza con `renderWithProviders` de `apps/web/src/test/render.tsx` (QueryClient nuevo sin reintentos, i18n en español) y simula la API con `mockApi({ 'POST /vehicles/v1/odometer': { status: 409, body: problem } })`, que sustituye `fetch` (las rutas no declaradas responden 404). Nada de servidor ni MSW.
+  - Busca por rol, etiqueta o texto (`getByRole`, `getByLabelText`) e interactúa con el `user` que devuelve el helper (`user-event`). Afirma lo que ve el usuario con los matchers de `jest-dom`.
+  - Ejemplos: `apps/web/src/features/vehicles/odometer-form.test.tsx` y `apps/web/src/components/form-field.test.tsx`.
+  - Configuración en `apps/web/vitest.config.ts`: proyecto `unit` (`*.test.ts`, Node) y `dom` (`*.test.tsx`, jsdom, `src/test/setup.ts`).
 
 ## Convenciones
 
