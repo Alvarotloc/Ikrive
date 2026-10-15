@@ -1,7 +1,7 @@
 import type { VehicleStatus } from '@ikrive/shared';
-import { and, desc, eq, isNotNull, isNull, type SQL } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, isNull, type SQL } from 'drizzle-orm';
 import type { Db } from '../../db/client';
-import { odometerReadings, vehicles } from '../../db/schema';
+import { attachments, maintenanceRecords, odometerReadings, vehicles } from '../../db/schema';
 
 export type VehicleRow = typeof vehicles.$inferSelect;
 export type NewVehicleRow = typeof vehicles.$inferInsert;
@@ -46,8 +46,22 @@ export function createVehiclesRepository(db: Db) {
     update(id: string, values: Partial<NewVehicleRow>) {
       return db.update(vehicles).set(values).where(eq(vehicles.id, id)).returning().get();
     },
+    /**
+     * Deletes a vehicle. Its readings and maintenance records go with it through the foreign keys;
+     * the attachment rows of those records have no foreign key, so they are deleted first here
+     * (their files are removed by the service afterwards).
+     */
     delete(id: string) {
-      db.delete(vehicles).where(eq(vehicles.id, id)).run();
+      db.transaction((tx) => {
+        const records = tx
+          .select({ id: maintenanceRecords.id })
+          .from(maintenanceRecords)
+          .where(eq(maintenanceRecords.vehicleId, id));
+        tx.delete(attachments)
+          .where(and(eq(attachments.entityType, 'maintenance'), inArray(attachments.entityId, records)))
+          .run();
+        tx.delete(vehicles).where(eq(vehicles.id, id)).run();
+      });
     },
 
     listReadings(vehicleId: string) {
