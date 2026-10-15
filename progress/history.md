@@ -42,3 +42,11 @@
 - **Revisión:** APPROVED (`progress/review_maintenance-timeline-web.md`). Avisos no bloqueantes: los mensajes de validación de zod salen en inglés en todos los formularios (hueco transversal, candidato a feature propia).
 - **Incidencia:** el primer intento de capturas usó el `pnpm dev` del humano (:5174 → API :3000) y sembró datos en su BD de desarrollo; se borró el vehículo de prueba, queda la cuenta `demo@ikrive.test`.
 - **Gate 2:** probado manualmente por el humano (alta, edición, borrado y actualización de km) y aprobado.
+
+## 2026-10-15 — #10 localize-zod-messages
+
+- **Rama:** `feat/localize-zod-messages` (`sdd: false`, sin spec; guiada por los `acceptance`). Añadida a petición del humano para ir antes de #7, a partir del aviso 1 de la revisión de #6.
+- **Cambios:** `apps/web/src/i18n/zod.ts` registra un `customError` global (`z.config`) que traduce cada issue de zod con claves `validation.*` de es/en (sin los locales de zod, demasiado técnicos; fallback `validation.invalid`, nunca el inglés por defecto). Se activa una vez desde `i18n/index.ts` y lee el idioma activo en cada validación, así que cubre todos los formularios y los esquemas de `@ikrive/shared` sin tocarlos.
+- **Tests:** `i18n/zod.test.ts` (mapa de issues, cambio de idioma, esquemas compartidos), test de componente en `odometer-form.test.tsx` (es → `changeLanguage('en')` → en) y textos exactos en `maintenance-form.test.tsx`. Web 67 tests. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED (`progress/review_localize-zod-messages.md`). Avisos no bloqueantes: fecha de compra inválida da el mensaje genérico (`invalid_union`); moneda vacía da «exactamente 3 caracteres»; un error ya visible no cambia de idioma hasta revalidar.
+- **Gate 2:** el humano detectó que el idioma elegido en Ajustes no se mantiene al recargar (fallo previo: `i18n/index.ts` solo usa `navigator.language`); se abre como feature aparte. Merge aprobado.

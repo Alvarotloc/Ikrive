@@ -100,7 +100,10 @@ describe('MaintenanceFormDialog', () => {
     await user.type(screen.getByLabelText(label.odometer), 'mucho');
     await user.click(screen.getByRole('button', { name: 'Guardar' }));
 
-    expect(await screen.findAllByRole('alert')).toHaveLength(2);
+    expect((await screen.findAllByRole('alert')).map((alert) => alert.textContent)).toEqual([
+      'Introduce un número válido.',
+      'Este campo es obligatorio.',
+    ]);
     expect(screen.getByLabelText(label.title)).toHaveAttribute('aria-invalid', 'true');
     expect(screen.getByLabelText(label.odometer)).toHaveAttribute('aria-invalid', 'true');
     expect(screen.getByLabelText(label.date)).toHaveAttribute('aria-invalid', 'false');
