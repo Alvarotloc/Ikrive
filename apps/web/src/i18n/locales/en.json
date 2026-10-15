@@ -235,5 +235,44 @@
       "backwards": "The mileage can't be lower than an earlier reading or higher than a later one.",
       "future": "The date can't be in the future."
     }
+  },
+  "maintenance": {
+    "title": "Maintenance",
+    "add": "Add maintenance",
+    "edit": "Edit maintenance",
+    "empty": "No maintenance recorded yet.",
+    "filterLabel": "Filter by category",
+    "all": "All",
+    "created": "Maintenance added",
+    "updated": "Maintenance updated",
+    "deleted": "Maintenance deleted",
+    "deleteTitle": "Delete “{{title}}”?",
+    "deleteDescription": "The record and its mileage reading will be erased. This can't be undone.",
+    "editLabel": "Edit “{{title}}”",
+    "deleteLabel": "Delete “{{title}}”",
+    "fields": {
+      "date": "Date",
+      "odometer": "Mileage ({{unit}})",
+      "category": "Category",
+      "title": "Title",
+      "workshop": "Workshop",
+      "cost": "Cost ({{currency}})",
+      "description": "Description",
+      "includeInReport": "Include in the report"
+    },
+    "categories": {
+      "oil_change": "Oil",
+      "tires": "Tires",
+      "brakes": "Brakes",
+      "inspection": "Inspection",
+      "repair": "Repair",
+      "filters": "Filters",
+      "battery": "Battery",
+      "other": "Other"
+    },
+    "errors": {
+      "odometerConflict": "The mileage doesn't fit the vehicle's readings: it can't be lower than an earlier one or higher than a later one.",
+      "future": "The date can't be in the future."
+    }
   }
 }

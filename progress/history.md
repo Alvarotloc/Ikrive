@@ -33,3 +33,12 @@
 - **Tests:** `odometer-form.test.tsx` (409 → error en el campo) y `form-field.test.tsx` (`role="alert"`). Web 18 tests. `pnpm harness --full` en verde.
 - **Revisión:** APPROVED (`progress/review_web-component-testing.md`), con re-revisión tras Gate 2. Avisos no bloqueantes: el test de `OdometerForm` localiza la petición por URL en texto; `packages/shared` sigue con `--passWithNoTests`.
 - **Gate 2:** el humano pidió quitar `--passWithNoTests` y aprobó el merge.
+
+## 2026-10-15 — #6 maintenance-timeline-web
+
+- **Rama:** `feat/maintenance-timeline-web` (spec en `specs/maintenance-timeline-web/`, 22 R / 14 T). El spec se revisó antes de Gate 1 para usar tests de componente tras #9.
+- **Cambios:** `apps/web/src/features/maintenance/` con lógica pura (`timeline.ts`: orden, filtro, grupos por año; `form.ts`: esquema, payload y mapeo de errores), `queries.ts` (consulta y mutaciones que invalidan `vehicles.all`), `MaintenanceSection` (timeline, chips de categoría, borrado con `AlertDialog`, alta solo con vehículo activo) y `MaintenanceFormDialog` (alta y edición, 409 en el campo km). Namespace `maintenance.*` en es/en; la ficha precarga y monta la sección.
+- **Tests:** 13 unitarios, 2 de locales y 17 de componente (`maintenance-form.test.tsx`, `maintenance-timeline.test.tsx`). Web 50 tests. Capturas claro/oscuro/375 px. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED (`progress/review_maintenance-timeline-web.md`). Avisos no bloqueantes: los mensajes de validación de zod salen en inglés en todos los formularios (hueco transversal, candidato a feature propia).
+- **Incidencia:** el primer intento de capturas usó el `pnpm dev` del humano (:5174 → API :3000) y sembró datos en su BD de desarrollo; se borró el vehículo de prueba, queda la cuenta `demo@ikrive.test`.
+- **Gate 2:** probado manualmente por el humano (alta, edición, borrado y actualización de km) y aprobado.
