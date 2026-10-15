@@ -37,7 +37,7 @@ Ikrive es una aplicación open source y autoalojada (Docker) para gestionar tus 
 | 1. Fundaciones | ✅ Hecha |
 | 1b. Alineación visual con la landing | ✅ Hecha |
 | 2. Vehículos y odómetro | ✅ Hecha |
-| 3. Mantenimiento y adjuntos | ⏭️ Siguiente |
+| 3. Mantenimiento y adjuntos | 🚧 En curso (#4–5 hechas; faltan #6–8) |
 | 4. Reglas y alertas | Pendiente |
 | 5. Repostajes y estadísticas | Pendiente |
 | 6. Informe de venta | Pendiente |
