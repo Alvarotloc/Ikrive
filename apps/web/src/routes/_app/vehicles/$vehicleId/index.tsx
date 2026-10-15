@@ -6,6 +6,8 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { MaintenanceSection } from '@/features/maintenance/maintenance-timeline';
+import { maintenanceQuery } from '@/features/maintenance/queries';
 import { vehicleFullName, vehicleTitle } from '@/features/vehicles/display';
 import { Metric, Plate, VehiclePhoto, VehicleStatusBadge } from '@/features/vehicles/dossier';
 import { OdometerForm } from '@/features/vehicles/odometer-form';
@@ -21,6 +23,7 @@ export const Route = createFileRoute('/_app/vehicles/$vehicleId/')({
       await Promise.all([
         queryClient.ensureQueryData(vehicleQuery(vehicleId)),
         queryClient.ensureQueryData(odometerQuery(vehicleId)),
+        queryClient.ensureQueryData(maintenanceQuery(vehicleId)),
       ]);
     } catch (error) {
       if (error instanceof ApiError && error.problem.status === 404) throw notFound();
@@ -149,6 +152,8 @@ function VehiclePage() {
           </CardContent>
         </Card>
       </div>
+
+      <MaintenanceSection vehicle={vehicle} />
 
       <Card>
         <CardHeader>

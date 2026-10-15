@@ -235,5 +235,44 @@
       "backwards": "El kilometraje no puede ser menor que una lectura anterior ni mayor que una posterior.",
       "future": "La fecha no puede ser futura."
     }
+  },
+  "maintenance": {
+    "title": "Mantenimientos",
+    "add": "Añadir mantenimiento",
+    "edit": "Editar mantenimiento",
+    "empty": "Todavía no hay mantenimientos registrados.",
+    "filterLabel": "Filtrar por categoría",
+    "all": "Todas",
+    "created": "Mantenimiento añadido",
+    "updated": "Mantenimiento actualizado",
+    "deleted": "Mantenimiento eliminado",
+    "deleteTitle": "¿Eliminar «{{title}}»?",
+    "deleteDescription": "Se borrarán el registro y su lectura de kilómetros. No se puede deshacer.",
+    "editLabel": "Editar «{{title}}»",
+    "deleteLabel": "Eliminar «{{title}}»",
+    "fields": {
+      "date": "Fecha",
+      "odometer": "Kilometraje ({{unit}})",
+      "category": "Categoría",
+      "title": "Título",
+      "workshop": "Taller",
+      "cost": "Coste ({{currency}})",
+      "description": "Descripción",
+      "includeInReport": "Incluir en el informe"
+    },
+    "categories": {
+      "oil_change": "Aceite",
+      "tires": "Neumáticos",
+      "brakes": "Frenos",
+      "inspection": "Inspección",
+      "repair": "Reparación",
+      "filters": "Filtros",
+      "battery": "Batería",
+      "other": "Otros"
+    },
+    "errors": {
+      "odometerConflict": "El kilometraje no encaja con las lecturas del vehículo: no puede ser menor que una anterior ni mayor que una posterior.",
+      "future": "La fecha no puede ser futura."
+    }
   }
 }
