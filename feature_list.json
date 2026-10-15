@@ -140,6 +140,24 @@
       ],
       "sdd": false,
       "status": "done"
+    },
+    {
+      "id": 10,
+      "name": "localize-zod-messages",
+      "phase": "3",
+      "title": "Mensajes de validación localizados",
+      "description": "Los mensajes de validación de zod en el cliente salen en inglés por defecto. Se localizan en todos los formularios web siguiendo el idioma activo de i18next. Prioritaria: va antes de maintenance-attachments-web (#7). Origen: aviso 1 de progress/review_maintenance-timeline-web.md.",
+      "acceptance": [
+        "Con la UI en español, los errores de validación del cliente de todos los formularios (login, registro, ajustes, vehículo, odómetro y mantenimiento) se muestran en español; con la UI en inglés, en inglés",
+        "Al cambiar el idioma con i18next, los mensajes de validación siguientes salen en el nuevo idioma sin recargar",
+        "Los mensajes propios que añada el cliente (si los hay) están en es.json y en.json; no quedan mensajes por defecto de zod en inglés con la UI en español",
+        "La configuración de los mensajes vive en un único sitio de apps/web (p. ej. junto a src/i18n/) y no se repite en cada formulario",
+        "Los esquemas de @ikrive/shared y los mensajes de error de la API no cambian",
+        "Un test de componente verifica que un formulario (p. ej. MaintenanceFormDialog u OdometerForm) muestra en español el error de un campo obligatorio vacío y en inglés tras cambiar el idioma",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
+      "status": "in_progress"
     }
   ]
 }
