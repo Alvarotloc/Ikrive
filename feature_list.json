@@ -158,6 +158,24 @@
       ],
       "sdd": false,
       "status": "done"
+    },
+    {
+      "id": 11,
+      "name": "persist-user-locale",
+      "phase": "3",
+      "title": "Idioma del usuario persistente",
+      "description": "El idioma elegido en Ajustes solo se aplica en memoria: al recargar, i18n/index.ts vuelve a usar navigator.language. Se aplica el locale guardado en user_settings al cargar la app. Prioritaria: va antes de maintenance-attachments-web (#7). Detectada por el humano en Gate 2 de #10.",
+      "acceptance": [
+        "Con una sesión iniciada, al cargar o recargar cualquier página de la app, la interfaz usa el locale guardado en los ajustes del usuario (GET /api/settings), aunque el idioma del navegador sea otro",
+        "Cambiar el idioma en Ajustes y recargar mantiene el idioma elegido, también en los mensajes de validación y en el formato de números y fechas",
+        "El último idioma aplicado se recuerda en el navegador (localStorage, con try/catch) y se usa al arrancar antes de que respondan los ajustes, y también en login y registro sin sesión; sin valor guardado se sigue usando el idioma del navegador",
+        "La sincronización vive en un único sitio (p. ej. el layout _app o un hook de i18n) y no se repite por pantalla",
+        "No cambia la API ni @ikrive/shared",
+        "Un test de componente verifica que, con el navegador en español y unos ajustes con locale en, la app autenticada se muestra en inglés; y un test unitario cubre la elección del idioma inicial (localStorage, navegador, fallback)",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
+      "status": "in_progress"
     }
   ]
 }
