@@ -122,6 +122,24 @@
       ],
       "sdd": true,
       "status": "pending"
+    },
+    {
+      "id": 9,
+      "name": "web-component-testing",
+      "phase": "3",
+      "title": "Tests de componentes en la web",
+      "description": "Vitest con entorno DOM y Testing Library en apps/web para testear componentes React. Prioritaria: va antes de maintenance-timeline-web (#6), cuyo spec se ajustará después para incluir tests de componentes.",
+      "acceptance": [
+        "apps/web tiene devDependencies @testing-library/react, @testing-library/user-event, @testing-library/jest-dom y un entorno DOM (jsdom o happy-dom)",
+        "Los tests *.test.tsx de apps/web corren en entorno DOM y los *.test.ts existentes (p. ej. numbers.test.ts) siguen pasando",
+        "Existe un helper de render en apps/web/src/test/ que envuelve con QueryClientProvider e i18n y permite simular respuestas de la API (fetch) sin servidor",
+        "Un test de componente de ejemplo verifica que OdometerForm muestra el error de odómetro hacia atrás en el campo cuando la API responde 409",
+        "Un test de componente de ejemplo verifica que FormField muestra su error con role=\"alert\"",
+        "pnpm test y pnpm typecheck incluyen los tests de componentes y pasan en verde, también en CI",
+        "CONTRIBUTING.md y docs/verification.md explican cuándo escribir tests de componentes y dónde van"
+      ],
+      "sdd": false,
+      "status": "pending"
     }
   ]
 }
