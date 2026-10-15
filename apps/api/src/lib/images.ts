@@ -19,3 +19,17 @@ export async function toWebpPhoto(input: Buffer, maxSize = 1600): Promise<Buffer
     .webp({ quality: 80 })
     .toBuffer();
 }
+
+/** Resolves when the buffer decodes as an image; rejects otherwise (e.g. a valid signature with garbage). */
+export async function assertDecodableImage(input: Buffer): Promise<void> {
+  await sharp(input, { failOn: 'error' }).stats();
+}
+
+/** Thumbnail of an attachment: oriented, at most `size` px on its longest side, WebP without metadata. */
+export function toWebpThumbnail(input: Buffer, size = 320): Promise<Buffer> {
+  return sharp(input)
+    .rotate()
+    .resize({ width: size, height: size, fit: 'inside', withoutEnlargement: true })
+    .webp({ quality: 70 })
+    .toBuffer();
+}

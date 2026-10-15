@@ -8,6 +8,9 @@ import { createAuth } from './auth';
 import type { Config } from './config';
 import type { Db } from './db/client';
 import { createFileStorage } from './lib/storage';
+import { createAttachmentsRepository } from './modules/attachments/repository';
+import { attachmentsRoutes } from './modules/attachments/routes';
+import { createAttachmentsService } from './modules/attachments/service';
 import { healthRoutes } from './modules/health/routes';
 import { createMaintenanceRepository } from './modules/maintenance/repository';
 import { maintenanceRoutes } from './modules/maintenance/routes';
@@ -53,12 +56,27 @@ export async function buildApp({ config, db }: AppDeps) {
   // Composition root: wire repositories -> services -> routes.
   const storage = createFileStorage(uploadsPath(config));
   const settingsService = createSettingsService(createSettingsRepository(db));
+  const attachmentsRepo = createAttachmentsRepository(db);
   const vehiclesRepo = createVehiclesRepository(db);
-  const vehiclesService = createVehiclesService({ repo: vehiclesRepo, storage, settings: settingsService });
+  const maintenanceRepo = createMaintenanceRepository(db);
+  const vehiclesService = createVehiclesService({
+    repo: vehiclesRepo,
+    storage,
+    settings: settingsService,
+    attachments: attachmentsRepo,
+  });
   const maintenanceService = createMaintenanceService({
-    repo: createMaintenanceRepository(db),
+    repo: maintenanceRepo,
     vehicles: vehiclesRepo,
     settings: settingsService,
+    attachments: attachmentsRepo,
+    storage,
+  });
+  const attachmentsService = createAttachmentsService({
+    repo: attachmentsRepo,
+    maintenance: maintenanceRepo,
+    vehicles: vehiclesRepo,
+    storage,
   });
 
   await app.register(
@@ -68,6 +86,7 @@ export async function buildApp({ config, db }: AppDeps) {
       await api.register(settingsRoutes, { service: settingsService });
       await api.register(vehiclesRoutes, { service: vehiclesService });
       await api.register(maintenanceRoutes, { service: maintenanceService });
+      await api.register(attachmentsRoutes, { service: attachmentsService });
     },
     { prefix: '/api' },
   );

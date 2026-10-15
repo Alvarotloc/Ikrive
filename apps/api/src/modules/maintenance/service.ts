@@ -6,6 +6,8 @@ import {
 } from '@ikrive/shared';
 import { todayIn } from '../../lib/dates';
 import { BadRequestError, ConflictError, NotFoundError } from '../../lib/errors';
+import type { FileStorage } from '../../lib/storage';
+import type { AttachmentsRepository } from '../attachments/repository';
 import type { SettingsService } from '../settings/service';
 import type { VehiclesRepository } from '../vehicles/repository';
 import type { MaintenanceRecordRow, MaintenanceRepository, ReadingChange } from './repository';
@@ -14,6 +16,8 @@ interface MaintenanceServiceDeps {
   repo: MaintenanceRepository;
   vehicles: VehiclesRepository;
   settings: SettingsService;
+  attachments: AttachmentsRepository;
+  storage: FileStorage;
 }
 
 const toDto = (row: MaintenanceRecordRow): MaintenanceRecord => {
@@ -21,7 +25,13 @@ const toDto = (row: MaintenanceRecordRow): MaintenanceRecord => {
   return { ...fields, createdAt: createdAt.toISOString(), updatedAt: updatedAt.toISOString() };
 };
 
-export function createMaintenanceService({ repo, vehicles, settings }: MaintenanceServiceDeps) {
+export function createMaintenanceService({
+  repo,
+  vehicles,
+  settings,
+  attachments,
+  storage,
+}: MaintenanceServiceDeps) {
   /** Ownership check: other users' vehicles are reported as missing so their ids are not disclosed. */
   const requireVehicle = (userId: string, vehicleId: string) => {
     if (!vehicles.findOwned(userId, vehicleId)) throw new NotFoundError('Vehicle not found');
@@ -94,8 +104,12 @@ export function createMaintenanceService({ repo, vehicles, settings }: Maintenan
       return toDto(repo.update(record, input, reading));
     },
 
-    remove(userId: string, vehicleId: string, recordId: string) {
-      repo.delete(requireRecord(userId, vehicleId, recordId));
+    /** Deletes the record and its attachments: rows in the same transaction, files afterwards. */
+    async remove(userId: string, vehicleId: string, recordId: string) {
+      const record = requireRecord(userId, vehicleId, recordId);
+      const files = attachments.listByEntity('maintenance', record.id).map((row) => row.storageKey);
+      repo.delete(record);
+      for (const key of files) await storage.remove(key);
     },
   };
 }

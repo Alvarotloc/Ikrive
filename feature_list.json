@@ -72,7 +72,7 @@
         "apps/api/test/attachments.test.ts cubre subida, validación de tipo y tamaño, descarga, miniatura, borrado y autorización"
       ],
       "sdd": true,
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 6,

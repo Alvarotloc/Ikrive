@@ -64,7 +64,7 @@ export const maintenanceRoutes: FastifyPluginAsyncZod<{ service: MaintenanceServ
     { schema: { params: maintenanceRecordParamsSchema } },
     async (request, reply) => {
       const { id, recordId } = request.params;
-      service.remove(currentUser(request).id, id, recordId);
+      await service.remove(currentUser(request).id, id, recordId);
       return reply.status(204).send();
     },
   );

@@ -38,3 +38,9 @@ export class ConflictError extends AppError {
     super(409, 'Conflict', detail);
   }
 }
+
+export class UnsupportedMediaTypeError extends AppError {
+  constructor(detail?: string) {
+    super(415, 'Unsupported Media Type', detail);
+  }
+}

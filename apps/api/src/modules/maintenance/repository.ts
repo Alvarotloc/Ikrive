@@ -1,6 +1,6 @@
 import { and, desc, eq } from 'drizzle-orm';
 import type { Db } from '../../db/client';
-import { maintenanceRecords, odometerReadings } from '../../db/schema';
+import { attachments, maintenanceRecords, odometerReadings } from '../../db/schema';
 
 export type MaintenanceRecordRow = typeof maintenanceRecords.$inferSelect;
 export type NewMaintenanceRecordRow = typeof maintenanceRecords.$inferInsert;
@@ -85,9 +85,15 @@ export function createMaintenanceRepository(db: Db) {
         return updated;
       });
     },
-    /** Deletes a record together with its linked odometer reading. */
+    /**
+     * Deletes a record together with its linked odometer reading and its attachment rows
+     * (their files are removed by the service afterwards).
+     */
     delete(record: MaintenanceRecordRow) {
       db.transaction((tx) => {
+        tx.delete(attachments)
+          .where(and(eq(attachments.entityType, 'maintenance'), eq(attachments.entityId, record.id)))
+          .run();
         tx.delete(maintenanceRecords).where(eq(maintenanceRecords.id, record.id)).run();
         if (record.odometerReadingId) {
           tx.delete(odometerReadings).where(eq(odometerReadings.id, record.odometerReadingId)).run();

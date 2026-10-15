@@ -12,6 +12,7 @@ import { todayIn } from '../../lib/dates';
 import { BadRequestError, ConflictError, NotFoundError } from '../../lib/errors';
 import { toWebpPhoto } from '../../lib/images';
 import type { FileStorage } from '../../lib/storage';
+import type { AttachmentsRepository } from '../attachments/repository';
 import type { SettingsService } from '../settings/service';
 import type { OdometerReadingRow, VehicleRow, VehiclesRepository } from './repository';
 
@@ -19,6 +20,7 @@ interface VehiclesServiceDeps {
   repo: VehiclesRepository;
   storage: FileStorage;
   settings: SettingsService;
+  attachments: AttachmentsRepository;
 }
 
 const PHOTO_FOLDER = 'vehicles';
@@ -35,7 +37,7 @@ const readingToDto = ({ createdAt, ...reading }: OdometerReadingRow): OdometerRe
   createdAt: createdAt.toISOString(),
 });
 
-export function createVehiclesService({ repo, storage, settings }: VehiclesServiceDeps) {
+export function createVehiclesService({ repo, storage, settings, attachments }: VehiclesServiceDeps) {
   const toDto = (row: VehicleRow): Vehicle => {
     const { ownerId: _ownerId, photo: _photo, archivedAt, createdAt, updatedAt, ...fields } = row;
     const latest = repo.latestReading(row.id);
@@ -85,10 +87,13 @@ export function createVehiclesService({ repo, storage, settings }: VehiclesServi
       return toDto(repo.update(id, { ...changes, archivedAt }));
     },
 
+    /** Deletes the vehicle with the attachments of its maintenance records: rows first, files afterwards. */
     async remove(userId: string, id: string) {
       const vehicle = requireOwned(userId, id);
+      const files = attachments.listByVehicle(id).map((row) => row.storageKey);
       repo.delete(id);
       if (vehicle.photo) await storage.remove(vehicle.photo);
+      for (const key of files) await storage.remove(key);
     },
 
     async setPhoto(userId: string, id: string, upload: Buffer): Promise<Vehicle> {
