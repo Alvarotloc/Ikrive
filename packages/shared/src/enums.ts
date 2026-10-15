@@ -49,3 +49,11 @@ export type NotificationChannelType = (typeof NOTIFICATION_CHANNEL_TYPES)[number
 
 /** 0 = Sunday ... 6 = Saturday */
 export const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6] as const;
+
+/** Content types accepted as attachments (detected from the file bytes, not the declared type). */
+export const ATTACHMENT_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'] as const;
+export type AttachmentMimeType = (typeof ATTACHMENT_MIME_TYPES)[number];
+
+/** Entities that can own attachments (`attachments.entity_type`). */
+export const ATTACHMENT_ENTITY_TYPES = ['maintenance'] as const;
+export type AttachmentEntityType = (typeof ATTACHMENT_ENTITY_TYPES)[number];
