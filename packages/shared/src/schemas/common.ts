@@ -1,6 +1,22 @@
 import { z } from 'zod';
 import { USER_ROLES } from '../enums';
 
+/** Optional free text: blank strings are stored as null. */
+export const optionalText = (max: number, { upperCase = false } = {}) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .transform((value) => (upperCase ? value.toUpperCase() : value) || null)
+    .nullable()
+    .optional();
+
+/** Odometer value in the user's distance unit. */
+export const odometerValueSchema = z.number().int().min(0).max(9_999_999);
+
+/** Decimal amount in the user's currency. */
+export const moneySchema = z.number().min(0).max(1_000_000_000);
+
 export const idParamSchema = z.object({ id: z.string().min(1) });
 
 /** RFC 7807 problem details returned by the API on errors. */

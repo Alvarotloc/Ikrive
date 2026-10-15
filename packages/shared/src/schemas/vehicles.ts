@@ -1,21 +1,9 @@
 import { z } from 'zod';
 import { FUEL_TYPES, ODOMETER_SOURCES, VEHICLE_STATUSES, VEHICLE_TYPES } from '../enums';
+import { moneySchema, odometerValueSchema, optionalText } from './common';
 
 /** Calendar date without time, `YYYY-MM-DD`. Date-only values avoid time zone shifts. */
 export const isoDateSchema = z.iso.date();
-
-/** Optional free text: blank strings are stored as null. */
-const optionalText = (max: number, { upperCase = false } = {}) =>
-  z
-    .string()
-    .trim()
-    .max(max)
-    .transform((value) => (upperCase ? value.toUpperCase() : value) || null)
-    .nullable()
-    .optional();
-
-const odometerValueSchema = z.number().int().min(0).max(9_999_999);
-const moneySchema = z.number().min(0).max(1_000_000_000);
 
 const vehicleFieldsSchema = z.object({
   name: optionalText(60),
