@@ -52,7 +52,7 @@
         "apps/api/test/maintenance.test.ts cubre CRUD, sincronización con el odómetro y autorización"
       ],
       "sdd": true,
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 5,

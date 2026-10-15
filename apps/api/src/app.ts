@@ -9,6 +9,9 @@ import type { Config } from './config';
 import type { Db } from './db/client';
 import { createFileStorage } from './lib/storage';
 import { healthRoutes } from './modules/health/routes';
+import { createMaintenanceRepository } from './modules/maintenance/repository';
+import { maintenanceRoutes } from './modules/maintenance/routes';
+import { createMaintenanceService } from './modules/maintenance/service';
 import { meRoutes } from './modules/me/routes';
 import { createSettingsRepository } from './modules/settings/repository';
 import { settingsRoutes } from './modules/settings/routes';
@@ -50,9 +53,11 @@ export async function buildApp({ config, db }: AppDeps) {
   // Composition root: wire repositories -> services -> routes.
   const storage = createFileStorage(uploadsPath(config));
   const settingsService = createSettingsService(createSettingsRepository(db));
-  const vehiclesService = createVehiclesService({
-    repo: createVehiclesRepository(db),
-    storage,
+  const vehiclesRepo = createVehiclesRepository(db);
+  const vehiclesService = createVehiclesService({ repo: vehiclesRepo, storage, settings: settingsService });
+  const maintenanceService = createMaintenanceService({
+    repo: createMaintenanceRepository(db),
+    vehicles: vehiclesRepo,
     settings: settingsService,
   });
 
@@ -62,6 +67,7 @@ export async function buildApp({ config, db }: AppDeps) {
       await api.register(meRoutes);
       await api.register(settingsRoutes, { service: settingsService });
       await api.register(vehiclesRoutes, { service: vehiclesService });
+      await api.register(maintenanceRoutes, { service: maintenanceService });
     },
     { prefix: '/api' },
   );
