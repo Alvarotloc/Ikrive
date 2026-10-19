@@ -203,7 +203,8 @@
       "odometer": "Mileage",
       "perYear": "Yearly average",
       "perYearPending": "Needs a month of readings",
-      "sincePurchase": "Since purchase"
+      "sincePurchase": "Since purchase",
+      "maintenanceSpending": "Maintenance spending"
     },
     "actions": {
       "archive": "Archive",

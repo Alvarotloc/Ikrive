@@ -121,7 +121,7 @@
         "Un test de integración cubre la suma, el caso sin mantenimientos y la autorización"
       ],
       "sdd": true,
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 9,

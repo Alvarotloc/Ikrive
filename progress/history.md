@@ -66,3 +66,11 @@
 - **Tests:** API 42 (2 nuevos de `/api/config`), web 104 (unitarios de `attachments.ts` y tests de componente del diálogo, el alta y la timeline), shared 11. 16 capturas en claro, oscuro y 375 px, sin desbordamiento. `pnpm harness --full` en verde.
 - **Revisión:** APPROVED (`progress/review_maintenance-attachments-web.md`). Avisos no bloqueantes: los toasts de error por fichero salen al terminar la tanda; el diálogo de facturas se puede cerrar con una subida en curso; miniatura o icono se decide por `thumbnailUrl`; `AttachmentPicker` tiene una prop `context` no prevista en el diseño.
 - **Gate 2:** merge aprobado por el humano.
+
+## 2026-10-19 — #8 vehicle-maintenance-spending
+
+- **Rama:** `feat/vehicle-maintenance-spending` (SDD, spec en `specs/vehicle-maintenance-spending/`, 8 R / 13 T). Spec aprobado sin cambios en Gate 1.
+- **Cambios:** `maintenanceSpendingSchema` en shared; `GET /api/vehicles/:id/maintenance/spending` devuelve `{ total }` (suma con `total()` de SQLite, ignora costes nulos, redondeo a 2 decimales, 404 a vehículos ajenos). En la web, `MaintenanceSpendingMetric` es la cuarta métrica del expediente de la ficha (rejilla `sm:grid-cols-2 xl:grid-cols-4`), con la moneda del usuario; el 0 se muestra como importe. Se refresca por la invalidación existente de `vehicles.all`. Sin cambios de BD.
+- **Tests:** API 45 (3 nuevos: suma, cero, autorización), web 107 (3 de componente nuevos + invalidación en `maintenance-form.test.tsx`), shared 11. Capturas en claro, oscuro, 375 px, 1024 px y escritorio, sin desbordamiento. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED (`progress/review_vehicle-maintenance-spending.md`). Avisos no bloqueantes: la etiqueta «GASTO EN MANTENIMIENTO» ocupa dos líneas a 1024 px y escritorio; la prioridad de `/maintenance/spending` sobre `/:recordId` se comprueba de forma implícita; las capturas quedaron en el scratchpad efímero.
+- **Gate 2:** merge aprobado por el humano.

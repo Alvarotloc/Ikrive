@@ -1,4 +1,4 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import type { Db } from '../../db/client';
 import { attachments, maintenanceRecords, odometerReadings } from '../../db/schema';
 
@@ -23,6 +23,16 @@ export function createMaintenanceRepository(db: Db) {
         .where(eq(maintenanceRecords.vehicleId, vehicleId))
         .orderBy(desc(maintenanceRecords.date), desc(maintenanceRecords.createdAt))
         .all();
+    },
+    /** Sum of the vehicle's costs. SQLite `total()` skips NULLs and returns 0.0 without rows. */
+    sumCost(vehicleId: string): number {
+      return (
+        db
+          .select({ total: sql<number>`total(${maintenanceRecords.cost})` })
+          .from(maintenanceRecords)
+          .where(eq(maintenanceRecords.vehicleId, vehicleId))
+          .get()?.total ?? 0
+      );
     },
     find(vehicleId: string, id: string) {
       return db

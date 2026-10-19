@@ -10,6 +10,8 @@ export const queryKeys = {
     detail: (id: string) => ['vehicles', 'detail', id] as const,
     odometer: (id: string) => ['vehicles', 'detail', id, 'odometer'] as const,
     maintenance: (id: string) => ['vehicles', 'detail', id, 'maintenance'] as const,
+    /** Under `maintenance(id)`: saving or deleting a record refreshes it. */
+    maintenanceSpending: (id: string) => ['vehicles', 'detail', id, 'maintenance', 'spending'] as const,
     /** Under `maintenance(id)`: creating or deleting a record already invalidates them. */
     attachments: (id: string, recordId: string) =>
       ['vehicles', 'detail', id, 'maintenance', recordId, 'attachments'] as const,

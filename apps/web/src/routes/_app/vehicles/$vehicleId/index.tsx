@@ -6,8 +6,9 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { MaintenanceSpendingMetric } from '@/features/maintenance/maintenance-spending';
 import { MaintenanceSection } from '@/features/maintenance/maintenance-timeline';
-import { maintenanceQuery } from '@/features/maintenance/queries';
+import { maintenanceQuery, maintenanceSpendingQuery } from '@/features/maintenance/queries';
 import { vehicleFullName, vehicleTitle } from '@/features/vehicles/display';
 import { Metric, Plate, VehiclePhoto, VehicleStatusBadge } from '@/features/vehicles/dossier';
 import { OdometerForm } from '@/features/vehicles/odometer-form';
@@ -24,6 +25,7 @@ export const Route = createFileRoute('/_app/vehicles/$vehicleId/')({
         queryClient.ensureQueryData(vehicleQuery(vehicleId)),
         queryClient.ensureQueryData(odometerQuery(vehicleId)),
         queryClient.ensureQueryData(maintenanceQuery(vehicleId)),
+        queryClient.ensureQueryData(maintenanceSpendingQuery(vehicleId)),
       ]);
     } catch (error) {
       if (error instanceof ApiError && error.problem.status === 404) throw notFound();
@@ -81,7 +83,7 @@ function VehiclePage() {
               </div>
               <VehicleStatusBadge vehicle={vehicle} />
             </div>
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <Metric
                 label={t('vehicles.metrics.odometer')}
                 value={vehicle.odometer ? format.distance(vehicle.odometer.value) : '—'}
@@ -101,6 +103,7 @@ function VehiclePage() {
                 }
                 hint={vehicle.purchaseDate && format.date(vehicle.purchaseDate)}
               />
+              <MaintenanceSpendingMetric vehicleId={vehicleId} />
             </div>
           </div>
         </div>
