@@ -39,6 +39,7 @@ function client(app: TestApp, cookie: string, vehicleId: string) {
       app.inject({ method: 'PATCH', url: `${base}/maintenance/${recordId}`, headers, payload }),
     remove: (recordId: string) =>
       app.inject({ method: 'DELETE', url: `${base}/maintenance/${recordId}`, headers }),
+    spending: () => app.inject({ method: 'GET', url: `${base}/maintenance/spending`, headers }),
     addReading: (date: string, value: number) =>
       app.inject({ method: 'POST', url: `${base}/odometer`, headers, payload: { date, value } }),
     readings: async () =>
@@ -321,5 +322,62 @@ describe('maintenance records', () => {
     expect((await ownerApi.get(record.id)).json()).toEqual(record);
     expect(await ownerApi.readings()).toHaveLength(1);
     expect((await intruderApi.get(intruderRecord.id)).json()).toEqual(intruderRecord);
+  });
+});
+
+describe('maintenance spending', () => {
+  it("sums the costs of the vehicle's records", async () => {
+    const { app, cookie, api } = await setup();
+    const first = (await api.create({ ...oilChange, cost: 10.1 })).json();
+    const second = (
+      await api.create({ date: '2025-06-01', category: 'tires', title: 'Neumáticos', cost: 20.2 })
+    ).json();
+    await api.create({ date: '2025-07-01', category: 'inspection', title: 'ITV', cost: null });
+    const otherVehicle = await createVehicle(app, cookie);
+    await client(app, cookie, otherVehicle.id).create({ ...oilChange, cost: 500 });
+
+    const response = await api.spending();
+    expect(response.statusCode).toBe(200);
+    // 10.1 + 20.2 is 30.299999999999997 in floating point: the API rounds to cents.
+    expect(response.json()).toEqual({ total: 30.3 });
+
+    expect((await api.patch(first.id, { cost: 15.55 })).statusCode).toBe(200);
+    expect((await api.spending()).json()).toEqual({ total: 35.75 });
+
+    expect((await api.remove(second.id)).statusCode).toBe(204);
+    expect((await api.spending()).json()).toEqual({ total: 15.55 });
+  });
+
+  it('returns zero without records with cost', async () => {
+    const { api } = await setup();
+    const empty = await api.spending();
+    expect(empty.statusCode).toBe(200);
+    expect(empty.json()).toEqual({ total: 0 });
+
+    await api.create(oilChange);
+    const withoutCost = await api.spending();
+    expect(withoutCost.statusCode).toBe(200);
+    expect(withoutCost.json()).toEqual({ total: 0 });
+  });
+
+  it("hides other users' spending", async () => {
+    const { app } = await createTestApp();
+    const owner = await signUp(app, 'owner@example.com');
+    const intruder = await signUp(app, 'intruder@example.com');
+    const vehicle = await createVehicle(app, owner.cookie);
+    await client(app, owner.cookie, vehicle.id).create({ ...oilChange, cost: 89.9 });
+
+    for (const vehicleId of [vehicle.id, 'missing-vehicle']) {
+      const response = await client(app, intruder.cookie, vehicleId).spending();
+      expect(response.statusCode).toBe(404);
+      expect(response.headers['content-type']).toContain('application/problem+json');
+      expect(response.json().detail).toBe('Vehicle not found');
+    }
+
+    const anonymous = await app.inject({
+      method: 'GET',
+      url: `/api/vehicles/${vehicle.id}/maintenance/spending`,
+    });
+    expect(anonymous.statusCode).toBe(401);
   });
 });
