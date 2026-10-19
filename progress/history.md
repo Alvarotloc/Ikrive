@@ -58,3 +58,11 @@
 - **Tests:** `i18n/locale.test.ts` (elección del idioma inicial) y `use-user-locale.test.tsx` (navegador en es + ajustes en en → inglés). Web 75 tests. `pnpm harness --full` en verde.
 - **Revisión:** APPROVED (`progress/review_persist-user-locale.md`). Avisos no bloqueantes: en la primera carga sin valor guardado se ve un instante el idioma del navegador; el try/catch del almacenamiento no tiene test propio; `test/setup.ts` escribe `ikrive.locale` en el localStorage de jsdom.
 - **Gate 2:** merge aprobado por el humano.
+
+## 2026-10-19 — #7 maintenance-attachments-web
+
+- **Rama:** `feat/maintenance-attachments-web` (SDD, spec en `specs/maintenance-attachments-web/`). En Gate 1 el humano pidió una revisión del spec: adjuntar facturas en el alta, que la web conozca el límite en MB y confirmar la subida en serie. La previsualización sin descargar pasa a la feature #12 `attachment-preview`.
+- **Cambios:** `GET /api/config` (con sesión) devuelve `{ maxUploadMb }` (`clientConfigSchema` en shared). En la web, `MaintenanceAttachmentsDialog` se abre con el clip de cada fila de la timeline: miniatura o icono PDF que enlaza al original, subida múltiple en serie, borrado con confirmación y toasts por fichero para 415, 413 y el resto. `AttachmentPicker` y `useAttachmentUpload` se comparten con el formulario de alta: allí se eligen facturas que se suben tras crear el mantenimiento; si alguna falla, el mantenimiento se queda y se avisa para reintentar. Los ficheros que superan el límite se descartan en cliente. En móvil, los iconos de la fila pasan a la línea del badge.
+- **Tests:** API 42 (2 nuevos de `/api/config`), web 104 (unitarios de `attachments.ts` y tests de componente del diálogo, el alta y la timeline), shared 11. 16 capturas en claro, oscuro y 375 px, sin desbordamiento. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED (`progress/review_maintenance-attachments-web.md`). Avisos no bloqueantes: los toasts de error por fichero salen al terminar la tanda; el diálogo de facturas se puede cerrar con una subida en curso; miniatura o icono se decide por `thumbnailUrl`; `AttachmentPicker` tiene una prop `context` no prevista en el diseño.
+- **Gate 2:** merge aprobado por el humano.
