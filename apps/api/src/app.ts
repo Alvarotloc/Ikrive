@@ -11,6 +11,7 @@ import { createFileStorage } from './lib/storage';
 import { createAttachmentsRepository } from './modules/attachments/repository';
 import { attachmentsRoutes } from './modules/attachments/routes';
 import { createAttachmentsService } from './modules/attachments/service';
+import { clientConfigRoutes } from './modules/client-config/routes';
 import { healthRoutes } from './modules/health/routes';
 import { createMaintenanceRepository } from './modules/maintenance/repository';
 import { maintenanceRoutes } from './modules/maintenance/routes';
@@ -82,6 +83,7 @@ export async function buildApp({ config, db }: AppDeps) {
   await app.register(
     async (api) => {
       await api.register(healthRoutes);
+      await api.register(clientConfigRoutes, { maxUploadMb: config.MAX_UPLOAD_MB });
       await api.register(meRoutes);
       await api.register(settingsRoutes, { service: settingsService });
       await api.register(vehiclesRoutes, { service: vehiclesService });
