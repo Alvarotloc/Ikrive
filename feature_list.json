@@ -107,7 +107,7 @@
         "Todos los textos están en es.json y en.json"
       ],
       "sdd": true,
-      "status": "pending"
+      "status": "in_progress"
     },
     {
       "id": 8,
@@ -176,6 +176,25 @@
       ],
       "sdd": false,
       "status": "done"
+    },
+    {
+      "id": 12,
+      "name": "attachment-preview",
+      "phase": "3",
+      "title": "Previsualización de facturas",
+      "description": "Ver una factura sin descargarla: las imágenes en un visor ampliado y los PDF en una pestaña con el visor del navegador. Hoy la API sirve los adjuntos siempre con Content-Disposition: attachment. Va después de maintenance-attachments-web (#7). Decidida por el humano en Gate 1 de #7.",
+      "acceptance": [
+        "La API permite servir un adjunto en línea (p. ej. GET .../attachments/:attachmentId?inline=1 con Content-Disposition: inline), manteniendo la descarga como comportamiento por defecto",
+        "La respuesta en línea es segura para contenido subido por el usuario en el mismo origen (X-Content-Type-Options: nosniff, mime validado por contenido y una CSP restrictiva para el fichero)",
+        "Solo el propietario puede ver un adjunto en línea (404 al resto)",
+        "Desde el diálogo de facturas, pulsar una imagen la abre ampliada en un visor dentro de la app, y pulsar un PDF lo abre en una pestaña nueva con el visor del navegador",
+        "Sigue existiendo una acción explícita para descargar el original",
+        "Todos los textos están en es.json y en.json",
+        "Tests de integración cubren la respuesta en línea y su autorización, y un test de componente cubre la apertura del visor",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
     }
   ]
 }
