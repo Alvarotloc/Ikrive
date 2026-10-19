@@ -43,3 +43,7 @@ export const maintenanceRecordSchema = z.object({
 export type MaintenanceRecord = z.infer<typeof maintenanceRecordSchema>;
 
 export const maintenanceRecordParamsSchema = z.object({ id: z.string().min(1), recordId: z.string().min(1) });
+
+/** Accumulated maintenance cost of a vehicle, in the user's currency, rounded to 2 decimals. */
+export const maintenanceSpendingSchema = z.object({ total: z.number().min(0) });
+export type MaintenanceSpending = z.infer<typeof maintenanceSpendingSchema>;
