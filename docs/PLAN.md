@@ -154,6 +154,7 @@ Los enums ya están definidos en `packages/shared/src/enums.ts`.
 - CRUD de mantenimientos con varias facturas (PDF o imagen) por registro, y miniaturas.
 - Timeline filtrable por categoría, con las etiquetas `Badge variant="stamp"`.
 - Validación de MIME y tamaño (`MAX_UPLOAD_MB`).
+- `GET /api/config` (autenticado) expone `maxUploadMb` para que la web muestre el límite y descarte antes de subir los ficheros que lo superan.
 
 ### Fase 4: reglas y alertas
 - `reminders.job` (diario):
