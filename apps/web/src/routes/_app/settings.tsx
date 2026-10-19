@@ -37,9 +37,9 @@ function SettingsPage() {
   const weekdays = t('weekdays', { returnObjects: true }) as string[];
 
   const onSubmit = form.handleSubmit(async (values) => {
+    // The authenticated layout applies the saved locale; the toast already speaks it.
     const saved = await update.mutateAsync(values);
-    await i18n.changeLanguage(saved.locale);
-    toast.success(t('settings.saved'));
+    toast.success(i18n.getFixedT(saved.locale)('settings.saved'));
   });
 
   return (

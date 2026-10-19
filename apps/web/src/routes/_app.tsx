@@ -5,6 +5,7 @@ import { Brand } from '@/components/brand';
 import { Button } from '@/components/ui/button';
 import { meQuery } from '@/features/auth/queries';
 import { settingsQuery } from '@/features/settings/queries';
+import { useUserLocale } from '@/features/settings/use-user-locale';
 import { authClient } from '@/lib/auth-client';
 
 export const Route = createFileRoute('/_app')({
@@ -13,7 +14,7 @@ export const Route = createFileRoute('/_app')({
     if (!me) throw redirect({ to: '/login' });
     return { me };
   },
-  // Units and currency used by the formatters; not awaited so navigation is never blocked by it.
+  // Locale, units and currency; not awaited so navigation is never blocked by it.
   loader: ({ context }) => {
     void context.queryClient.prefetchQuery(settingsQuery);
   },
@@ -31,6 +32,7 @@ function AppLayout() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { queryClient } = Route.useRouteContext();
+  useUserLocale();
 
   const logout = async () => {
     await authClient.signOut();
