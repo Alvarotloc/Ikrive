@@ -203,7 +203,8 @@
       "odometer": "Kilometraje",
       "perYear": "Media anual",
       "perYearPending": "Necesita un mes de lecturas",
-      "sincePurchase": "Desde la compra"
+      "sincePurchase": "Desde la compra",
+      "maintenanceSpending": "Gasto en mantenimiento"
     },
     "actions": {
       "archive": "Archivar",

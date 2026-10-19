@@ -2,6 +2,7 @@ import type {
   Attachment,
   CreateMaintenanceRecordInput,
   MaintenanceRecord,
+  MaintenanceSpending,
   UpdateMaintenanceRecordInput,
 } from '@ikrive/shared';
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -12,6 +13,12 @@ export const maintenanceQuery = (vehicleId: string) =>
   queryOptions({
     queryKey: queryKeys.vehicles.maintenance(vehicleId),
     queryFn: () => api.get<MaintenanceRecord[]>(`/vehicles/${vehicleId}/maintenance`),
+  });
+
+export const maintenanceSpendingQuery = (vehicleId: string) =>
+  queryOptions({
+    queryKey: queryKeys.vehicles.maintenanceSpending(vehicleId),
+    queryFn: () => api.get<MaintenanceSpending>(`/vehicles/${vehicleId}/maintenance/spending`),
   });
 
 /** Records create, move or delete their linked odometer reading: refresh the whole vehicle tree. */
