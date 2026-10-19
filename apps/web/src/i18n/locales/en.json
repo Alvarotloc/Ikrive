@@ -290,6 +290,31 @@
     "errors": {
       "odometerConflict": "The mileage doesn't fit the vehicle's readings: it can't be lower than an earlier one or higher than a later one.",
       "future": "The date can't be in the future."
+    },
+    "attachments": {
+      "open": "Invoices of “{{title}}”",
+      "title": "Invoices",
+      "sectionTitle": "Invoices",
+      "empty": "This maintenance has no invoices yet.",
+      "upload": "Upload invoices",
+      "add": "Add invoices",
+      "uploading": "Uploading…",
+      "uploadingInvoices": "Uploading invoices…",
+      "fileInput": "Choose invoices",
+      "help": "PDF, JPG, PNG or WebP · max. {{max}} MB",
+      "remove": "Remove “{{name}}”",
+      "uploaded_one": "{{count}} invoice uploaded",
+      "uploaded_other": "{{count}} invoices uploaded",
+      "retryHint": "Some invoices weren't uploaded. You can upload them again from the maintenance invoices.",
+      "deleted": "Invoice deleted",
+      "deleteLabel": "Delete “{{name}}”",
+      "deleteTitle": "Delete “{{name}}”?",
+      "deleteDescription": "The invoice file will be erased. This can't be undone.",
+      "errors": {
+        "type": "“{{name}}” isn't a supported type: only PDF, JPG, PNG or WebP.",
+        "size": "“{{name}}” is larger than the {{max}} MB limit.",
+        "sizeUnknownLimit": "“{{name}}” is larger than the allowed size."
+      }
     }
   }
 }

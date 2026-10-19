@@ -1,4 +1,5 @@
 import type {
+  Attachment,
   CreateMaintenanceRecordInput,
   MaintenanceRecord,
   UpdateMaintenanceRecordInput,
@@ -39,3 +40,36 @@ export const useDeleteMaintenance = (vehicleId: string) =>
   useMaintenanceMutation((recordId: string) =>
     api.delete<void>(`/vehicles/${vehicleId}/maintenance/${recordId}`),
   );
+
+const attachmentsPath = (vehicleId: string, recordId: string) =>
+  `/vehicles/${vehicleId}/maintenance/${recordId}/attachments`;
+
+export const attachmentsQuery = (vehicleId: string, recordId: string) =>
+  queryOptions({
+    queryKey: queryKeys.vehicles.attachments(vehicleId, recordId),
+    queryFn: () => api.get<Attachment[]>(attachmentsPath(vehicleId, recordId)),
+  });
+
+/** One file per request (the API takes a single `file` part). `recordId` is a variable: on create it comes later. */
+export function useUploadAttachment(vehicleId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ recordId, file }: { recordId: string; file: File }) => {
+      const body = new FormData();
+      body.append('file', file);
+      return api.post<Attachment>(attachmentsPath(vehicleId, recordId), body);
+    },
+    onSuccess: (_, { recordId }) =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.vehicles.attachments(vehicleId, recordId) }),
+  });
+}
+
+export function useDeleteAttachment(vehicleId: string, recordId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (attachmentId: string) =>
+      api.delete<void>(`${attachmentsPath(vehicleId, recordId)}/${attachmentId}`),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.vehicles.attachments(vehicleId, recordId) }),
+  });
+}

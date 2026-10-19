@@ -290,6 +290,31 @@
     "errors": {
       "odometerConflict": "El kilometraje no encaja con las lecturas del vehículo: no puede ser menor que una anterior ni mayor que una posterior.",
       "future": "La fecha no puede ser futura."
+    },
+    "attachments": {
+      "open": "Facturas de «{{title}}»",
+      "title": "Facturas",
+      "sectionTitle": "Facturas",
+      "empty": "Este mantenimiento todavía no tiene facturas.",
+      "upload": "Subir facturas",
+      "add": "Añadir facturas",
+      "uploading": "Subiendo…",
+      "uploadingInvoices": "Subiendo facturas…",
+      "fileInput": "Elegir facturas",
+      "help": "PDF, JPG, PNG o WebP · máx. {{max}} MB",
+      "remove": "Quitar «{{name}}»",
+      "uploaded_one": "{{count}} factura subida",
+      "uploaded_other": "{{count}} facturas subidas",
+      "retryHint": "Algunas facturas no se han subido. Puedes volver a subirlas desde las facturas del mantenimiento.",
+      "deleted": "Factura eliminada",
+      "deleteLabel": "Eliminar «{{name}}»",
+      "deleteTitle": "¿Eliminar «{{name}}»?",
+      "deleteDescription": "Se borrará el fichero de la factura. No se puede deshacer.",
+      "errors": {
+        "type": "«{{name}}» no es un tipo admitido: solo PDF, JPG, PNG o WebP.",
+        "size": "«{{name}}» supera el tamaño máximo de {{max}} MB.",
+        "sizeUnknownLimit": "«{{name}}» supera el tamaño máximo permitido."
+      }
     }
   }
 }
