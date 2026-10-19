@@ -236,6 +236,7 @@ describe('MaintenanceFormDialog', () => {
     const { user, queryClient } = rendered;
     queryClient.setQueryData(queryKeys.vehicles.detail('v1'), { id: 'v1' });
     queryClient.setQueryData(queryKeys.vehicles.maintenance('v1'), []);
+    queryClient.setQueryData(queryKeys.vehicles.maintenanceSpending('v1'), { total: 0 });
 
     await user.type(screen.getByLabelText(label.title), 'ITV');
     await user.click(screen.getByRole('button', { name: 'Guardar' }));
@@ -244,6 +245,7 @@ describe('MaintenanceFormDialog', () => {
     expect(requests(fetchMock, 'POST', '/vehicles/v1/maintenance')).toHaveLength(1);
     expect(queryClient.getQueryState(queryKeys.vehicles.detail('v1'))?.isInvalidated).toBe(true);
     expect(queryClient.getQueryState(queryKeys.vehicles.maintenance('v1'))?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(queryKeys.vehicles.maintenanceSpending('v1'))?.isInvalidated).toBe(true);
   });
 
   describe('invoices when creating', () => {
