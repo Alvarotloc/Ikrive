@@ -3,6 +3,7 @@ import {
   idParamSchema,
   maintenanceRecordParamsSchema,
   maintenanceRecordSchema,
+  maintenanceSpendingSchema,
   updateMaintenanceRecordSchema,
 } from '@ikrive/shared';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
@@ -33,6 +34,13 @@ export const maintenanceRoutes: FastifyPluginAsyncZod<{ service: MaintenanceServ
     },
     async (request, reply) =>
       reply.status(201).send(service.create(currentUser(request).id, request.params.id, request.body)),
+  );
+
+  // Static segment: find-my-way matches it before `/:recordId`.
+  app.get(
+    '/vehicles/:id/maintenance/spending',
+    { schema: { params: idParamSchema, response: { 200: maintenanceSpendingSchema } } },
+    async (request) => service.spending(currentUser(request).id, request.params.id),
   );
 
   app.get(
