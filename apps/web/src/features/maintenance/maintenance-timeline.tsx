@@ -1,6 +1,6 @@
 import type { MaintenanceRecord, Vehicle } from '@ikrive/shared';
 import { useSuspenseQuery } from '@tanstack/react-query';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { Paperclip, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -18,6 +18,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { useFormat } from '@/lib/format';
+import { MaintenanceAttachmentsDialog } from './maintenance-attachments';
 import { MaintenanceFormDialog } from './maintenance-form';
 import { maintenanceQuery, useDeleteMaintenance } from './queries';
 import {
@@ -39,6 +40,9 @@ export function MaintenanceSection({ vehicle }: { vehicle: Pick<Vehicle, 'id' | 
   const [selected, setSelected] = useState<CategoryFilter>('all');
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<MaintenanceRecord>();
+  // The record stays set after closing so the dialog can animate out.
+  const [attachmentsFor, setAttachmentsFor] = useState<MaintenanceRecord>();
+  const [attachmentsOpen, setAttachmentsOpen] = useState(false);
   const categories = availableCategories(records);
   const filter = resolveFilter(selected, categories);
   // The selected category lost its last record: go back to "all" for good.
@@ -89,6 +93,10 @@ export function MaintenanceSection({ vehicle }: { vehicle: Pick<Vehicle, 'id' | 
                       vehicleId={vehicle.id}
                       record={record}
                       onEdit={() => openForm(record)}
+                      onAttachments={() => {
+                        setAttachmentsFor(record);
+                        setAttachmentsOpen(true);
+                      }}
                     />
                   ))}
                 </ol>
@@ -103,6 +111,14 @@ export function MaintenanceSection({ vehicle }: { vehicle: Pick<Vehicle, 'id' | 
         open={formOpen}
         onOpenChange={setFormOpen}
       />
+      {attachmentsFor && (
+        <MaintenanceAttachmentsDialog
+          vehicleId={vehicle.id}
+          record={attachmentsFor}
+          open={attachmentsOpen}
+          onOpenChange={setAttachmentsOpen}
+        />
+      )}
     </Card>
   );
 }
@@ -111,16 +127,18 @@ function MaintenanceRow({
   vehicleId,
   record,
   onEdit,
+  onAttachments,
 }: {
   vehicleId: string;
   record: MaintenanceRecord;
   onEdit: () => void;
+  onAttachments: () => void;
 }) {
   const { t } = useTranslation();
   const format = useFormat();
   const details = [format.date(record.date), ...recordDetails(record, format)];
 
-  // On phones the badge goes above the title so the text keeps the full width.
+  // On phones the badge and the actions share the first line, so the text below keeps the full width.
   return (
     <li className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1.5 py-3 sm:grid-cols-[auto_1fr_auto]">
       <Badge
@@ -129,11 +147,20 @@ function MaintenanceRow({
       >
         {t(`maintenance.categories.${record.category}`)}
       </Badge>
-      <div className="col-start-1 row-start-2 min-w-0 sm:col-start-2 sm:row-start-1">
+      <div className="col-span-2 col-start-1 row-start-2 min-w-0 sm:col-span-1 sm:col-start-2 sm:row-start-1">
         <strong className="block font-semibold break-words">{record.title}</strong>
         <span className="text-sm break-words text-muted-foreground">{details.join(' · ')}</span>
       </div>
-      <div className="col-start-2 row-span-2 row-start-1 flex sm:col-start-3 sm:row-span-1">
+      <div className="col-start-2 row-start-1 flex sm:col-start-3">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-9"
+          onClick={onAttachments}
+          aria-label={t('maintenance.attachments.open', { title: record.title })}
+        >
+          <Paperclip aria-hidden />
+        </Button>
         <Button
           variant="ghost"
           size="icon"

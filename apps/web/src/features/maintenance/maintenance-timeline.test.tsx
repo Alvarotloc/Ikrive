@@ -217,6 +217,24 @@ describe('MaintenanceSection', () => {
     expect(calls(fetchMock, 'GET', '/vehicles/v1/maintenance')).toHaveLength(2);
   });
 
+  it('opens the attachments dialog of a record', async () => {
+    const { user, fetchMock } = setup({
+      'GET /vehicles/v1/maintenance': { body: [oil, brakes] },
+      'GET /vehicles/v1/maintenance/brakes/attachments': { body: [] },
+    });
+
+    await user.click(await screen.findByRole('button', { name: 'Facturas de «Pastillas»' }));
+
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByRole('heading', { name: 'Facturas' })).toBeInTheDocument();
+    expect(dialog).toHaveTextContent('Pastillas');
+    expect(
+      await within(dialog).findByText('Este mantenimiento todavía no tiene facturas.'),
+    ).toBeInTheDocument();
+    expect(calls(fetchMock, 'GET', '/vehicles/v1/maintenance/brakes/attachments')).toHaveLength(1);
+    expect(calls(fetchMock, 'GET', '/vehicles/v1/maintenance/oil/attachments')).toHaveLength(0);
+  });
+
   it('shows the generic error when deleting fails', async () => {
     const { user, fetchMock } = setup({
       'GET /vehicles/v1/maintenance': { body: [oil] },

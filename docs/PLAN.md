@@ -37,7 +37,7 @@ Ikrive es una aplicación open source y autoalojada (Docker) para gestionar tus 
 | 1. Fundaciones | ✅ Hecha |
 | 1b. Alineación visual con la landing | ✅ Hecha |
 | 2. Vehículos y odómetro | ✅ Hecha |
-| 3. Mantenimiento y adjuntos | 🚧 En curso (#4–5 hechas; faltan #6–8) |
+| 3. Mantenimiento y adjuntos | 🚧 En curso (#4–7 hechas; faltan #8 y #12) |
 | 4. Reglas y alertas | Pendiente |
 | 5. Repostajes y estadísticas | Pendiente |
 | 6. Informe de venta | Pendiente |
@@ -154,6 +154,7 @@ Los enums ya están definidos en `packages/shared/src/enums.ts`.
 - CRUD de mantenimientos con varias facturas (PDF o imagen) por registro, y miniaturas.
 - Timeline filtrable por categoría, con las etiquetas `Badge variant="stamp"`.
 - Validación de MIME y tamaño (`MAX_UPLOAD_MB`).
+- `GET /api/config` (autenticado) expone `maxUploadMb` para que la web muestre el límite y descarte antes de subir los ficheros que lo superan.
 
 ### Fase 4: reglas y alertas
 - `reminders.job` (diario):

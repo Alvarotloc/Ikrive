@@ -38,8 +38,14 @@ export interface MockResponse {
   body?: unknown;
 }
 
-/** A route handled by `mockApi`: method + path relative to `/api`, e.g. `POST /vehicles/v1/odometer`. */
-export type MockRoutes = Record<string, MockResponse | ((request: Request) => MockResponse)>;
+/**
+ * A route handled by `mockApi`: method + path relative to `/api`, e.g. `POST /vehicles/v1/odometer`.
+ * A function handler may return a promise, e.g. to hold a request in flight until the test resolves it.
+ */
+export type MockRoutes = Record<
+  string,
+  MockResponse | ((request: Request) => MockResponse | Promise<MockResponse>)
+>;
 
 /**
  * Replaces the global `fetch` with a stub that answers the given API routes without a server.
@@ -53,7 +59,7 @@ export function mockApi(routes: MockRoutes) {
     const route = routes[`${request.method} ${path}`];
     const { status = 200, body } =
       typeof route === 'function'
-        ? route(request)
+        ? await route(request)
         : (route ?? { status: 404, body: { type: 'about:blank', title: 'Not Found', status: 404 } });
     const contentType = status >= 400 ? 'application/problem+json' : 'application/json';
     return body === undefined

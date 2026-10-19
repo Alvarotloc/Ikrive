@@ -1,6 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { DEFAULT_USER_SETTINGS, MAINTENANCE_CATEGORIES, type MaintenanceRecord } from '@ikrive/shared';
 import { useQuery } from '@tanstack/react-query';
+import { FileText, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -12,6 +14,7 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { settingsQuery } from '@/features/settings/queries';
 import { todayIso, useFormat } from '@/lib/format';
+import { AttachmentPicker } from './attachment-picker';
 import {
   defaultsFrom,
   formErrorFor,
@@ -20,6 +23,7 @@ import {
   maintenanceFormSchema,
 } from './form';
 import { useCreateMaintenance, useUpdateMaintenance } from './queries';
+import { useAttachmentUpload } from './use-attachment-upload';
 
 interface MaintenanceFormDialogProps {
   vehicleId: string;
@@ -32,12 +36,20 @@ interface MaintenanceFormDialogProps {
 /** Create or edit a maintenance record in a dialog. */
 export function MaintenanceFormDialog({ vehicleId, record, open, onOpenChange }: MaintenanceFormDialogProps) {
   const { t } = useTranslation();
+  // While saving (and uploading the invoices of a new record) Escape, outside clicks and Cancel are
+  // ignored: closing would unmount the form and lose the toasts of the rest of the batch.
+  const [busy, setBusy] = useState(false);
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(next) => (next || !busy) && onOpenChange(next)}>
       <DialogContent className="max-h-[90dvh] max-w-lg overflow-y-auto" aria-describedby={undefined}>
         <DialogTitle>{record ? t('maintenance.edit') : t('maintenance.add')}</DialogTitle>
         {/* Mounted only while open, so every opening starts from fresh values. */}
-        <MaintenanceForm vehicleId={vehicleId} record={record} onDone={() => onOpenChange(false)} />
+        <MaintenanceForm
+          vehicleId={vehicleId}
+          record={record}
+          onBusyChange={setBusy}
+          onDone={() => onOpenChange(false)}
+        />
       </DialogContent>
     </Dialog>
   );
@@ -46,10 +58,12 @@ export function MaintenanceFormDialog({ vehicleId, record, open, onOpenChange }:
 function MaintenanceForm({
   vehicleId,
   record,
+  onBusyChange,
   onDone,
 }: {
   vehicleId: string;
   record: MaintenanceRecord | undefined;
+  onBusyChange: (busy: boolean) => void;
   onDone: () => void;
 }) {
   const { t } = useTranslation();
@@ -57,11 +71,19 @@ function MaintenanceForm({
   const { data: settings = DEFAULT_USER_SETTINGS } = useQuery(settingsQuery);
   const create = useCreateMaintenance(vehicleId);
   const update = useUpdateMaintenance(vehicleId);
+  const { maxUploadMb, acceptFiles, uploadFiles } = useAttachmentUpload(vehicleId);
+  /** Invoices chosen while creating, uploaded once the record exists. The same file may be chosen twice. */
+  const [pending, setPending] = useState<{ key: number; file: File }[]>([]);
+  const nextKey = useRef(0);
+  const [uploadingInvoices, setUploadingInvoices] = useState(false);
   const form = useForm<MaintenanceFormInput, unknown, MaintenanceFormValues>({
     resolver: zodResolver(maintenanceFormSchema),
     defaultValues: defaultsFrom(record),
   });
   const { errors, isSubmitting } = form.formState;
+
+  useEffect(() => onBusyChange(isSubmitting), [isSubmitting, onBusyChange]);
+  useEffect(() => () => onBusyChange(false), [onBusyChange]);
   const field = (name: keyof MaintenanceFormInput) => ({
     id: `maintenance-${name}`,
     label: t(`maintenance.fields.${name}`, { unit: distanceUnit, currency: settings.currency }),
@@ -73,20 +95,40 @@ function MaintenanceForm({
     ...form.register(name),
   });
 
+  const showError = (cause: unknown) => {
+    const error = formErrorFor(cause);
+    form.setError(error.field, { message: t(error.messageKey) });
+  };
+
   const onSubmit = form.handleSubmit(async (values) => {
-    try {
-      if (record) {
+    if (record) {
+      try {
         await update.mutateAsync({ recordId: record.id, changes: values });
-        toast.success(t('maintenance.updated'));
-      } else {
-        await create.mutateAsync(values);
-        toast.success(t('maintenance.created'));
+      } catch (cause) {
+        return showError(cause);
       }
-      onDone();
-    } catch (cause) {
-      const error = formErrorFor(cause);
-      form.setError(error.field, { message: t(error.messageKey) });
+      toast.success(t('maintenance.updated'));
+      return onDone();
     }
+
+    let created: MaintenanceRecord;
+    try {
+      created = await create.mutateAsync(values);
+    } catch (cause) {
+      // Nothing is uploaded when the record could not be created.
+      return showError(cause);
+    }
+    toast.success(t('maintenance.created'));
+    if (pending.length > 0) {
+      setUploadingInvoices(true);
+      const { failed } = await uploadFiles(
+        created.id,
+        pending.map(({ file }) => file),
+      );
+      if (failed > 0) toast(t('maintenance.attachments.retryHint'));
+    }
+    // Always close: the record exists, and staying open would invite saving it twice.
+    onDone();
   });
 
   return (
@@ -122,6 +164,45 @@ function MaintenanceForm({
       <FormField {...field('description')}>
         <Textarea {...input('description')} />
       </FormField>
+      {!record && (
+        <fieldset className="grid gap-2">
+          <legend className="mb-2 text-sm leading-none font-semibold">
+            {t('maintenance.attachments.sectionTitle')}
+          </legend>
+          <AttachmentPicker
+            context="create"
+            maxUploadMb={maxUploadMb}
+            disabled={isSubmitting}
+            onFiles={(files) => {
+              const chosen = acceptFiles(files).map((file) => ({ key: nextKey.current++, file }));
+              setPending((current) => [...current, ...chosen]);
+            }}
+          />
+          {pending.length > 0 && (
+            <ul className="grid gap-1">
+              {pending.map(({ key, file }) => (
+                <li key={key} className="flex min-w-0 items-center gap-2 rounded-md border px-3 py-1">
+                  <FileText aria-hidden className="size-4 shrink-0 text-muted-foreground" />
+                  <span className="min-w-0 flex-1 truncate text-sm" title={file.name}>
+                    {file.name}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-9 shrink-0"
+                    disabled={isSubmitting}
+                    aria-label={t('maintenance.attachments.remove', { name: file.name })}
+                    onClick={() => setPending((current) => current.filter((chosen) => chosen.key !== key))}
+                  >
+                    <X aria-hidden />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </fieldset>
+      )}
       <label className="flex items-center gap-3 text-sm font-semibold">
         <input
           type="checkbox"
@@ -142,7 +223,7 @@ function MaintenanceForm({
           </Button>
         </DialogClose>
         <Button type="submit" disabled={isSubmitting}>
-          {t('common.save')}
+          {uploadingInvoices ? t('maintenance.attachments.uploadingInvoices') : t('common.save')}
         </Button>
       </DialogFooter>
     </form>

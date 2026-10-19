@@ -42,3 +42,10 @@ export const meSchema = z.object({
   role: z.enum(USER_ROLES),
 });
 export type Me = z.infer<typeof meSchema>;
+
+/** Read-only server configuration the SPA needs (`GET /api/config`). */
+export const clientConfigSchema = z.object({
+  /** Largest file the API accepts in an upload, in MB (`MAX_UPLOAD_MB`). */
+  maxUploadMb: z.number().int().positive(),
+});
+export type ClientConfig = z.infer<typeof clientConfigSchema>;
