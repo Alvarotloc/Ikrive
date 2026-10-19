@@ -50,3 +50,11 @@
 - **Tests:** `i18n/zod.test.ts` (mapa de issues, cambio de idioma, esquemas compartidos), test de componente en `odometer-form.test.tsx` (es → `changeLanguage('en')` → en) y textos exactos en `maintenance-form.test.tsx`. Web 67 tests. `pnpm harness --full` en verde.
 - **Revisión:** APPROVED (`progress/review_localize-zod-messages.md`). Avisos no bloqueantes: fecha de compra inválida da el mensaje genérico (`invalid_union`); moneda vacía da «exactamente 3 caracteres»; un error ya visible no cambia de idioma hasta revalidar.
 - **Gate 2:** el humano detectó que el idioma elegido en Ajustes no se mantiene al recargar (fallo previo: `i18n/index.ts` solo usa `navigator.language`); se abre como feature aparte. Merge aprobado.
+
+## 2026-10-19 — #11 persist-user-locale
+
+- **Rama:** `feat/persist-user-locale` (`sdd: false`, sin spec; guiada por los `acceptance`). Abierta por el humano en Gate 2 de #10: el idioma elegido en Ajustes se perdía al recargar.
+- **Cambios:** `apps/web/src/i18n/locale.ts` (`pickInitialLocale`: localStorage válido → navegador → `es`; `getStoredLocale`/`storeLocale` con try/catch, clave `ikrive.locale`); `i18n/index.ts` arranca con ese idioma y guarda cada `languageChanged`; hook `features/settings/use-user-locale.ts` en el layout `_app` aplica `settings.locale` cuando llegan o cambian los ajustes; Ajustes ya no llama a `changeLanguage` y el toast usa `getFixedT(saved.locale)`.
+- **Tests:** `i18n/locale.test.ts` (elección del idioma inicial) y `use-user-locale.test.tsx` (navegador en es + ajustes en en → inglés). Web 75 tests. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED (`progress/review_persist-user-locale.md`). Avisos no bloqueantes: en la primera carga sin valor guardado se ve un instante el idioma del navegador; el try/catch del almacenamiento no tiene test propio; `test/setup.ts` escribe `ikrive.locale` en el localStorage de jsdom.
+- **Gate 2:** merge aprobado por el humano.
