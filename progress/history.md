@@ -74,3 +74,11 @@
 - **Tests:** API 45 (3 nuevos: suma, cero, autorización), web 107 (3 de componente nuevos + invalidación en `maintenance-form.test.tsx`), shared 11. Capturas en claro, oscuro, 375 px, 1024 px y escritorio, sin desbordamiento. `pnpm harness --full` en verde.
 - **Revisión:** APPROVED (`progress/review_vehicle-maintenance-spending.md`). Avisos no bloqueantes: la etiqueta «GASTO EN MANTENIMIENTO» ocupa dos líneas a 1024 px y escritorio; la prioridad de `/maintenance/spending` sobre `/:recordId` se comprueba de forma implícita; las capturas quedaron en el scratchpad efímero.
 - **Gate 2:** merge aprobado por el humano.
+
+## 2026-10-20 — #12 attachment-preview
+
+- **Rama:** `feat/attachment-preview` (SDD, spec en `specs/attachment-preview/`, 17 R / 11 T). Spec aprobado sin cambios en Gate 1, incluida la CSP del PDF sin `sandbox`.
+- **Cambios:** `attachmentFileQuerySchema` en shared. `GET …/attachments/:attachmentId?inline=1` sirve el adjunto con `Content-Disposition: inline`; sin query o con `inline=0` sigue descargando, y cualquier otro valor da 400. `userContentPolicy` fija una CSP por tipo que sustituye a la de helmet: las imágenes llevan `sandbox`; los PDF no lo llevan y tienen `object-src 'self'` para que Chrome muestre su visor. `nosniff` va explícito en la ruta. CSP y `nosniff` se aplican también a la descarga. En la web, `AttachmentViewer` abre las imágenes en un `Dialog` anidado; los PDF se abren en una pestaña nueva (`noopener noreferrer`) y cada tarjeta y el visor tienen un botón «Descargar». Sin cambios de BD.
+- **Tests:** API 50, web 112, shared 11. Verificado en Chrome 151 y Firefox 156 (headless): el PDF y las imágenes se ven con las CSP finales. Capturas en claro, oscuro y 375 px, sin desbordamiento. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED (`progress/review_attachment-preview.md`). Avisos no bloqueantes: el PDF sin `sandbox` es la capa más débil (moverlo a un segundo origen si algún día existe); el foco se devuelve a mano al cerrar el visor; con `inline` inválido y sin sesión se responde 400 antes que 401; el nombre de un test de la lista quedó desfasado.
+- **Gate 2:** merge aprobado por el humano. Cierra la fase 3.

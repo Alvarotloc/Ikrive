@@ -27,6 +27,7 @@ Ikrive es una aplicación open source y autoalojada (Docker) para gestionar tus 
 - **Autorización por propiedad:** un recurso de otro usuario responde 404 (no 403) para no revelar que existe.
 - **Desarrollo guiado por specs** (desde la fase 3): cada feature pasa por spec (EARS) → aprobación humana → implementación → review → aprobación humana → merge `--no-ff` de su rama `feat/<name>` a `main`. El backlog vive en `feature_list.json` y el proceso en [docs/sdd.md](sdd.md).
 - **Fotos de vehículos:** se reescalan a 1600 px y se recodifican a WebP con `sharp`, lo que elimina el EXIF (GPS). Se guardan en `/data/uploads/vehicles/<uuid>.webp` y se sirven por `GET /api/vehicles/:id/photo?v=…` (inmutable, con control de acceso).
+- **Adjuntos en línea:** `GET …/attachments/:id?inline=1` sirve la factura para verla en el navegador (por defecto se descarga). Como es contenido de usuario en el mismo origen, la respuesta lleva `nosniff` y una CSP por tipo: `sandbox` para imágenes; para PDF, sin `sandbox` y con `object-src 'self'`, porque Chrome no abre su visor en documentos aislados. Si algún día hay un origen aparte para contenido de usuario, conviene servirlos desde ahí.
 
 ---
 
@@ -37,7 +38,7 @@ Ikrive es una aplicación open source y autoalojada (Docker) para gestionar tus 
 | 1. Fundaciones | ✅ Hecha |
 | 1b. Alineación visual con la landing | ✅ Hecha |
 | 2. Vehículos y odómetro | ✅ Hecha |
-| 3. Mantenimiento y adjuntos | 🚧 En curso (#4–8 hechas; falta #12) |
+| 3. Mantenimiento y adjuntos | ✅ Hecha |
 | 4. Reglas y alertas | Pendiente |
 | 5. Repostajes y estadísticas | Pendiente |
 | 6. Informe de venta | Pendiente |
@@ -147,7 +148,7 @@ Los enums ya están definidos en `packages/shared/src/enums.ts`.
 - API: `GET|POST /api/vehicles` (`?status=active|archived|sold|all`), `GET|PATCH|DELETE /api/vehicles/:id`, `GET|PUT|DELETE /api/vehicles/:id/photo` y `GET|POST /api/vehicles/:id/odometer`, `DELETE /api/vehicles/:id/odometer/:readingId`.
 - **Queda para fases siguientes:** los próximos mantenimientos (fase 4) y el gasto (fases 3 y 5) en la ficha.
 
-### Fase 3: mantenimiento y adjuntos
+### Fase 3: mantenimiento y adjuntos ✅
 - Reutilizar `lib/storage.ts` (`createFileStorage`) para las facturas; `@fastify/multipart` y `sharp` ya están instalados.
 - Al crear un mantenimiento con km, crear una lectura `source: 'maintenance'` y validarla con `findOdometerConflict`.
 - Añadir a la ficha el gasto acumulado y la timeline de mantenimientos.
