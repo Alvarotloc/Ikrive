@@ -74,6 +74,8 @@ function client(app: TestApp, cookie: string, vehicleId: string, recordId: strin
       });
     },
     download: (id: string) => app.inject({ method: 'GET', url: `${base}/${id}`, headers }),
+    view: (id: string, query = 'inline=1') =>
+      app.inject({ method: 'GET', url: `${base}/${id}?${query}`, headers }),
     thumbnail: (id: string) => app.inject({ method: 'GET', url: `${base}/${id}/thumbnail`, headers }),
     remove: (id: string) => app.inject({ method: 'DELETE', url: `${base}/${id}`, headers }),
   };
@@ -88,6 +90,11 @@ async function setup(env: Record<string, string> = {}) {
   const storedFiles = () => (existsSync(attachmentsDir) ? readdirSync(attachmentsDir) : []);
   return { app, db, cookie, vehicleId, recordId, storedFiles, api: client(app, cookie, vehicleId, recordId) };
 }
+
+const IMAGE_POLICY =
+  "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; sandbox";
+const PDF_POLICY =
+  "default-src 'none'; object-src 'self'; style-src 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'";
 
 const expectProblem = (response: Response, status: number) => {
   expect(response.statusCode).toBe(status);
@@ -209,6 +216,82 @@ describe('maintenance attachments', () => {
     expect(response.headers['cache-control']).toBe('private, max-age=31536000, immutable');
   });
 
+  it('serves an attachment inline with a safe policy for user content', async () => {
+    const { api } = await setup();
+    const invoice = pdf();
+    const document = (await api.upload(invoice, 'Factura taller ñ.pdf')).json();
+
+    const response = await api.view(document.id);
+    expect(response.statusCode).toBe(200);
+    expect(response.rawPayload.equals(invoice)).toBe(true);
+    expect(response.headers['content-type']).toBe('application/pdf');
+    expect(response.headers['content-length']).toBe(String(invoice.length));
+    expect(response.headers['content-disposition']).toBe(
+      `inline; filename="Factura taller _.pdf"; filename*=UTF-8''Factura%20taller%20%C3%B1.pdf`,
+    );
+    expect(response.headers['x-content-type-options']).toBe('nosniff');
+    expect(response.headers['content-security-policy']).toBe(PDF_POLICY);
+    expect(response.headers['cache-control']).toBe('private, max-age=31536000, immutable');
+
+    const photo = await png();
+    const image = (await api.upload(photo, 'ticket.png', 'image/png')).json();
+    const imageResponse = await api.view(image.id);
+    expect(imageResponse.statusCode).toBe(200);
+    expect(imageResponse.rawPayload.equals(photo)).toBe(true);
+    expect(imageResponse.headers['content-type']).toBe('image/png');
+    expect(imageResponse.headers['content-disposition']).toBe(
+      `inline; filename="ticket.png"; filename*=UTF-8''ticket.png`,
+    );
+    expect(imageResponse.headers['x-content-type-options']).toBe('nosniff');
+    expect(imageResponse.headers['content-security-policy']).toBe(IMAGE_POLICY);
+  });
+
+  it('serves inline the type detected by content', async () => {
+    const { api } = await setup();
+    const disguised = (await api.upload(await png(), 'factura.pdf', 'application/pdf')).json();
+
+    const response = await api.view(disguised.id);
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['content-type']).toBe('image/png');
+    expect(response.headers['content-disposition']).toBe(
+      `inline; filename="factura.pdf"; filename*=UTF-8''factura.pdf`,
+    );
+    expect(response.headers['content-security-policy']).toBe(IMAGE_POLICY);
+  });
+
+  it('keeps downloading by default', async () => {
+    const { api } = await setup();
+    const invoice = pdf();
+    const { id } = (await api.upload(invoice, 'factura.pdf')).json();
+    const attachmentDisposition = `attachment; filename="factura.pdf"; filename*=UTF-8''factura.pdf`;
+
+    for (const response of [await api.download(id), await api.view(id, 'inline=0')]) {
+      expect(response.statusCode).toBe(200);
+      expect(response.rawPayload.equals(invoice)).toBe(true);
+      expect(response.headers['content-disposition']).toBe(attachmentDisposition);
+    }
+  });
+
+  it('rejects an invalid inline value', async () => {
+    const { api } = await setup();
+    const { id } = (await api.upload(pdf(), 'factura.pdf')).json();
+
+    for (const query of ['inline=true', 'inline=yes', 'inline=']) {
+      const response = await api.view(id, query);
+      expectProblem(response, 400);
+      expect(response.headers['content-disposition']).toBeUndefined();
+    }
+  });
+
+  it('requires a session to view an attachment inline', async () => {
+    const { app, api } = await setup();
+    const { id } = (await api.upload(pdf(), 'factura.pdf')).json();
+
+    const response = await app.inject({ method: 'GET', url: `${api.base}/${id}?inline=1` });
+    expectProblem(response, 401);
+    expect(response.headers['content-disposition']).toBeUndefined();
+  });
+
   it('serves a WebP thumbnail for images only', async () => {
     const { api } = await setup();
     const image = (await api.upload(await png(1000, 500), 'ticket.png', 'image/png')).json();
@@ -301,6 +384,7 @@ describe('maintenance attachments', () => {
     expectProblem(await foreign.list(), 404);
     expectProblem(await foreign.upload(pdf(), 'x.pdf'), 404);
     expectProblem(await foreign.download(attachment.id), 404);
+    expectProblem(await foreign.view(attachment.id), 404);
     expectProblem(await foreign.thumbnail(attachment.id), 404);
     expectProblem(await foreign.remove(attachment.id), 404);
 
@@ -311,6 +395,7 @@ describe('maintenance attachments', () => {
     expectProblem(await mismatched.list(), 404);
     expectProblem(await mismatched.upload(pdf(), 'x.pdf'), 404);
     expectProblem(await mismatched.download(attachment.id), 404);
+    expectProblem(await mismatched.view(attachment.id), 404);
     expectProblem(await mismatched.thumbnail(attachment.id), 404);
     expectProblem(await mismatched.remove(attachment.id), 404);
 
@@ -319,6 +404,7 @@ describe('maintenance attachments', () => {
     const sibling = client(app, cookie, vehicleId, siblingRecordId);
     expect((await sibling.list()).json()).toEqual([]);
     expectProblem(await sibling.download(attachment.id), 404);
+    expectProblem(await sibling.view(attachment.id), 404);
     expectProblem(await sibling.thumbnail(attachment.id), 404);
     expectProblem(await sibling.remove(attachment.id), 404);
 
