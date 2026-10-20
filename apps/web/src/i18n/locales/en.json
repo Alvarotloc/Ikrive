@@ -311,6 +311,12 @@
       "deleteLabel": "Delete “{{name}}”",
       "deleteTitle": "Delete “{{name}}”?",
       "deleteDescription": "The invoice file will be erased. This can't be undone.",
+      "view": "View “{{name}}”",
+      "openPdf": "Open “{{name}}” in a new tab",
+      "download": "Download",
+      "downloadLabel": "Download “{{name}}”",
+      "viewerError": "The image couldn't be loaded.",
+      "close": "Close",
       "errors": {
         "type": "“{{name}}” isn't a supported type: only PDF, JPG, PNG or WebP.",
         "size": "“{{name}}” is larger than the {{max}} MB limit.",

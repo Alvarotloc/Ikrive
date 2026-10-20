@@ -311,6 +311,12 @@
       "deleteLabel": "Eliminar «{{name}}»",
       "deleteTitle": "¿Eliminar «{{name}}»?",
       "deleteDescription": "Se borrará el fichero de la factura. No se puede deshacer.",
+      "view": "Ver «{{name}}»",
+      "openPdf": "Abrir «{{name}}» en una pestaña nueva",
+      "download": "Descargar",
+      "downloadLabel": "Descargar «{{name}}»",
+      "viewerError": "No se ha podido cargar la imagen.",
+      "close": "Cerrar",
       "errors": {
         "type": "«{{name}}» no es un tipo admitido: solo PDF, JPG, PNG o WebP.",
         "size": "«{{name}}» supera el tamaño máximo de {{max}} MB.",

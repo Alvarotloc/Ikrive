@@ -7,6 +7,9 @@ export const ATTACHMENT_ACCEPT = ATTACHMENT_MIME_TYPES.join(',');
 /** Same bound as the API's multipart `fileSize` limit (`MAX_UPLOAD_MB` · 1024 · 1024 bytes). */
 export const exceedsUploadLimit = (file: File, maxUploadMb: number) => file.size > maxUploadMb * 1024 * 1024;
 
+/** URL that shows the original in the browser instead of downloading it. The DTO's `url` has no query. */
+export const inlineUrl = (url: string) => `${url}?inline=1`;
+
 export type UploadErrorKey =
   | 'maintenance.attachments.errors.type'
   | 'maintenance.attachments.errors.size'

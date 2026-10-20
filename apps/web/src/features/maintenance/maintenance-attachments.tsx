@@ -1,6 +1,6 @@
 import type { Attachment, MaintenanceRecord } from '@ikrive/shared';
 import { useQuery } from '@tanstack/react-query';
-import { FileText, Trash2 } from 'lucide-react';
+import { Download, FileText, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -20,6 +20,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { AttachmentPicker } from './attachment-picker';
+import { AttachmentViewer } from './attachment-viewer';
+import { inlineUrl } from './attachments';
 import { attachmentsQuery, useDeleteAttachment } from './queries';
 import { useAttachmentUpload } from './use-attachment-upload';
 
@@ -60,6 +62,8 @@ function MaintenanceAttachments({ vehicleId, record }: { vehicleId: string; reco
   const { maxUploadMb, acceptFiles, uploadFiles } = useAttachmentUpload(vehicleId);
   // Local state rather than the mutation's `isPending`, which flickers between the files of a batch.
   const [uploading, setUploading] = useState(false);
+  // One viewer for the whole list.
+  const [viewing, setViewing] = useState<Attachment | null>(null);
 
   const onFiles = async (files: File[]) => {
     const accepted = acceptFiles(files);
@@ -97,46 +101,81 @@ function MaintenanceAttachments({ vehicleId, record }: { vehicleId: string; reco
               vehicleId={vehicleId}
               recordId={record.id}
               attachment={attachment}
+              onView={setViewing}
             />
           ))}
         </ul>
       )}
+      <AttachmentViewer attachment={viewing} onClose={() => setViewing(null)} />
     </div>
   );
 }
+
+const cardActionClassName =
+  'grid w-full min-w-0 gap-2 p-2 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring';
 
 function AttachmentCard({
   vehicleId,
   recordId,
   attachment,
+  onView,
 }: {
   vehicleId: string;
   recordId: string;
   attachment: Attachment;
+  onView: (attachment: Attachment) => void;
 }) {
+  const { t } = useTranslation();
+  const name = attachment.originalName;
+  const nameLabel = (
+    <span className="truncate text-sm" title={name}>
+      {name}
+    </span>
+  );
+
   return (
     <li className="relative min-w-0 overflow-hidden rounded-lg border bg-card">
-      {/* The API answers with `Content-Disposition: attachment`, so following the link downloads it. */}
-      <a
-        href={attachment.url}
-        className="grid gap-2 p-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-      >
-        {attachment.thumbnailUrl ? (
+      {attachment.thumbnailUrl ? (
+        // Images open in the in-app viewer.
+        <button
+          type="button"
+          onClick={() => onView(attachment)}
+          aria-label={t('maintenance.attachments.view', { name })}
+          className={cardActionClassName}
+        >
           <img
             src={attachment.thumbnailUrl}
-            alt={attachment.originalName}
+            alt={name}
             loading="lazy"
             className="aspect-square w-full rounded-md bg-muted object-cover"
           />
-        ) : (
+          {nameLabel}
+        </button>
+      ) : (
+        // PDFs open in a new tab with the browser's viewer (`?inline=1`), without a `window.opener`.
+        <a
+          href={inlineUrl(attachment.url)}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={t('maintenance.attachments.openPdf', { name })}
+          className={cardActionClassName}
+        >
           <span className="grid aspect-square w-full place-items-center rounded-md bg-muted text-muted-foreground">
             <FileText aria-hidden className="size-10" />
           </span>
-        )}
-        <span className="truncate text-sm" title={attachment.originalName}>
-          {attachment.originalName}
-        </span>
-      </a>
+          {nameLabel}
+        </a>
+      )}
+      <Button
+        asChild
+        variant="ghost"
+        size="icon"
+        className="absolute top-3 left-3 size-9 bg-card/90 text-foreground shadow-sm hover:bg-card"
+      >
+        <a href={attachment.url} download aria-label={t('maintenance.attachments.downloadLabel', { name })}>
+          <Download aria-hidden />
+        </a>
+      </Button>
       <DeleteAttachmentDialog vehicleId={vehicleId} recordId={recordId} attachment={attachment} />
     </li>
   );
