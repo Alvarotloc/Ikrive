@@ -26,3 +26,9 @@ export const maintenanceAttachmentListParamsSchema = maintenanceRecordParamsSche
 export const maintenanceAttachmentParamsSchema = maintenanceRecordParamsSchema.extend({
   attachmentId: z.string().min(1),
 });
+
+/**
+ * Query of `GET /vehicles/:id/maintenance/:recordId/attachments/:attachmentId`. `inline=1` serves the
+ * original to be shown by the browser; omitted or `0`, it is downloaded. Any other value is a 400.
+ */
+export const attachmentFileQuerySchema = z.object({ inline: z.enum(['0', '1']).optional() });
