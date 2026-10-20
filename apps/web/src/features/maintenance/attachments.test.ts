@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { ApiError } from '@/lib/api-client';
-import { ATTACHMENT_ACCEPT, exceedsUploadLimit, uploadErrorKey, uploadSequentially } from './attachments';
+import {
+  ATTACHMENT_ACCEPT,
+  exceedsUploadLimit,
+  inlineUrl,
+  uploadErrorKey,
+  uploadSequentially,
+} from './attachments';
 
 const apiError = (status: number) => new ApiError({ type: 'about:blank', title: 'Error', status });
 const file = (name: string, size = 1) => new File([new Uint8Array(size)], name, { type: 'application/pdf' });
@@ -8,6 +14,12 @@ const file = (name: string, size = 1) => new File([new Uint8Array(size)], name, 
 describe('attachments', () => {
   it('accepts exactly the attachment mime types', () => {
     expect(ATTACHMENT_ACCEPT).toBe('application/pdf,image/jpeg,image/png,image/webp');
+  });
+
+  it('builds the inline url of an attachment', () => {
+    expect(inlineUrl('/api/vehicles/v1/maintenance/r1/attachments/a1')).toBe(
+      '/api/vehicles/v1/maintenance/r1/attachments/a1?inline=1',
+    );
   });
 
   it('maps a 415 problem to the unsupported type message', () => {

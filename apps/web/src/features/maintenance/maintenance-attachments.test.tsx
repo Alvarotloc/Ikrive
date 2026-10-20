@@ -1,5 +1,5 @@
 import type { Attachment } from '@ikrive/shared';
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { useState } from 'react';
 import { Toaster, toast } from 'sonner';
 import { afterEach, describe, expect, it, type Mock } from 'vitest';
@@ -87,17 +87,91 @@ describe('MaintenanceAttachmentsDialog', () => {
     expect(within(dialog).getByRole('heading', { name: 'Facturas' })).toBeInTheDocument();
     expect(dialog).toHaveTextContent('Cambio de aceite');
 
+    // An image opens the in-app viewer: it is a button, not a link.
     const thumbnail = await screen.findByRole('img', { name: 'ticket.jpg' });
     expect(thumbnail).toHaveAttribute('src', `/api${BASE}/a1/thumbnail`);
-    expect(thumbnail.closest('a')).toHaveAttribute('href', `/api${BASE}/a1`);
-    expect(screen.getByText('ticket.jpg').closest('a')).toHaveAttribute('href', `/api${BASE}/a1`);
+    expect(thumbnail.closest('a')).toBeNull();
+    const view = screen.getByRole('button', { name: 'Ver «ticket.jpg»' });
+    expect(view).toContainElement(thumbnail);
+    expect(view).toHaveTextContent('ticket.jpg');
 
-    const pdfName = screen.getByText('factura.pdf');
-    expect(pdfName.closest('a')).toHaveAttribute('href', `/api${BASE}/a2`);
-    const pdfCard = pdfName.closest('li') as HTMLElement;
+    // A PDF opens inline in a new tab, without an opener.
+    const open = screen.getByRole('link', { name: 'Abrir «factura.pdf» en una pestaña nueva' });
+    expect(open).toHaveAttribute('href', `/api${BASE}/a2?inline=1`);
+    expect(open).toHaveAttribute('target', '_blank');
+    expect(open).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(open).toHaveTextContent('factura.pdf');
+    const pdfCard = open.closest('li') as HTMLElement;
     expect(within(pdfCard).queryByRole('img')).not.toBeInTheDocument();
-    expect(pdfCard.querySelector('svg')).toBeInTheDocument();
+    expect(open.querySelector('svg')).toBeInTheDocument();
     expect(screen.getAllByRole('img')).toHaveLength(1);
+
+    // Every card can still download the original.
+    for (const [name, url] of [
+      ['ticket.jpg', `/api${BASE}/a1`],
+      ['factura.pdf', `/api${BASE}/a2`],
+    ]) {
+      const download = screen.getByRole('link', { name: `Descargar «${name}»` });
+      expect(download).toHaveAttribute('href', url);
+      expect(download).toHaveAttribute('download');
+    }
+  });
+
+  it('opens an image in the viewer', async () => {
+    const { user } = setup({ [`GET ${BASE}`]: { body: [image, pdf] } });
+
+    await user.click(await screen.findByRole('button', { name: 'Ver «ticket.jpg»' }));
+
+    const viewer = await screen.findByRole('dialog', { name: 'ticket.jpg' });
+    const original = within(viewer).getByRole('img', { name: 'ticket.jpg' });
+    expect(original).toHaveAttribute('src', `/api${BASE}/a1?inline=1`);
+    expect(within(viewer).queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('offers the download of the original from the viewer', async () => {
+    const { user } = setup({ [`GET ${BASE}`]: { body: [image] } });
+
+    await user.click(await screen.findByRole('button', { name: 'Ver «ticket.jpg»' }));
+
+    const viewer = await screen.findByRole('dialog', { name: 'ticket.jpg' });
+    const download = within(viewer).getByRole('link', { name: 'Descargar' });
+    expect(download).toHaveAttribute('href', `/api${BASE}/a1`);
+    expect(download).toHaveAttribute('download');
+  });
+
+  it('shows an error when the image cannot be loaded', async () => {
+    const { user } = setup({ [`GET ${BASE}`]: { body: [image] } });
+
+    await user.click(await screen.findByRole('button', { name: 'Ver «ticket.jpg»' }));
+    const viewer = await screen.findByRole('dialog', { name: 'ticket.jpg' });
+    // jsdom never loads images, so the failure is simulated.
+    fireEvent.error(within(viewer).getByRole('img', { name: 'ticket.jpg' }));
+
+    expect(within(viewer).getByRole('alert')).toHaveTextContent('No se ha podido cargar la imagen.');
+    expect(within(viewer).queryByRole('img')).not.toBeInTheDocument();
+    expect(within(viewer).getByRole('link', { name: 'Descargar' })).toHaveAttribute('href', `/api${BASE}/a1`);
+  });
+
+  it('keeps the attachments dialog open when the viewer closes', async () => {
+    const { user } = setup({ [`GET ${BASE}`]: { body: [image] } });
+
+    const view = await screen.findByRole('button', { name: 'Ver «ticket.jpg»' });
+    await user.click(view);
+    expect(await screen.findByRole('dialog', { name: 'ticket.jpg' })).toBeInTheDocument();
+
+    await user.keyboard('{Escape}');
+
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'ticket.jpg' })).not.toBeInTheDocument());
+    expect(screen.getByRole('dialog', { name: 'Facturas' })).toBeInTheDocument();
+    await waitFor(() => expect(view).toHaveFocus());
+
+    // The close button behaves the same.
+    await user.click(view);
+    const viewer = await screen.findByRole('dialog', { name: 'ticket.jpg' });
+    await user.click(within(viewer).getByRole('button', { name: 'Cerrar' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'ticket.jpg' })).not.toBeInTheDocument());
+    expect(screen.getByRole('dialog', { name: 'Facturas' })).toBeInTheDocument();
   });
 
   it('shows the empty message when the record has no attachments', async () => {
