@@ -164,6 +164,10 @@ Los enums ya están definidos en `packages/shared/src/enums.ts`.
 - `odometer-nudge.job`: el día elegido por cada usuario, avisa si un vehículo activo lleva 7 días sin lectura de km.
 - Interfaz `NotificationChannel.send()` con implementaciones para ntfy, Gotify, Apprise (apprise-api) y webhook, y botón de prueba.
 - Script o endpoint de admin para lanzar los jobs a mano.
+- Próximos mantenimientos en el calendario del usuario, sin calendario propio:
+  - Botón «Añadir al calendario» por regla (enlaces de Google y Outlook, y descarga `.ics`). Funciona en cualquier instalación porque lo hace el navegador.
+  - Feed iCal opcional con token. Google Calendar necesita que el servidor sea accesible desde internet; Apple Calendar, Thunderbird o ICSx5 sirven en red local o por VPN.
+  - El evento se genera con funciones puras en `packages/shared`, separadas de la acción, para que la app móvil pueda usar el calendario nativo.
 
 ### Fase 5: repostajes y estadísticas
 - Fuel logs.
@@ -186,6 +190,14 @@ Los enums ya están definidos en `packages/shared/src/enums.ts`.
 - Reducir el tamaño de la imagen.
 - E2E con Playwright.
 - Docs con capturas y release v0.1.0.
+
+### Después de v0.1.0: app móvil (idea)
+- APK Android con Capacitor a partir de la misma SPA, inspirada en [openGym](https://github.com/DuarteSantos8/openGym): APK firmada en GitHub Releases con su `.sha256`, sin Play Store, y en iPhone la PWA o compilar con Xcode.
+- Usos nativos previstos: añadir los próximos mantenimientos al calendario del teléfono y notificaciones locales.
+- **Decisión:** como en openGym, la primera pantalla ofrece dos modos y el usuario elige uno:
+  - **Mi servidor:** cliente del servidor del usuario. Pide la URL del servidor y exige adaptar Better Auth y CORS a un origen nativo (`trustedOrigins` y, probablemente, sesión por token en vez de cookie).
+  - **En este teléfono:** datos en una base de datos local (SQLite en el dispositivo), sin cuenta ni servidor.
+  - Para no duplicar la lógica, la web habla con una capa de datos intercambiable (HTTP o local) y las reglas de negocio viven en `packages/shared`, que ya concentra validaciones y cálculos puros. Falta decidir cómo se pasa del modo local a un servidor (p. ej. con el export/import de la fase 7).
 
 ## Diseño
 
