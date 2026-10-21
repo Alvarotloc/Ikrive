@@ -10,7 +10,12 @@ export default mergeConfig(
       projects: [
         {
           extends: true,
-          test: { name: 'unit', environment: 'node', include: ['src/**/*.test.ts'] },
+          test: {
+            name: 'unit',
+            environment: 'node',
+            include: ['src/**/*.test.ts'],
+            setupFiles: ['./src/test/setup-unit.ts'],
+          },
         },
         {
           extends: true,
