@@ -99,3 +99,12 @@
 - **Tests:** web 144, API 62, shared 26. Capturas en claro, oscuro y 375 px sin desbordamiento. `pnpm harness --full` en verde.
 - **Revisión:** CHANGES_REQUESTED en la vuelta 1 (faltaba test de recarga tras crear una regla, R12); APPROVED en la vuelta 2 (`progress/review_maintenance-schedules-web.md`). Avisos no bloqueantes: con título vacío y sin intervalos el error de intervalo aparece en un segundo paso (Zod 4); borrar una regla con el formulario de mantenimiento abierto da un 400 que se muestra como «fecha futura».
 - **Gate 2:** merge aprobado por el humano.
+
+## 2026-10-21 — #20 locale-independent-unit-tests
+
+- **Rama:** `feat/locale-independent-unit-tests` (`sdd: false`, sin spec). Detectada por el humano en el primer run de GitHub Actions.
+- **Causa:** el proyecto vitest `unit` de la web no tenía setup; i18n arrancaba con `navigator.language`, que en Node sale del idioma del sistema. En CI (en-US) fallaban `src/i18n/zod.test.ts` (primer caso) y `src/features/schedules/form.test.ts`.
+- **Cambios:** `apps/web/src/test/setup-unit.ts` fija `es` y se carga como `setupFiles` del proyecto `unit`. Nota en CONTRIBUTING.md › Tests. Sin cambios en el código de la app.
+- **Tests:** web 144 en verde con `LANG=en_US.UTF-8` y con `es_ES.UTF-8`. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED (`progress/review_locale-independent-unit-tests.md`), sin hallazgos.
+- **Gate 2:** merge aprobado por el humano. Primera feature cerrada con PR en GitHub en vez de merge local.
