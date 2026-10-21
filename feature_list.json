@@ -235,6 +235,22 @@
       "status": "done"
     },
     {
+      "id": 20,
+      "name": "locale-independent-unit-tests",
+      "phase": "4",
+      "title": "Tests unitarios independientes del idioma del sistema",
+      "description": "Los tests *.test.ts de apps/web (proyecto vitest unit, entorno Node) no tienen setup: i18n arranca con navigator.language, que en Node sale del idioma del sistema, así que en CI (en-US) fallan src/i18n/zod.test.ts (primer caso) y src/features/schedules/form.test.ts. Se fuerza el español también en el proyecto unit, como ya hace src/test/setup.ts en el proyecto dom. Prioritaria: va antes de in-app-notifications (#15). Detectada por el humano en el primer run de GitHub Actions.",
+      "acceptance": [
+        "El proyecto unit de apps/web/vitest.config.ts tiene un setupFiles que fija el idioma de i18n a es antes de cada archivo de test, igual que el proyecto dom",
+        "pnpm --filter web test pasa en verde con LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 y con LANG=es_ES.UTF-8",
+        "No cambia el código de la app (src/i18n/index.ts ni locale.ts) ni los textos esperados de los tests",
+        "CONTRIBUTING.md o docs/verification.md indica que los tests corren siempre en español sea cual sea el idioma del sistema",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
+      "status": "in_progress"
+    },
+    {
       "id": 15,
       "name": "in-app-notifications",
       "phase": "4",
