@@ -161,6 +161,7 @@ Los enums ya están definidos en `packages/shared/src/enums.ts`.
 - `reminders.job` (diario):
   - Evalúa las reglas. Para las de km estima la fecha de vencimiento con la media de km/día de los últimos 90 días.
   - Crea la notificación in-app, deduplicada, y la envía por los canales del usuario.
+  - **Decisión (spec maintenance-schedules-api):** el estado (al día / próximo / vencido) solo usa la fecha por meses y los km reales; la fecha estimada se informa pero no avisa. Idea a futuro: avisar también por la fecha estimada.
 - `odometer-nudge.job`: el día elegido por cada usuario, avisa si un vehículo activo lleva 7 días sin lectura de km.
 - Interfaz `NotificationChannel.send()` con implementaciones para ntfy, Gotify, Apprise (apprise-api) y webhook, y botón de prueba.
 - Script o endpoint de admin para lanzar los jobs a mano.
