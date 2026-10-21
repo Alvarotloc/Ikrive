@@ -20,6 +20,7 @@ const record = (overrides: Partial<MaintenanceRecord>): MaintenanceRecord => ({
   workshop: null,
   cost: null,
   includeInReport: true,
+  scheduleId: null,
   createdAt: '2025-03-10T10:00:00.000Z',
   updatedAt: '2025-03-10T10:00:00.000Z',
   ...overrides,

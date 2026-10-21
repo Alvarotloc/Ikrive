@@ -126,7 +126,7 @@ Pendientes:
 
 - **maintenance_records**: vehicle_id, fecha, km, categoría, título, descripción, taller, coste, `schedule_id?` e `include_in_report`.
   - Al crearlo se genera una lectura de odómetro.
-- **maintenance_schedules**: `interval_months?` y/o `interval_km?` (vence lo primero que llegue), último realizado, `next_due_*` y umbral de aviso.
+- **maintenance_schedules**: vehicle_id, título, categoría, `interval_months?` y/o `interval_distance?` (vence lo primero que llegue), umbral de aviso en dos campos (`warn_days` para la fecha y `warn_distance` para los km) y último realizado (`last_done_date`, `last_done_odometer?`). `next_due_date`, `next_due_odometer` y el estado no se guardan: se calculan al leer con la fecha de hoy y las lecturas de odómetro.
   - Al registrar un mantenimiento vinculado se recalcula el siguiente vencimiento.
 - **fuel_logs**: fecha, km, cantidad (L o kWh), precio total, precio por unidad, `full_tank` y `missed_previous`.
   - También genera una lectura de odómetro.
@@ -161,6 +161,7 @@ Los enums ya están definidos en `packages/shared/src/enums.ts`.
 - `reminders.job` (diario):
   - Evalúa las reglas. Para las de km estima la fecha de vencimiento con la media de km/día de los últimos 90 días.
   - Crea la notificación in-app, deduplicada, y la envía por los canales del usuario.
+  - **Decisión (spec maintenance-schedules-api):** el estado (al día / próximo / vencido) solo usa la fecha por meses y los km reales; la fecha estimada se informa pero no avisa. Idea a futuro: avisar también por la fecha estimada.
 - `odometer-nudge.job`: el día elegido por cada usuario, avisa si un vehículo activo lleva 7 días sin lectura de km.
 - Interfaz `NotificationChannel.send()` con implementaciones para ntfy, Gotify, Apprise (apprise-api) y webhook, y botón de prueba.
 - Script o endpoint de admin para lanzar los jobs a mano.

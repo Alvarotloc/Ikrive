@@ -82,3 +82,11 @@
 - **Tests:** API 50, web 112, shared 11. Verificado en Chrome 151 y Firefox 156 (headless): el PDF y las imágenes se ven con las CSP finales. Capturas en claro, oscuro y 375 px, sin desbordamiento. `pnpm harness --full` en verde.
 - **Revisión:** APPROVED (`progress/review_attachment-preview.md`). Avisos no bloqueantes: el PDF sin `sandbox` es la capa más débil (moverlo a un segundo origen si algún día existe); el foco se devuelve a mano al cerrar el visor; con `inline` inválido y sin sesión se responde 400 antes que 401; el nombre de un test de la lista quedó desfasado.
 - **Gate 2:** merge aprobado por el humano. Cierra la fase 3.
+
+## 2026-10-21 — #13 maintenance-schedules-api
+
+- **Rama:** `feat/maintenance-schedules-api` (SDD, spec en `specs/maintenance-schedules-api/`, 28 R / 19 T, con 2 exploraciones previas). Spec aprobado sin cambios en Gate 1. El humano no descarta avisar en el futuro también por la fecha estimada (anotado en `docs/PLAN.md`).
+- **Cambios:** tabla `maintenance_schedules` (intervalo en meses y/o distancia, `warn_days` + `warn_distance`, último realizado) y `maintenance_records.schedule_id` (FK `ON DELETE set null`), migración `0004`. CRUD en `/api/vehicles/:id/schedules` (404 a vehículos ajenos). `nextDueDate`, `nextDueOdometer`, `nextDueDateEstimated` y `status` (`ok|due_soon|overdue`) se calculan al leer con `computeScheduleDue` en shared; la fecha estimada usa la media de los últimos 90 días (mín. 30 días de lecturas) y no afecta al estado. Vincular un mantenimiento avanza el último realizado si su fecha es ≥ la actual; `scheduleId` de otro vehículo → 400.
+- **Tests:** shared 26, API 62, web 112 (fixtures de la web con `scheduleId: null`). `pnpm harness --full` en verde.
+- **Revisión:** CHANGES_REQUESTED en la vuelta 1: drizzle-kit omitió `ON DELETE set null` en el `ADD COLUMN`. Con autorización expresa del humano, el implementer retocó a mano esa línea del SQL (con comentario) y se quitó el workaround del repositorio. APPROVED en la vuelta 2 (`progress/review_maintenance-schedules-api.md`). Avisos no bloqueantes: un test compara con «hoy» y podría fallar justo al cambiar de día; editar un mantenimiento vinculado reescribe (idempotente) el último realizado.
+- **Gate 2:** merge aprobado por el humano.

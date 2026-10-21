@@ -13,6 +13,8 @@ const maintenanceFieldsSchema = z.object({
   workshop: optionalText(120),
   cost: moneySchema.nullable().optional(),
   includeInReport: z.boolean().default(true),
+  /** Maintenance schedule this record fulfils; it must belong to the same vehicle. */
+  scheduleId: z.string().min(1).nullable().optional(),
 });
 
 export const createMaintenanceRecordSchema = maintenanceFieldsSchema;
@@ -37,6 +39,7 @@ export const maintenanceRecordSchema = z.object({
   workshop: z.string().nullable(),
   cost: z.number().nullable(),
   includeInReport: z.boolean(),
+  scheduleId: z.string().nullable(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 });
