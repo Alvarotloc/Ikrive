@@ -276,8 +276,10 @@
       "workshop": "Workshop",
       "cost": "Cost ({{currency}})",
       "description": "Description",
-      "includeInReport": "Include in the report"
+      "includeInReport": "Include in the report",
+      "schedule": "Schedule"
     },
+    "noSchedule": "None",
     "categories": {
       "oil_change": "Oil",
       "tires": "Tires",
@@ -322,6 +324,48 @@
         "size": "“{{name}}” is larger than the {{max}} MB limit.",
         "sizeUnknownLimit": "“{{name}}” is larger than the allowed size."
       }
+    }
+  },
+  "schedules": {
+    "title": "Upcoming maintenance",
+    "add": "Add schedule",
+    "edit": "Edit schedule",
+    "empty": "No maintenance schedules yet. Add one to know when each service is due.",
+    "created": "Schedule added",
+    "updated": "Schedule updated",
+    "deleted": "Schedule deleted",
+    "editLabel": "Edit “{{title}}”",
+    "deleteLabel": "Delete “{{title}}”",
+    "deleteTitle": "Delete “{{title}}”?",
+    "deleteDescription": "The schedule will be erased. Linked maintenance records are kept but will no longer be tied to it.",
+    "interval": {
+      "months_one": "Every {{count}} month",
+      "months_other": "Every {{count}} months",
+      "distance": "Every {{distance}}",
+      "both_one": "Every {{count}} month or {{distance}}",
+      "both_other": "Every {{count}} months or {{distance}}"
+    },
+    "nextDue": "Due: {{due}}",
+    "estimated": "{{date}} (estimated)",
+    "noData": "Not enough data to work out when it's due",
+    "status": {
+      "ok": "Up to date",
+      "due_soon": "Due soon",
+      "overdue": "Overdue"
+    },
+    "fields": {
+      "title": "Title",
+      "category": "Category",
+      "intervalMonths": "Every (months)",
+      "intervalDistance": "Every ({{unit}})",
+      "warnDays": "Remind me (days before)",
+      "warnDistance": "Remind me ({{unit}} before)",
+      "lastDoneDate": "Last done (date)",
+      "lastDoneOdometer": "Last done ({{unit}})"
+    },
+    "lastDoneHelp": "If you leave it blank, it counts from the vehicle's purchase.",
+    "errors": {
+      "intervalRequired": "Enter an interval in months or in {{unit}}"
     }
   }
 }

@@ -9,6 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { MaintenanceSpendingMetric } from '@/features/maintenance/maintenance-spending';
 import { MaintenanceSection } from '@/features/maintenance/maintenance-timeline';
 import { maintenanceQuery, maintenanceSpendingQuery } from '@/features/maintenance/queries';
+import { schedulesQuery } from '@/features/schedules/queries';
+import { SchedulesSection } from '@/features/schedules/schedules-section';
 import { vehicleFullName, vehicleTitle } from '@/features/vehicles/display';
 import { Metric, Plate, VehiclePhoto, VehicleStatusBadge } from '@/features/vehicles/dossier';
 import { OdometerForm } from '@/features/vehicles/odometer-form';
@@ -26,6 +28,7 @@ export const Route = createFileRoute('/_app/vehicles/$vehicleId/')({
         queryClient.ensureQueryData(odometerQuery(vehicleId)),
         queryClient.ensureQueryData(maintenanceQuery(vehicleId)),
         queryClient.ensureQueryData(maintenanceSpendingQuery(vehicleId)),
+        queryClient.ensureQueryData(schedulesQuery(vehicleId)),
       ]);
     } catch (error) {
       if (error instanceof ApiError && error.problem.status === 404) throw notFound();
@@ -155,6 +158,8 @@ function VehiclePage() {
           </CardContent>
         </Card>
       </div>
+
+      <SchedulesSection vehicle={vehicle} />
 
       <MaintenanceSection vehicle={vehicle} />
 

@@ -19,6 +19,11 @@ export const maintenanceFormSchema = z.object({
   workshop: shape.workshop,
   cost: z.string().transform(parseDecimal).pipe(shape.cost.unwrap()),
   includeInReport: z.boolean(),
+  /** Select value: '' is "none". */
+  scheduleId: z
+    .string()
+    .transform((value) => value || null)
+    .pipe(shape.scheduleId.unwrap()),
 });
 
 export type MaintenanceFormInput = z.input<typeof maintenanceFormSchema>;
@@ -37,6 +42,7 @@ export function defaultsFrom(record?: MaintenanceRecord): MaintenanceFormInput {
     workshop: toText(record?.workshop),
     cost: toText(record?.cost),
     includeInReport: record?.includeInReport ?? true,
+    scheduleId: record?.scheduleId ?? '',
   };
 }
 

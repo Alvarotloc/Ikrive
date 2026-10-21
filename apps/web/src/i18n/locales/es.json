@@ -276,8 +276,10 @@
       "workshop": "Taller",
       "cost": "Coste ({{currency}})",
       "description": "Descripción",
-      "includeInReport": "Incluir en el informe"
+      "includeInReport": "Incluir en el informe",
+      "schedule": "Regla"
     },
+    "noSchedule": "Ninguna",
     "categories": {
       "oil_change": "Aceite",
       "tires": "Neumáticos",
@@ -322,6 +324,48 @@
         "size": "«{{name}}» supera el tamaño máximo de {{max}} MB.",
         "sizeUnknownLimit": "«{{name}}» supera el tamaño máximo permitido."
       }
+    }
+  },
+  "schedules": {
+    "title": "Próximos mantenimientos",
+    "add": "Añadir regla",
+    "edit": "Editar regla",
+    "empty": "Todavía no hay reglas de mantenimiento. Añade una para saber cuándo toca cada revisión.",
+    "created": "Regla añadida",
+    "updated": "Regla actualizada",
+    "deleted": "Regla eliminada",
+    "editLabel": "Editar «{{title}}»",
+    "deleteLabel": "Eliminar «{{title}}»",
+    "deleteTitle": "¿Eliminar «{{title}}»?",
+    "deleteDescription": "Se borrará la regla. Los mantenimientos vinculados se conservan, pero dejarán de estar asociados a ella.",
+    "interval": {
+      "months_one": "Cada {{count}} mes",
+      "months_other": "Cada {{count}} meses",
+      "distance": "Cada {{distance}}",
+      "both_one": "Cada {{count}} mes o {{distance}}",
+      "both_other": "Cada {{count}} meses o {{distance}}"
+    },
+    "nextDue": "Vence: {{due}}",
+    "estimated": "{{date}} (estimada)",
+    "noData": "Sin datos suficientes para calcular el vencimiento",
+    "status": {
+      "ok": "Al día",
+      "due_soon": "Próximo",
+      "overdue": "Vencido"
+    },
+    "fields": {
+      "title": "Título",
+      "category": "Categoría",
+      "intervalMonths": "Cada (meses)",
+      "intervalDistance": "Cada ({{unit}})",
+      "warnDays": "Avisar con (días de antelación)",
+      "warnDistance": "Avisar con ({{unit}} de antelación)",
+      "lastDoneDate": "Última vez (fecha)",
+      "lastDoneOdometer": "Última vez ({{unit}})"
+    },
+    "lastDoneHelp": "Si lo dejas vacío, se cuenta desde la compra del vehículo.",
+    "errors": {
+      "intervalRequired": "Indica un intervalo en meses o en {{unit}}"
     }
   }
 }
