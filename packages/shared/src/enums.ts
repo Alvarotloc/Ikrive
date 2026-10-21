@@ -41,6 +41,10 @@ export const MAINTENANCE_CATEGORIES = [
 ] as const;
 export type MaintenanceCategory = (typeof MAINTENANCE_CATEGORIES)[number];
 
+/** Computed on read from a maintenance schedule's next due date and odometer. */
+export const SCHEDULE_STATUSES = ['ok', 'due_soon', 'overdue'] as const;
+export type ScheduleStatus = (typeof SCHEDULE_STATUSES)[number];
+
 export const ODOMETER_SOURCES = ['manual', 'maintenance', 'fuel'] as const;
 export type OdometerSource = (typeof ODOMETER_SOURCES)[number];
 
