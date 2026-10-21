@@ -29,6 +29,13 @@
       "when": 1792062717682,
       "tag": "0003_attachments",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1792572202778,
+      "tag": "0004_maintenance_schedules",
+      "breakpoints": true
     }
   ]
 }

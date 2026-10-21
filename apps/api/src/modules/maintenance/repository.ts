@@ -1,6 +1,6 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
 import type { Db } from '../../db/client';
-import { attachments, maintenanceRecords, odometerReadings } from '../../db/schema';
+import { attachments, maintenanceRecords, maintenanceSchedules, odometerReadings } from '../../db/schema';
 
 export type MaintenanceRecordRow = typeof maintenanceRecords.$inferSelect;
 export type NewMaintenanceRecordRow = typeof maintenanceRecords.$inferInsert;
@@ -11,10 +11,25 @@ export interface MaintenanceReading {
   value: number;
 }
 
+/** New last done values of the schedule a record fulfils, written with the record. */
+export interface ScheduleLastDone {
+  scheduleId: string;
+  date: string;
+  odometer: number | null;
+}
+
 /** What to do with the record's linked odometer reading when it is edited. */
 export type ReadingChange = { kind: 'keep' } | { kind: 'remove' } | ({ kind: 'upsert' } & MaintenanceReading);
 
 export function createMaintenanceRepository(db: Db) {
+  const markScheduleDone = (tx: Pick<Db, 'update'>, lastDone?: ScheduleLastDone) => {
+    if (!lastDone) return;
+    tx.update(maintenanceSchedules)
+      .set({ lastDoneDate: lastDone.date, lastDoneOdometer: lastDone.odometer })
+      .where(eq(maintenanceSchedules.id, lastDone.scheduleId))
+      .run();
+  };
+
   return {
     listByVehicle(vehicleId: string) {
       return db
@@ -41,8 +56,15 @@ export function createMaintenanceRepository(db: Db) {
         .where(and(eq(maintenanceRecords.id, id), eq(maintenanceRecords.vehicleId, vehicleId)))
         .get();
     },
-    /** Inserts a record and, optionally, its linked odometer reading atomically. */
-    create(values: Omit<NewMaintenanceRecordRow, 'odometerReadingId'>, reading?: MaintenanceReading) {
+    /**
+     * Inserts a record and, optionally, its linked odometer reading and the last done values of its
+     * schedule atomically.
+     */
+    create(
+      values: Omit<NewMaintenanceRecordRow, 'odometerReadingId'>,
+      reading?: MaintenanceReading,
+      lastDone?: ScheduleLastDone,
+    ) {
       return db.transaction((tx) => {
         const readingId = reading
           ? tx
@@ -51,18 +73,24 @@ export function createMaintenanceRepository(db: Db) {
               .returning({ id: odometerReadings.id })
               .get().id
           : null;
-        return tx
+        const created = tx
           .insert(maintenanceRecords)
           .values({ ...values, odometerReadingId: readingId })
           .returning()
           .get();
+        markScheduleDone(tx, lastDone);
+        return created;
       });
     },
-    /** Updates a record and applies the change to its linked odometer reading atomically. */
+    /**
+     * Updates a record and applies the change to its linked odometer reading and, optionally, to the
+     * last done values of its schedule atomically.
+     */
     update(
       record: MaintenanceRecordRow,
       changes: Omit<Partial<NewMaintenanceRecordRow>, 'odometerReadingId'>,
       reading: ReadingChange,
+      lastDone?: ScheduleLastDone,
     ) {
       return db.transaction((tx) => {
         let odometerReadingId = record.odometerReadingId;
@@ -92,6 +120,7 @@ export function createMaintenanceRepository(db: Db) {
         if (reading.kind === 'remove' && record.odometerReadingId) {
           tx.delete(odometerReadings).where(eq(odometerReadings.id, record.odometerReadingId)).run();
         }
+        markScheduleDone(tx, lastDone);
         return updated;
       });
     },

@@ -9,9 +9,15 @@ import { todayIn } from '../../lib/dates';
 import { BadRequestError, ConflictError, NotFoundError } from '../../lib/errors';
 import type { FileStorage } from '../../lib/storage';
 import type { AttachmentsRepository } from '../attachments/repository';
+import type { SchedulesRepository } from '../schedules/repository';
 import type { SettingsService } from '../settings/service';
 import type { VehiclesRepository } from '../vehicles/repository';
-import type { MaintenanceRecordRow, MaintenanceRepository, ReadingChange } from './repository';
+import type {
+  MaintenanceRecordRow,
+  MaintenanceRepository,
+  ReadingChange,
+  ScheduleLastDone,
+} from './repository';
 
 interface MaintenanceServiceDeps {
   repo: MaintenanceRepository;
@@ -19,6 +25,7 @@ interface MaintenanceServiceDeps {
   settings: SettingsService;
   attachments: AttachmentsRepository;
   storage: FileStorage;
+  schedules: SchedulesRepository;
 }
 
 const toDto = (row: MaintenanceRecordRow): MaintenanceRecord => {
@@ -32,6 +39,7 @@ export function createMaintenanceService({
   settings,
   attachments,
   storage,
+  schedules,
 }: MaintenanceServiceDeps) {
   /** Ownership check: other users' vehicles are reported as missing so their ids are not disclosed. */
   const requireVehicle = (userId: string, vehicleId: string) => {
@@ -68,6 +76,20 @@ export function createMaintenanceService({
     }
   };
 
+  /**
+   * Checks that the record's resulting schedule belongs to the vehicle and returns its new last done
+   * values, only when the record is not older than the current ones.
+   */
+  const scheduleLastDone = (
+    vehicleId: string,
+    { scheduleId, date, odometer }: { scheduleId: string | null; date: string; odometer: number | null },
+  ): ScheduleLastDone | undefined => {
+    if (scheduleId == null) return undefined;
+    const schedule = schedules.find(vehicleId, scheduleId);
+    if (!schedule) throw new BadRequestError('Maintenance schedule not found for this vehicle');
+    return date >= schedule.lastDoneDate ? { scheduleId, date, odometer } : undefined;
+  };
+
   return {
     list(userId: string, vehicleId: string): MaintenanceRecord[] {
       requireVehicle(userId, vehicleId);
@@ -87,8 +109,13 @@ export function createMaintenanceService({
     create(userId: string, vehicleId: string, input: CreateMaintenanceRecord): MaintenanceRecord {
       requireVehicle(userId, vehicleId);
       validate(userId, vehicleId, input);
+      const lastDone = scheduleLastDone(vehicleId, {
+        scheduleId: input.scheduleId ?? null,
+        date: input.date,
+        odometer: input.odometer ?? null,
+      });
       const reading = input.odometer == null ? undefined : { date: input.date, value: input.odometer };
-      return toDto(repo.create({ ...input, vehicleId }, reading));
+      return toDto(repo.create({ ...input, vehicleId }, reading, lastDone));
     },
 
     update(
@@ -101,6 +128,8 @@ export function createMaintenanceService({
       const date = input.date ?? record.date;
       const odometer = input.odometer === undefined ? record.odometer : input.odometer;
       validate(userId, vehicleId, { date, odometer }, record.odometerReadingId);
+      const scheduleId = input.scheduleId === undefined ? record.scheduleId : input.scheduleId;
+      const lastDone = scheduleLastDone(vehicleId, { scheduleId, date, odometer });
 
       let reading: ReadingChange = { kind: 'keep' };
       if (input.odometer === null) {
@@ -108,7 +137,7 @@ export function createMaintenanceService({
       } else if (odometer != null && (date !== record.date || odometer !== record.odometer)) {
         reading = { kind: 'upsert', date, value: odometer };
       }
-      return toDto(repo.update(record, input, reading));
+      return toDto(repo.update(record, input, reading, lastDone));
     },
 
     /** Deletes the record and its attachments: rows in the same transaction, files afterwards. */

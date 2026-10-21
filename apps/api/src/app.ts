@@ -17,6 +17,9 @@ import { createMaintenanceRepository } from './modules/maintenance/repository';
 import { maintenanceRoutes } from './modules/maintenance/routes';
 import { createMaintenanceService } from './modules/maintenance/service';
 import { meRoutes } from './modules/me/routes';
+import { createSchedulesRepository } from './modules/schedules/repository';
+import { schedulesRoutes } from './modules/schedules/routes';
+import { createSchedulesService } from './modules/schedules/service';
 import { createSettingsRepository } from './modules/settings/repository';
 import { settingsRoutes } from './modules/settings/routes';
 import { createSettingsService } from './modules/settings/service';
@@ -60,6 +63,7 @@ export async function buildApp({ config, db }: AppDeps) {
   const attachmentsRepo = createAttachmentsRepository(db);
   const vehiclesRepo = createVehiclesRepository(db);
   const maintenanceRepo = createMaintenanceRepository(db);
+  const schedulesRepo = createSchedulesRepository(db);
   const vehiclesService = createVehiclesService({
     repo: vehiclesRepo,
     storage,
@@ -72,6 +76,12 @@ export async function buildApp({ config, db }: AppDeps) {
     settings: settingsService,
     attachments: attachmentsRepo,
     storage,
+    schedules: schedulesRepo,
+  });
+  const schedulesService = createSchedulesService({
+    repo: schedulesRepo,
+    vehicles: vehiclesRepo,
+    settings: settingsService,
   });
   const attachmentsService = createAttachmentsService({
     repo: attachmentsRepo,
@@ -88,6 +98,7 @@ export async function buildApp({ config, db }: AppDeps) {
       await api.register(settingsRoutes, { service: settingsService });
       await api.register(vehiclesRoutes, { service: vehiclesService });
       await api.register(maintenanceRoutes, { service: maintenanceService });
+      await api.register(schedulesRoutes, { service: schedulesService });
       await api.register(attachmentsRoutes, { service: attachmentsService });
     },
     { prefix: '/api' },
