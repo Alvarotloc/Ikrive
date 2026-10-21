@@ -26,6 +26,7 @@ const record: MaintenanceRecord = {
   workshop: 'Taller Paco',
   cost: 180.5,
   includeInReport: false,
+  scheduleId: null,
   createdAt: '2025-03-10T10:00:00.000Z',
   updatedAt: '2025-03-10T10:00:00.000Z',
 };

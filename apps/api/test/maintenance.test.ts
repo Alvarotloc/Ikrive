@@ -77,6 +77,7 @@ describe('maintenance records', () => {
       workshop: 'Taller Paco',
       cost: 89.9,
       includeInReport: false,
+      scheduleId: null,
       createdAt: expect.any(String),
       updatedAt: expect.any(String),
     });
