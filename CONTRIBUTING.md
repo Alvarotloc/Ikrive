@@ -53,7 +53,7 @@ Las features nuevas siguen el flujo de [docs/sdd.md](docs/sdd.md): se añaden a 
   - Renderiza con `renderWithProviders` de `apps/web/src/test/render.tsx` (QueryClient nuevo sin reintentos, i18n en español) y simula la API con `mockApi({ 'POST /vehicles/v1/odometer': { status: 409, body: problem } })`, que sustituye `fetch` (las rutas no declaradas responden 404). Nada de servidor ni MSW.
   - Busca por rol, etiqueta o texto (`getByRole`, `getByLabelText`) e interactúa con el `user` que devuelve el helper (`user-event`). Afirma lo que ve el usuario con los matchers de `jest-dom`.
   - Ejemplos: `apps/web/src/features/vehicles/odometer-form.test.tsx` y `apps/web/src/components/form-field.test.tsx`.
-  - Configuración en `apps/web/vitest.config.ts`: proyecto `unit` (`*.test.ts`, Node) y `dom` (`*.test.tsx`, jsdom, `src/test/setup.ts`).
+  - Configuración en `apps/web/vitest.config.ts`: proyecto `unit` (`*.test.ts`, Node, `src/test/setup-unit.ts`) y `dom` (`*.test.tsx`, jsdom, `src/test/setup.ts`). Ambos setups fijan i18n a `es`: los tests corren siempre en español sea cual sea el idioma del sistema (en CI es en-US), así que los textos esperados se escriben en español.
 
 ## Convenciones
 
