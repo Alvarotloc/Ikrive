@@ -90,3 +90,12 @@
 - **Tests:** shared 26, API 62, web 112 (fixtures de la web con `scheduleId: null`). `pnpm harness --full` en verde.
 - **Revisión:** CHANGES_REQUESTED en la vuelta 1: drizzle-kit omitió `ON DELETE set null` en el `ADD COLUMN`. Con autorización expresa del humano, el implementer retocó a mano esa línea del SQL (con comentario) y se quitó el workaround del repositorio. APPROVED en la vuelta 2 (`progress/review_maintenance-schedules-api.md`). Avisos no bloqueantes: un test compara con «hoy» y podría fallar justo al cambiar de día; editar un mantenimiento vinculado reescribe (idempotente) el último realizado.
 - **Gate 2:** merge aprobado por el humano.
+
+## 2026-10-21 — #14 maintenance-schedules-web
+
+- **Rama:** `feat/maintenance-schedules-web` (SDD, spec en `specs/maintenance-schedules-web/`, 21 R / 14 T). Spec aprobado sin cambios en Gate 1.
+- **Cambios:** solo `apps/web`. Sección «Próximos mantenimientos» en la ficha del vehículo (`features/schedules/`): reglas ordenadas por estado → fecha → km → título (`sortSchedules`), intervalo, próximo vencimiento con marca «estimada» o texto sin datos, y Badge al día / próximo / vencido (variantes nuevas `warning` con token `--warning` y `danger`). Alta (solo vehículos activos), edición y borrado con confirmación; formulario con `scheduleFormSchema(unit)` derivado de `createMaintenanceScheduleSchema`. Selector «Regla» en el formulario de mantenimiento (oculto sin reglas); guardar recarga la sección. Textos en es/en.
+- **Desviaciones aceptadas:** `toUpdateBody` omite `lastDoneDate` vacío (la API no acepta `null`); `z.preprocess` para los números; prefijo «Vence: …».
+- **Tests:** web 144, API 62, shared 26. Capturas en claro, oscuro y 375 px sin desbordamiento. `pnpm harness --full` en verde.
+- **Revisión:** CHANGES_REQUESTED en la vuelta 1 (faltaba test de recarga tras crear una regla, R12); APPROVED en la vuelta 2 (`progress/review_maintenance-schedules-web.md`). Avisos no bloqueantes: con título vacío y sin intervalos el error de intervalo aparece en un segundo paso (Zod 4); borrar una regla con el formulario de mantenimiento abierto da un 400 que se muestra como «fecha futura».
+- **Gate 2:** merge aprobado por el humano.
