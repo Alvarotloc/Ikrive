@@ -126,7 +126,7 @@ Pendientes:
 
 - **maintenance_records**: vehicle_id, fecha, km, categoría, título, descripción, taller, coste, `schedule_id?` e `include_in_report`.
   - Al crearlo se genera una lectura de odómetro.
-- **maintenance_schedules**: `interval_months?` y/o `interval_km?` (vence lo primero que llegue), último realizado, `next_due_*` y umbral de aviso.
+- **maintenance_schedules**: vehicle_id, título, categoría, `interval_months?` y/o `interval_distance?` (vence lo primero que llegue), umbral de aviso en dos campos (`warn_days` para la fecha y `warn_distance` para los km) y último realizado (`last_done_date`, `last_done_odometer?`). `next_due_date`, `next_due_odometer` y el estado no se guardan: se calculan al leer con la fecha de hoy y las lecturas de odómetro.
   - Al registrar un mantenimiento vinculado se recalcula el siguiente vencimiento.
 - **fuel_logs**: fecha, km, cantidad (L o kWh), precio total, precio por unidad, `full_tank` y `missed_previous`.
   - También genera una lectura de odómetro.
