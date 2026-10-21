@@ -12,6 +12,7 @@ const input = (overrides: Partial<MaintenanceFormInput> = {}): MaintenanceFormIn
   workshop: '',
   cost: '',
   includeInReport: true,
+  scheduleId: '',
   ...overrides,
 });
 
@@ -36,6 +37,11 @@ describe('maintenance form', () => {
     const values = maintenanceFormSchema.parse(input({ odometer: '  ', cost: '' }));
 
     expect(values).toMatchObject({ odometer: null, cost: null, description: null, workshop: null });
+  });
+
+  it('turns no schedule into null and keeps a chosen one', () => {
+    expect(maintenanceFormSchema.parse(input()).scheduleId).toBeNull();
+    expect(maintenanceFormSchema.parse(input({ scheduleId: 's1' })).scheduleId).toBe('s1');
   });
 
   it('parses Spanish and English cost notation', () => {
@@ -63,7 +69,9 @@ describe('maintenance form', () => {
       workshop: 'Taller Paco',
       cost: '180.5',
       includeInReport: false,
+      scheduleId: '',
     });
+    expect(defaultsFrom({ ...record, scheduleId: 's1' }).scheduleId).toBe('s1');
     expect(defaultsFrom()).toMatchObject({
       category: 'oil_change',
       includeInReport: true,

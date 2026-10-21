@@ -12,6 +12,8 @@ import { Dialog, DialogClose, DialogContent, DialogFooter, DialogTitle } from '@
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { schedulesQuery } from '@/features/schedules/queries';
+import { sortSchedules } from '@/features/schedules/schedules';
 import { settingsQuery } from '@/features/settings/queries';
 import { todayIso, useFormat } from '@/lib/format';
 import { AttachmentPicker } from './attachment-picker';
@@ -69,6 +71,8 @@ function MaintenanceForm({
   const { t } = useTranslation();
   const { distanceUnit } = useFormat();
   const { data: settings = DEFAULT_USER_SETTINGS } = useQuery(settingsQuery);
+  // The selector only appears once the vehicle has schedules; until then the record stays unlinked.
+  const { data: schedules = [] } = useQuery(schedulesQuery(vehicleId));
   const create = useCreateMaintenance(vehicleId);
   const update = useUpdateMaintenance(vehicleId);
   const { maxUploadMb, acceptFiles, uploadFiles } = useAttachmentUpload(vehicleId);
@@ -150,6 +154,18 @@ function MaintenanceForm({
           ))}
         </Select>
       </FormField>
+      {schedules.length > 0 && (
+        <FormField id="maintenance-scheduleId" label={t('maintenance.fields.schedule')}>
+          <Select {...input('scheduleId')}>
+            <option value="">{t('maintenance.noSchedule')}</option>
+            {sortSchedules(schedules).map((schedule) => (
+              <option key={schedule.id} value={schedule.id}>
+                {schedule.title}
+              </option>
+            ))}
+          </Select>
+        </FormField>
+      )}
       <FormField {...field('title')}>
         <Input autoComplete="off" {...input('title')} />
       </FormField>

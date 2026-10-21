@@ -1,12 +1,19 @@
-import { DEFAULT_USER_SETTINGS, type MaintenanceRecord } from '@ikrive/shared';
-import { screen } from '@testing-library/react';
-import { useState } from 'react';
+import { DEFAULT_USER_SETTINGS, type MaintenanceRecord, type MaintenanceSchedule } from '@ikrive/shared';
+import { screen, waitFor } from '@testing-library/react';
+import { Suspense, useState } from 'react';
 import { Toaster, toast } from 'sonner';
 import { afterEach, describe, expect, it, type Mock } from 'vitest';
+import { SchedulesSection } from '@/features/schedules/schedules-section';
 import i18n from '@/i18n';
 import { queryKeys } from '@/lib/query-keys';
 import { type MockResponse, type MockRoutes, mockApi, renderWithProviders } from '@/test/render';
 import { MaintenanceFormDialog } from './maintenance-form';
+
+// Same formatter as `useFormat` in Spanish.
+const date = (iso: string) =>
+  new Intl.DateTimeFormat('es', { dateStyle: 'medium', timeZone: 'UTC' }).format(
+    new Date(`${iso}T00:00:00Z`),
+  );
 
 const record: MaintenanceRecord = {
   id: 'r1',
@@ -44,6 +51,7 @@ function setup(routes: MockRoutes, options: { record?: MaintenanceRecord } = {})
   const fetchMock = mockApi({
     'GET /settings': { body: DEFAULT_USER_SETTINGS },
     'GET /config': { body: { maxUploadMb: 1 } },
+    'GET /vehicles/v1/schedules': { body: [] },
     ...routes,
   });
   return { fetchMock, ...renderWithProviders(<Harness record={options.record} />) };
@@ -124,6 +132,7 @@ describe('MaintenanceFormDialog', () => {
         workshop: null,
         cost: 1234.56,
         includeInReport: true,
+        scheduleId: null,
       },
     ]);
   });
@@ -182,6 +191,7 @@ describe('MaintenanceFormDialog', () => {
         workshop: 'Taller Paco',
         cost: 180.5,
         includeInReport: true,
+        scheduleId: null,
       },
     ]);
   });
@@ -397,6 +407,119 @@ describe('MaintenanceFormDialog', () => {
       expect(screen.queryByLabelText('Elegir facturas')).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Añadir facturas' })).not.toBeInTheDocument();
       expect(screen.queryByText('Facturas')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('schedule link', () => {
+    const schedule = (overrides: Partial<MaintenanceSchedule>): MaintenanceSchedule => ({
+      id: 'oil',
+      vehicleId: 'v1',
+      title: 'Aceite cada año',
+      category: 'oil_change',
+      intervalMonths: 12,
+      intervalDistance: null,
+      warnDays: 30,
+      warnDistance: 1000,
+      lastDoneDate: '2024-03-10',
+      lastDoneOdometer: null,
+      nextDueDate: '2025-03-10',
+      nextDueDateEstimated: false,
+      nextDueOdometer: null,
+      status: 'overdue',
+      createdAt: '2024-03-10T10:00:00.000Z',
+      updatedAt: '2024-03-10T10:00:00.000Z',
+      ...overrides,
+    });
+    const oil = schedule({});
+    const tires = schedule({ id: 'tires', title: 'Neumáticos', category: 'tires', status: 'ok' });
+    const withSchedules = { 'GET /vehicles/v1/schedules': { body: [tires, oil] } };
+    const scheduleSelect = () => screen.findByLabelText('Regla');
+
+    it('hides the schedule selector when the vehicle has no schedules', async () => {
+      const { queryClient } = setup({});
+
+      await waitFor(() =>
+        expect(queryClient.getQueryState(queryKeys.vehicles.schedules('v1'))?.status).toBe('success'),
+      );
+      expect(screen.queryByLabelText('Regla')).not.toBeInTheDocument();
+      expect(screen.queryByText('Ninguna')).not.toBeInTheDocument();
+    });
+
+    it('links the record to the chosen schedule', async () => {
+      const { user, fetchMock } = setup({
+        ...withSchedules,
+        'POST /vehicles/v1/maintenance': { status: 201, body: { ...record, scheduleId: 'oil' } },
+      });
+
+      const select = await scheduleSelect();
+      expect(select).toHaveValue('');
+      expect([...(select as HTMLSelectElement).options].map((option) => option.text)).toEqual([
+        'Ninguna',
+        'Aceite cada año',
+        'Neumáticos',
+      ]);
+      await user.selectOptions(select, 'oil');
+      await user.type(screen.getByLabelText(label.title), 'Cambio de aceite');
+      await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+      expect(await screen.findByText('Mantenimiento añadido')).toBeInTheDocument();
+      expect(requests(fetchMock, 'POST', '/vehicles/v1/maintenance')).toEqual([
+        expect.objectContaining({ title: 'Cambio de aceite', scheduleId: 'oil' }),
+      ]);
+    });
+
+    it('preselects the record schedule when editing', async () => {
+      setup(withSchedules, { record: { ...record, scheduleId: 'tires' } });
+
+      expect(await scheduleSelect()).toHaveValue('tires');
+    });
+
+    it('sends a null schedule when choosing none', async () => {
+      const { user, fetchMock } = setup(
+        { ...withSchedules, 'PATCH /vehicles/v1/maintenance/r1': { body: record } },
+        { record: { ...record, scheduleId: 'tires' } },
+      );
+
+      await user.selectOptions(await scheduleSelect(), '');
+      await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+      expect(await screen.findByText('Mantenimiento actualizado')).toBeInTheDocument();
+      expect(requests(fetchMock, 'PATCH', '/vehicles/v1/maintenance/r1')).toEqual([
+        expect.objectContaining({ scheduleId: null }),
+      ]);
+    });
+
+    it('refreshes the schedules section with the new due date after saving a linked record', async () => {
+      let schedules = [oil];
+      const fetchMock = mockApi({
+        'GET /settings': { body: DEFAULT_USER_SETTINGS },
+        'GET /config': { body: { maxUploadMb: 1 } },
+        'GET /vehicles/v1/schedules': () => ({ body: schedules }),
+        'POST /vehicles/v1/maintenance': () => {
+          schedules = [schedule({ lastDoneDate: '2025-03-10', nextDueDate: '2026-03-10', status: 'ok' })];
+          return { status: 201, body: { ...record, scheduleId: 'oil' } };
+        },
+      });
+      const { user } = renderWithProviders(
+        <>
+          <Suspense fallback={null}>
+            <SchedulesSection vehicle={{ id: 'v1', status: 'active' }} />
+          </Suspense>
+          <Harness />
+        </>,
+      );
+
+      expect(await screen.findByText(`Vence: ${date('2025-03-10')}`)).toBeInTheDocument();
+      expect(screen.getByText('Vencido')).toBeInTheDocument();
+
+      await user.selectOptions(await scheduleSelect(), 'oil');
+      await user.type(screen.getByLabelText(label.title), 'Cambio de aceite');
+      await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+      expect(await screen.findByText(`Vence: ${date('2026-03-10')}`)).toBeInTheDocument();
+      expect(screen.getByText('Al día')).toBeInTheDocument();
+      expect(screen.queryByText('Vencido')).not.toBeInTheDocument();
+      expect(callsTo(fetchMock, 'POST', '/vehicles/v1/maintenance')).toHaveLength(1);
     });
   });
 });
