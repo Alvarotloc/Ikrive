@@ -195,6 +195,135 @@
       ],
       "sdd": true,
       "status": "done"
+    },
+    {
+      "id": 13,
+      "name": "maintenance-schedules-api",
+      "phase": "4",
+      "title": "Reglas de mantenimiento (API)",
+      "description": "Reglas periódicas por vehículo (cada X meses y/o cada X km, vence lo primero que llegue) con umbral de aviso. Se calcula el próximo vencimiento; para las de km la fecha se estima con la media de km/día de los últimos 90 días. Un mantenimiento puede vincularse a una regla y entonces recalcula su siguiente vencimiento.",
+      "acceptance": [
+        "Existe la tabla maintenance_schedules (vehicle_id, título, categoría, interval_months?, interval_km?, umbral de aviso, último realizado) con su migración, y maintenance_records.schedule_id referencia a ella",
+        "GET|POST /api/vehicles/:id/schedules y GET|PATCH|DELETE /api/vehicles/:id/schedules/:scheduleId funcionan con validación zod de @ikrive/shared; se exige al menos uno de interval_months o interval_km (400 si faltan los dos)",
+        "Solo el propietario del vehículo accede a sus reglas (404 al resto)",
+        "Cada regla devuelve next_due_date, next_due_km y un estado ok|due_soon|overdue; para las de km, la fecha estimada usa la media de km/día de las lecturas de los últimos 90 días (sin datos suficientes, la fecha estimada es null)",
+        "Al crear una regla se puede indicar opcionalmente la fecha y los km de la última vez que se hizo; si no se indican, la cuenta empieza en la fecha y los km de compra del vehículo (y, si el vehículo no los tiene, en la fecha de creación de la regla y la última lectura de km)",
+        "Crear o editar un mantenimiento con schedule_id actualiza el último realizado de la regla y su siguiente vencimiento; borrar la regla deja los mantenimientos con schedule_id null",
+        "El cálculo del vencimiento y de la media de km/día son funciones puras en packages/shared con tests unitarios (meses, km, lo primero que llegue, umbral y falta de datos)",
+        "Tests de integración cubren el CRUD, la autorización y el recálculo al vincular un mantenimiento",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 14,
+      "name": "maintenance-schedules-web",
+      "phase": "4",
+      "title": "Reglas de mantenimiento (web)",
+      "description": "Sección «Próximos mantenimientos» en la ficha del vehículo para crear, editar y borrar reglas y ver su estado, y selector de regla al registrar un mantenimiento. Va después de maintenance-schedules-api (#13).",
+      "acceptance": [
+        "La ficha del vehículo muestra sus reglas ordenadas por vencimiento, con el próximo vencimiento (fecha y/o km, indicando cuándo la fecha es estimada) y un Badge de estado al día / próximo / vencido",
+        "Desde la ficha se puede crear, editar y borrar una regla con un formulario validado con el esquema de @ikrive/shared; borrar pide confirmación",
+        "El formulario de mantenimiento permite vincularlo a una regla del vehículo y, al guardarlo, la sección de reglas se actualiza con el nuevo vencimiento",
+        "Los km se muestran en la unidad de distancia del usuario y las fechas en su locale",
+        "Todos los textos están en es.json y en.json",
+        "Tests de componente cubren el listado con sus estados, el alta de una regla y la vinculación desde el formulario de mantenimiento",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 15,
+      "name": "in-app-notifications",
+      "phase": "4",
+      "title": "Notificaciones in-app y job de recordatorios",
+      "description": "Tabla notifications, reminders.job diario con croner dentro del proceso de la API que evalúa las reglas y crea notificaciones deduplicadas, y bandeja de notificaciones en la web. Va después de maintenance-schedules-web (#14).",
+      "acceptance": [
+        "Existe la tabla notifications (user_id, tipo, título, cuerpo, enlace, dedupe_key único, read_at, created_at) con su migración",
+        "reminders.job se programa una vez al día con croner al arrancar la API (desactivable por variable de entorno validada con zod) y es una función invocable aparte del planificador",
+        "El job crea una notificación por cada regla de un vehículo activo que pasa a due_soon u overdue, con enlace a la ficha del vehículo; ejecutarlo dos veces el mismo día no duplica notificaciones (dedupe_key)",
+        "GET /api/notifications (paginado, con contador de no leídas), PATCH /api/notifications/:id/read y POST /api/notifications/read-all; cada usuario solo ve y modifica las suyas (404 al resto)",
+        "La cabecera de la app muestra una campana con el número de no leídas y un panel con la lista; pulsar una notificación la marca como leída y navega a su enlace",
+        "Todos los textos están en es.json y en.json",
+        "Tests unitarios o de integración cubren la evaluación del job y la deduplicación, tests de integración cubren los endpoints y su autorización, y un test de componente cubre la campana",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 16,
+      "name": "notification-channels",
+      "phase": "4",
+      "title": "Canales de notificación externos",
+      "description": "Interfaz NotificationChannel.send() con implementaciones para ntfy, Gotify, Apprise (apprise-api) y webhook, configuración por usuario en Ajustes con botón de prueba, y envío desde los jobs además de la notificación in-app. Va después de in-app-notifications (#15).",
+      "acceptance": [
+        "Existe la tabla notification_channels (user_id, tipo ntfy|gotify|apprise|webhook, config JSON, activo, último error) con su migración; la config se valida con un esquema zod discriminado por tipo",
+        "GET|POST /api/notification-channels, PATCH|DELETE /api/notification-channels/:id y POST /api/notification-channels/:id/test; solo el propietario accede (404 al resto) y los secretos (tokens) no se devuelven en claro",
+        "Cada implementación construye la petición HTTP correcta para su servicio y tiene timeout; los tests usan un servidor o fetch simulado, sin red real",
+        "Cuando se crea una notificación in-app, se envía también por los canales activos del usuario; un fallo de un canal guarda last_error y no impide la notificación in-app ni el envío por los demás",
+        "En Ajustes se pueden añadir, editar, activar/desactivar, borrar y probar canales; el resultado de la prueba y el último error se muestran al usuario",
+        "Todos los textos están en es.json y en.json",
+        "Tests unitarios por canal, de integración para los endpoints y el envío con fallo parcial, y de componente para la pantalla de canales",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 17,
+      "name": "odometer-nudge",
+      "phase": "4",
+      "title": "Recordatorio semanal de km",
+      "description": "odometer-nudge.job: el día de la semana elegido por cada usuario (user_settings.odometerReminderWeekday, en su zona horaria) avisa de los vehículos activos que llevan 7 días o más sin lectura de km, con enlace a /odometer. Va después de notification-channels (#16).",
+      "acceptance": [
+        "odometer-nudge.job se programa con croner y es una función invocable aparte del planificador",
+        "Solo actúa sobre los usuarios cuyo día de recordatorio coincide con el día actual en su zona horaria, y los usuarios sin día configurado no reciben avisos",
+        "Crea una única notificación por usuario que lista los vehículos activos con 7 días o más sin lectura (los archivados y vendidos no cuentan), con enlace a /odometer; si no hay ninguno, no crea nada",
+        "La notificación se deduplica por usuario y semana y se envía también por los canales activos del usuario",
+        "Tests cubren el día y la zona horaria, el umbral de 7 días, los vehículos excluidos y la deduplicación",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 18,
+      "name": "admin-run-jobs",
+      "phase": "4",
+      "title": "Lanzar jobs a mano (admin)",
+      "description": "Endpoint y script para que un admin ejecute reminders y odometer-nudge sin esperar al planificador, útil para probar la instalación. Va después de odometer-nudge (#17).",
+      "acceptance": [
+        "POST /api/admin/jobs/:name/run (name: reminders | odometer-nudge) ejecuta el job y devuelve un resumen (notificaciones creadas y envíos fallidos); 404 para un job desconocido",
+        "Solo los usuarios con role admin pueden usarlo: 401 sin sesión y 403 para un usuario normal",
+        "Un script (p. ej. pnpm --filter api job <name>) ejecuta el mismo job desde la línea de comandos, también dentro de la imagen Docker, y está documentado",
+        "Tests de integración cubren la ejecución y la autorización",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 19,
+      "name": "maintenance-calendar",
+      "phase": "4",
+      "title": "Próximos mantenimientos en el calendario",
+      "description": "Llevar los próximos mantenimientos al calendario del usuario sin construir uno propio: un botón «Añadir al calendario» por regla (enlace de Google Calendar, enlace de Outlook y descarga .ics), que funciona en cualquier instalación, y un feed iCal opcional con token para quien tenga el servidor accesible (Google necesita URL pública; Apple Calendar, Thunderbird o ICSx5 sirven en red local o VPN). La generación del evento queda separada de la acción para que la futura app móvil con Capacitor pueda usar el calendario nativo. Va después de admin-run-jobs (#18) y necesita maintenance-schedules-web (#14).",
+      "acceptance": [
+        "Cada regla de la ficha del vehículo tiene una acción «Añadir al calendario» con tres opciones: Google Calendar (abre calendar.google.com con el evento rellenado), Outlook (enlace equivalente) y descargar un .ics",
+        "El evento es de día completo en la fecha de próximo vencimiento (real o estimada), con el título de la regla y el vehículo, una descripción con los km de vencimiento y un enlace a la ficha; si la regla no tiene fecha (solo km y sin datos para estimar), la acción está desactivada y explica por qué",
+        "La construcción del evento (datos, enlaces de Google y Outlook y el texto .ics conforme a RFC 5545) son funciones puras en packages/shared con tests unitarios, separadas de la acción de la UI para poder sustituirla por un calendario nativo en el futuro",
+        "En Ajustes el usuario puede activar un feed iCal personal: se genera una URL con token secreto, se puede copiar, regenerar (la anterior deja de funcionar) y desactivar; un texto explica que Google Calendar necesita que el servidor sea accesible desde internet",
+        "GET /api/calendar/:token.ics no requiere sesión, devuelve text/calendar con un evento por regla con fecha de los vehículos activos del dueño del token, con UID estable por regla para que los calendarios actualicen en vez de duplicar, y 404 para un token inexistente o desactivado",
+        "El token se guarda hasheado y se compara en tiempo constante",
+        "Todos los textos están en es.json y en.json",
+        "Tests de integración cubren el feed (contenido, token regenerado y desactivado) y un test de componente cubre la acción «Añadir al calendario»",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
     }
   ]
 }
