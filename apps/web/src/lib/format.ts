@@ -20,6 +20,7 @@ export function useFormat() {
     const money = new Intl.NumberFormat(locale, { style: 'currency', currency: settings.currency });
     // Date-only values are stored without time zone; format them as UTC so the day never shifts.
     const date = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' });
+    const dateTime = dateTimeFormat(locale, settings.timezone);
     const unit = settings.distanceUnit;
     return {
       distanceUnit: unit,
@@ -27,6 +28,18 @@ export function useFormat() {
       distance: (value: number) => `${number.format(value)} ${unit}`,
       money: (value: number) => money.format(value),
       date: (iso: string) => date.format(new Date(`${iso.slice(0, 10)}T00:00:00Z`)),
+      /** An instant (ISO date-time) as date and time in the user's time zone. */
+      dateTime: (iso: string) => dateTime.format(new Date(iso)),
     };
-  }, [locale, settings.currency, settings.distanceUnit]);
+  }, [locale, settings.currency, settings.distanceUnit, settings.timezone]);
+}
+
+/** Date and time in `timeZone`, or in the browser's zone when the saved one is not a valid IANA zone. */
+function dateTimeFormat(locale: string, timeZone: string) {
+  const options = { dateStyle: 'medium', timeStyle: 'short' } as const;
+  try {
+    return new Intl.DateTimeFormat(locale, { ...options, timeZone });
+  } catch {
+    return new Intl.DateTimeFormat(locale, options);
+  }
 }

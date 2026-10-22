@@ -4,6 +4,10 @@ export const queryKeys = {
   me: ['me'] as const,
   settings: ['settings'] as const,
   config: ['config'] as const,
+  notifications: {
+    all: ['notifications'] as const,
+    list: ['notifications', 'list'] as const,
+  },
   vehicles: {
     all: ['vehicles'] as const,
     list: (status: NonNullable<VehicleListQuery['status']>) => ['vehicles', 'list', status] as const,
