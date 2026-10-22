@@ -258,7 +258,7 @@
       "description": "Tabla notifications, reminders.job diario con croner dentro del proceso de la API que evalúa las reglas y crea notificaciones deduplicadas, y bandeja de notificaciones en la web. Va después de maintenance-schedules-web (#14).",
       "acceptance": [
         "Existe la tabla notifications (user_id, tipo, título, cuerpo, enlace, dedupe_key único, read_at, created_at) con su migración",
-        "reminders.job se programa una vez al día con croner al arrancar la API (desactivable por variable de entorno validada con zod) y es una función invocable aparte del planificador",
+        "reminders.job se programa cada hora con croner al arrancar la API (desactivable por variable de entorno validada con zod) y es una función invocable aparte del planificador; cada usuario recibe sus avisos a partir de la hora elegida en Ajustes (reminderHour, por defecto 8:00) en su zona horaria",
         "El job crea una notificación por cada regla de un vehículo activo que pasa a due_soon u overdue, con enlace a la ficha del vehículo; ejecutarlo dos veces el mismo día no duplica notificaciones (dedupe_key)",
         "GET /api/notifications (paginado, con contador de no leídas), PATCH /api/notifications/:id/read y POST /api/notifications/read-all; cada usuario solo ve y modifica las suyas (404 al resto)",
         "La cabecera de la app muestra una campana con el número de no leídas y un panel con la lista; pulsar una notificación la marca como leída y navega a su enlace",
@@ -267,7 +267,7 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
-      "status": "pending"
+      "status": "in_progress"
     },
     {
       "id": 16,
