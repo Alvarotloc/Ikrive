@@ -1,6 +1,7 @@
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, getTableColumns, sql } from 'drizzle-orm';
 import type { Db } from '../../db/client';
-import { maintenanceSchedules } from '../../db/schema';
+import { maintenanceSchedules, userSettings, vehicles } from '../../db/schema';
+import { activeVehicleFilter } from '../vehicles/repository';
 
 export type MaintenanceScheduleRow = typeof maintenanceSchedules.$inferSelect;
 export type NewMaintenanceScheduleRow = typeof maintenanceSchedules.$inferInsert;
@@ -14,6 +15,27 @@ export function createSchedulesRepository(db: Db) {
         .from(maintenanceSchedules)
         .where(eq(maintenanceSchedules.vehicleId, vehicleId))
         .orderBy(asc(maintenanceSchedules.createdAt), asc(sql`rowid`))
+        .all();
+    },
+    /**
+     * Schedules of every user's active vehicles, with the vehicle's owner and name and the owner's
+     * time zone and reminder hour (null when the owner has no settings row yet). For jobs.
+     */
+    listForActiveVehicles() {
+      return db
+        .select({
+          ...getTableColumns(maintenanceSchedules),
+          ownerId: vehicles.ownerId,
+          vehicleName: vehicles.name,
+          vehicleMake: vehicles.make,
+          vehicleModel: vehicles.model,
+          timezone: userSettings.timezone,
+          reminderHour: userSettings.reminderHour,
+        })
+        .from(maintenanceSchedules)
+        .innerJoin(vehicles, eq(vehicles.id, maintenanceSchedules.vehicleId))
+        .leftJoin(userSettings, eq(userSettings.userId, vehicles.ownerId))
+        .where(activeVehicleFilter)
         .all();
     },
     find(vehicleId: string, id: string) {

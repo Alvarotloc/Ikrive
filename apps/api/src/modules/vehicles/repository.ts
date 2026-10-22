@@ -1,5 +1,6 @@
 import type { VehicleStatus } from '@ikrive/shared';
-import { and, desc, eq, inArray, isNotNull, isNull, type SQL } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNotNull, isNull, max, or, type SQL } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/sqlite-core';
 import type { Db } from '../../db/client';
 import { attachments, maintenanceRecords, odometerReadings, vehicles } from '../../db/schema';
 
@@ -8,8 +9,11 @@ export type NewVehicleRow = typeof vehicles.$inferInsert;
 export type OdometerReadingRow = typeof odometerReadings.$inferSelect;
 export type NewOdometerReadingRow = typeof odometerReadings.$inferInsert;
 
+/** Active = neither sold nor archived. Shared with the queries of jobs that only consider active vehicles. */
+export const activeVehicleFilter = and(isNull(vehicles.soldAt), isNull(vehicles.archivedAt));
+
 const statusFilter: Record<VehicleStatus, SQL | undefined> = {
-  active: and(isNull(vehicles.soldAt), isNull(vehicles.archivedAt)),
+  active: activeVehicleFilter,
   archived: and(isNull(vehicles.soldAt), isNotNull(vehicles.archivedAt)),
   sold: isNotNull(vehicles.soldAt),
 };
@@ -70,6 +74,33 @@ export function createVehiclesRepository(db: Db) {
         .from(odometerReadings)
         .where(eq(odometerReadings.vehicleId, vehicleId))
         .orderBy(desc(odometerReadings.date), desc(odometerReadings.value))
+        .all();
+    },
+    /**
+     * Readings of several vehicles in one query: those dated on or after `since` plus every reading
+     * on each vehicle's latest date, even when it is older. Enough for `computeScheduleDue` when
+     * `since` is at most `today - AVERAGE_WINDOW_DAYS`.
+     */
+    listRecentReadingsByVehicles(vehicleIds: readonly string[], since: string) {
+      if (vehicleIds.length === 0) return [];
+      const latest = alias(odometerReadings, 'latest');
+      const latestDate = db
+        .select({ date: max(latest.date) })
+        .from(latest)
+        .where(eq(latest.vehicleId, odometerReadings.vehicleId));
+      return db
+        .select({
+          vehicleId: odometerReadings.vehicleId,
+          date: odometerReadings.date,
+          value: odometerReadings.value,
+        })
+        .from(odometerReadings)
+        .where(
+          and(
+            inArray(odometerReadings.vehicleId, [...vehicleIds]),
+            or(gte(odometerReadings.date, since), eq(odometerReadings.date, latestDate)),
+          ),
+        )
         .all();
     },
     latestReading(vehicleId: string) {

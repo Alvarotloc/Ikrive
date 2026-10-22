@@ -17,6 +17,9 @@ import { createMaintenanceRepository } from './modules/maintenance/repository';
 import { maintenanceRoutes } from './modules/maintenance/routes';
 import { createMaintenanceService } from './modules/maintenance/service';
 import { meRoutes } from './modules/me/routes';
+import { createNotificationsRepository } from './modules/notifications/repository';
+import { notificationsRoutes } from './modules/notifications/routes';
+import { createNotificationsService } from './modules/notifications/service';
 import { createSchedulesRepository } from './modules/schedules/repository';
 import { schedulesRoutes } from './modules/schedules/routes';
 import { createSchedulesService } from './modules/schedules/service';
@@ -83,6 +86,7 @@ export async function buildApp({ config, db }: AppDeps) {
     vehicles: vehiclesRepo,
     settings: settingsService,
   });
+  const notificationsService = createNotificationsService(createNotificationsRepository(db));
   const attachmentsService = createAttachmentsService({
     repo: attachmentsRepo,
     maintenance: maintenanceRepo,
@@ -100,6 +104,7 @@ export async function buildApp({ config, db }: AppDeps) {
       await api.register(maintenanceRoutes, { service: maintenanceService });
       await api.register(schedulesRoutes, { service: schedulesService });
       await api.register(attachmentsRoutes, { service: attachmentsService });
+      await api.register(notificationsRoutes, { service: notificationsService });
     },
     { prefix: '/api' },
   );
