@@ -108,3 +108,26 @@
 - **Tests:** web 144 en verde con `LANG=en_US.UTF-8` y con `es_ES.UTF-8`. `pnpm harness --full` en verde.
 - **Revisión:** APPROVED (`progress/review_locale-independent-unit-tests.md`), sin hallazgos.
 - **Gate 2:** merge aprobado por el humano. Primera feature cerrada con PR en GitHub en vez de merge local.
+
+## 2026-10-22 — #15 in-app-notifications
+
+- **Rama:** `feat/in-app-notifications` (SDD, spec en `specs/in-app-notifications/`, 34 R / 31 T, con 3 exploraciones previas).
+- **Gate 1:** el humano pidió 3 cambios:
+  - Hora de los recordatorios configurable en Ajustes (`reminderHour`, por defecto 8), con el job ejecutándose cada hora. Se cambió el criterio de aceptación «una vez al día» por «cada hora».
+  - Notificaciones borradas en cascada con su vehículo (`vehicle_id`).
+  - El job solo lee los últimos 91 días de km más la última lectura.
+  
+  Además se anotó en `docs/PLAN.md` › «Decisiones aplazadas» la idea de una versión hospedada (SaaS con Postgres en AWS) y cómo mantener el código portable.
+- **Cambios:**
+  - Tabla `notifications` (`dedupe_key` único, `vehicle_id` con borrado en cascada) y `user_settings.reminder_hour`, migración `0005`.
+  - `GET /api/notifications` paginado con offset/limit y `{ items, total, unreadCount }`, `PATCH /api/notifications/:id/read` (200) y `POST /api/notifications/read-all` (204). Lo ajeno responde 404.
+  - `apps/api/src/jobs/reminders.job.ts`: `runReminders({ db, now })` invocable aparte y croner con `0 * * * *` arrancado en `server.ts`, desactivable con `REMINDERS_ENABLED`. Deduplica por estado y periodo.
+  - Web: campana en la cabecera con contador «9+», popover, sondeo cada 60 s y marcar como leída al navegar. Desplegable «Hora de los recordatorios» en Ajustes. Textos en es/en.
+  - Nueva dependencia `croner`.
+- **Tests:** shared 29, API 91, web 152. Capturas en claro, oscuro y 375 px. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED a la primera (`progress/review_in-app-notifications.md`). Avisos no bloqueantes:
+  - Desempate por `id` en vez de `rowid`.
+  - Deuda de portabilidad previa (`sql\`rowid\`` en `schedules/repository.ts`, import de `sqlite-core`).
+  - Cabecera móvil compactada para que quepa la campana.
+  - El rate limit global cuenta también los estáticos de la SPA (problema previo, posible feature aparte).
+- **Gate 2:** merge aprobado por el humano.
