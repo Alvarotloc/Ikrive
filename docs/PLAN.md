@@ -84,12 +84,13 @@ ikrive/
 │   ├── api/                      # Fastify
 │   │   ├── src/
 │   │   │   ├── app.ts            # buildApp(): composition root (repos → services → routes)
-│   │   │   ├── server.ts         # arranque, migraciones, cierre ordenado
+│   │   │   ├── server.ts         # arranque, migraciones, planificador de jobs, cierre ordenado
 │   │   │   ├── config.ts         # env validado con zod
 │   │   │   ├── auth.ts           # Better Auth (primer usuario = admin, DISABLE_SIGNUP)
 │   │   │   ├── db/ (schema/*.ts, client.ts, migrate.ts, migrations/)
 │   │   │   ├── plugins/ (auth, errors [RFC 7807], static-spa)
 │   │   │   ├── lib/ (errors.ts → AppError, NotFoundError…; storage.ts, images.ts, dates.ts, version.ts)
+│   │   │   ├── jobs/             # <nombre>.job.ts: run…() invocable sin planificador + start…Job() con croner
 │   │   │   └── modules/<dominio>/ (routes.ts, service.ts, repository.ts)
 │   │   └── test/                 # integración con app.inject() + SQLite :memory:
 │   └── web/                      # React SPA
