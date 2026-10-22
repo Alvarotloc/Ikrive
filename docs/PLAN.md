@@ -29,6 +29,15 @@ Ikrive es una aplicación open source y autoalojada (Docker) para gestionar tus 
 - **Fotos de vehículos:** se reescalan a 1600 px y se recodifican a WebP con `sharp`, lo que elimina el EXIF (GPS). Se guardan en `/data/uploads/vehicles/<uuid>.webp` y se sirven por `GET /api/vehicles/:id/photo?v=…` (inmutable, con control de acceso).
 - **Adjuntos en línea:** `GET …/attachments/:id?inline=1` sirve la factura para verla en el navegador (por defecto se descarga). Como es contenido de usuario en el mismo origen, la respuesta lleva `nosniff` y una CSP por tipo: `sandbox` para imágenes; para PDF, sin `sandbox` y con `object-src 'self'`, porque Chrome no abre su visor en documentos aislados. Si algún día hay un origen aparte para contenido de usuario, conviene servirlos desde ahí.
 
+### Decisiones aplazadas
+
+- **Versión hospedada (SaaS), si algún día se ofrece.** La versión autoalojada sigue con SQLite. Para un SaaS con muchos clientes, la opción preferida es una infraestructura compartida (p. ej. AWS: Postgres en RDS, la API en contenedores y la SPA en Amplify o S3 + CloudFront) frente a una instancia con SQLite por cliente, que aísla mejor pero se vuelve costosa de operar a escala. Para no cerrarse esa puerta, mientras tanto:
+  - Acceso a datos solo a través de los repositorios, sin SQL específico de SQLite.
+  - Jobs como funciones invocables aparte del planificador, para poder lanzarlos desde fuera (p. ej. EventBridge) en vez de con croner en cada réplica.
+  - Autorización por propiedad en todas las consultas: en una base de datos compartida es lo que aísla a los clientes.
+
+  Pendiente si se lanza: portar el esquema Drizzle a `pg-core` y regenerar las migraciones, mover los archivos de `/data/uploads` a S3 y coordinar los jobs entre réplicas.
+
 ---
 
 ## Estado
