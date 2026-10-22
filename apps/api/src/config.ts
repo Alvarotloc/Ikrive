@@ -15,6 +15,8 @@ const envSchema = z
     AUTH_SECRET: z.string().min(32).optional(),
     DATA_DIR: z.string().default('./data'),
     DISABLE_SIGNUP: booleanString.default(false),
+    /** Schedules the hourly reminders job in `server.ts`. */
+    REMINDERS_ENABLED: booleanString.default(true),
     MAX_UPLOAD_MB: z.coerce.number().int().positive().default(20),
     LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
     /** Directory with the built SPA. When set, the API also serves the frontend. */

@@ -74,6 +74,8 @@
     "locale": "Idioma",
     "timezone": "Zona horaria",
     "odometerReminderWeekday": "Día del recordatorio de kilometraje",
+    "reminderHour": "Hora de los recordatorios",
+    "reminderHourHint": "Te avisaremos a partir de esta hora en tu zona horaria.",
     "theme": "Tema",
     "themes": {
       "system": "Sistema",
@@ -366,6 +368,19 @@
     "lastDoneHelp": "Si lo dejas vacío, se cuenta desde la compra del vehículo.",
     "errors": {
       "intervalRequired": "Indica un intervalo en meses o en {{unit}}"
+    }
+  },
+  "notifications": {
+    "title": "Notificaciones",
+    "open_one": "Notificaciones, {{count}} sin leer",
+    "open_other": "Notificaciones, {{count}} sin leer",
+    "markAllRead": "Marcar todas como leídas",
+    "empty": "No tienes notificaciones.",
+    "error": "No se han podido cargar las notificaciones.",
+    "loading": "Cargando notificaciones…",
+    "types": {
+      "schedule_due_soon": "Mantenimiento próximo",
+      "schedule_overdue": "Mantenimiento vencido"
     }
   }
 }

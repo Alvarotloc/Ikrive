@@ -29,8 +29,9 @@ Todos los datos (la base de datos SQLite y los ficheros subidos) se guardan en e
 |---|---|---|
 | `BASE_URL` | `http://localhost:3000` | URL pública de la instancia |
 | `AUTH_SECRET` | — (obligatoria en producción) | Secreto para firmar sesiones |
-| `TZ` | — | Zona horaria de los recordatorios |
+| `TZ` | — | Zona horaria del proceso (logs). Los recordatorios usan la zona y la hora que cada usuario elige en Ajustes |
 | `DISABLE_SIGNUP` | `false` | Bloquea nuevos registros tras el primero |
+| `REMINDERS_ENABLED` | `true` | Programa el job horario que crea los recordatorios de mantenimiento (`true`, `false`, `1`, `0`) |
 | `MAX_UPLOAD_MB` | `20` | Tamaño máximo de los adjuntos |
 | `PORT` | `3000` | Puerto HTTP |
 | `DATA_DIR` | `/data` | Carpeta de datos |

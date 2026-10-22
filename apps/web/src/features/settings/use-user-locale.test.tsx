@@ -10,7 +10,12 @@ const me: Me = { id: 'u1', name: 'Ana', email: 'ana@example.com', role: 'user' }
 
 /** Renders the whole app at `path` with a signed-in user and the given API routes. */
 function renderApp(path: string, routes: MockRoutes) {
-  mockApi({ 'GET /me': { body: me }, 'GET /vehicles': { body: [] }, ...routes });
+  mockApi({
+    'GET /me': { body: me },
+    'GET /vehicles': { body: [] },
+    'GET /notifications': { body: { items: [], total: 0, unreadCount: 0 } },
+    ...routes,
+  });
   const queryClient = createTestQueryClient();
   const router = createRouter({
     routeTree,

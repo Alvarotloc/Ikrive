@@ -74,6 +74,8 @@
     "locale": "Language",
     "timezone": "Time zone",
     "odometerReminderWeekday": "Odometer reminder day",
+    "reminderHour": "Reminder time",
+    "reminderHourHint": "We will notify you from this time in your time zone.",
     "theme": "Theme",
     "themes": {
       "system": "System",
@@ -366,6 +368,19 @@
     "lastDoneHelp": "If you leave it blank, it counts from the vehicle's purchase.",
     "errors": {
       "intervalRequired": "Enter an interval in months or in {{unit}}"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "open_one": "Notifications, {{count}} unread",
+    "open_other": "Notifications, {{count}} unread",
+    "markAllRead": "Mark all as read",
+    "empty": "You have no notifications.",
+    "error": "Notifications could not be loaded.",
+    "loading": "Loading notifications…",
+    "types": {
+      "schedule_due_soon": "Maintenance due soon",
+      "schedule_overdue": "Maintenance overdue"
     }
   }
 }

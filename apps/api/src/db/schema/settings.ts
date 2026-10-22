@@ -12,4 +12,6 @@ export const userSettings = sqliteTable('user_settings', {
   locale: text({ enum: LOCALES }).notNull().default(DEFAULT_USER_SETTINGS.locale),
   timezone: text().notNull().default(DEFAULT_USER_SETTINGS.timezone),
   odometerReminderWeekday: integer().notNull().default(DEFAULT_USER_SETTINGS.odometerReminderWeekday),
+  /** Local hour (0-23) from which the reminders job notifies the user. */
+  reminderHour: integer().notNull().default(DEFAULT_USER_SETTINGS.reminderHour),
 });

@@ -4,6 +4,7 @@ export * from './enums';
 export * from './schemas/attachments';
 export * from './schemas/common';
 export * from './schemas/maintenance';
+export * from './schemas/notifications';
 export * from './schemas/schedules';
 export * from './schemas/settings';
 export * from './schemas/vehicles';

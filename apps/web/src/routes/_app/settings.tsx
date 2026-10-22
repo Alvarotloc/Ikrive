@@ -22,6 +22,10 @@ import { Select } from '@/components/ui/select';
 import { settingsQuery, useUpdateSettings } from '@/features/settings/queries';
 import { applyTheme, getStoredTheme, type Theme } from '@/lib/theme';
 
+/** `00:00` … `23:00`: the same text in every language. */
+const REMINDER_HOURS = Array.from({ length: 24 }, (_, hour) => hour);
+const hourLabel = (hour: number) => `${String(hour).padStart(2, '0')}:00`;
+
 export const Route = createFileRoute('/_app/settings')({
   loader: ({ context }) => context.queryClient.ensureQueryData(settingsQuery),
   component: SettingsPage,
@@ -99,6 +103,22 @@ function SettingsPage() {
                   </option>
                 ))}
               </Select>
+            </FormField>
+            <FormField id="reminderHour" label={t('settings.reminderHour')}>
+              <Select
+                id="reminderHour"
+                aria-describedby="reminderHour-hint"
+                {...form.register('reminderHour', { valueAsNumber: true })}
+              >
+                {REMINDER_HOURS.map((hour) => (
+                  <option key={hour} value={hour}>
+                    {hourLabel(hour)}
+                  </option>
+                ))}
+              </Select>
+              <p id="reminderHour-hint" className="text-sm text-muted-foreground">
+                {t('settings.reminderHourHint')}
+              </p>
             </FormField>
             <div className="sm:col-span-2">
               <Button type="submit" disabled={form.formState.isSubmitting}>
