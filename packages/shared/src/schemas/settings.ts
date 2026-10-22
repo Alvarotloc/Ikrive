@@ -9,6 +9,8 @@ export const userSettingsSchema = z.object({
   timezone: z.string().min(1),
   /** Day of week (0 = Sunday) on which the user is reminded to log the odometer. */
   odometerReminderWeekday: z.number().int().min(0).max(6),
+  /** Local hour (0-23, in `timezone`) from which the user receives the day's reminders. */
+  reminderHour: z.number().int().min(0).max(23),
 });
 export type UserSettings = z.infer<typeof userSettingsSchema>;
 
@@ -22,4 +24,5 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
   locale: 'es',
   timezone: 'Europe/Madrid',
   odometerReminderWeekday: 0,
+  reminderHour: 8,
 };

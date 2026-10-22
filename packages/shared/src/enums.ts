@@ -51,6 +51,10 @@ export type OdometerSource = (typeof ODOMETER_SOURCES)[number];
 export const NOTIFICATION_CHANNEL_TYPES = ['ntfy', 'gotify', 'apprise', 'webhook'] as const;
 export type NotificationChannelType = (typeof NOTIFICATION_CHANNEL_TYPES)[number];
 
+/** In-app notification kinds; the web translates them, the stored title and body are user data. */
+export const NOTIFICATION_TYPES = ['schedule_due_soon', 'schedule_overdue'] as const;
+export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
+
 /** 0 = Sunday ... 6 = Saturday */
 export const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6] as const;
 
