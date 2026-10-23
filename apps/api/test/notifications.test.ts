@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { Db } from '../src/db/client';
 import { notifications } from '../src/db/schema';
 import { runReminders } from '../src/jobs/reminders.job';
-import { createTestApp, signUp } from './helpers';
+import { createTestApp, createTestDispatcher, signUp } from './helpers';
 
 type TestApp = Awaited<ReturnType<typeof createTestApp>>['app'];
 
@@ -151,7 +151,9 @@ describe('notifications', () => {
       expect(schedule.statusCode).toBe(201);
     }
     const [first, second] = vehicleIds as [string, string];
-    expect(runReminders({ db, now })).toMatchObject({ created: 2 });
+    expect(await runReminders({ db, now, dispatcher: createTestDispatcher(db) })).toMatchObject({
+      created: 2,
+    });
 
     const removed = await app.inject({ method: 'DELETE', url: `/api/vehicles/${first}`, headers });
     expect(removed.statusCode).toBe(204);

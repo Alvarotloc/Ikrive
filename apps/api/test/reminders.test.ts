@@ -14,7 +14,7 @@ import {
 import { hourIn } from '../src/lib/dates';
 import { createNotificationsRepository } from '../src/modules/notifications/repository';
 import { createVehiclesRepository } from '../src/modules/vehicles/repository';
-import { createTestApp, signUp } from './helpers';
+import { createTestApp, createTestDispatcher, signUp } from './helpers';
 
 type TestApp = Awaited<ReturnType<typeof createTestApp>>['app'];
 
@@ -155,7 +155,10 @@ describe('runReminders', () => {
     const dueSoonId = await ada.createSchedule(unnamed, dueSoonRule);
     await ada.createSchedule(named, okRule);
 
-    expect(runReminders({ db, now: NOW })).toEqual({ evaluated: 3, created: 2 });
+    expect(await runReminders({ db, now: NOW, dispatcher: createTestDispatcher(db) })).toEqual({
+      evaluated: 3,
+      created: 2,
+    });
 
     expect(rows(db)).toEqual([
       {
@@ -208,7 +211,10 @@ describe('runReminders', () => {
     });
     db.insert(odometerReadings).values({ vehicleId: vehicle, date: '2026-10-01', value: 25_000 }).run();
 
-    expect(runReminders({ db, now: NOW })).toEqual({ evaluated: 2, created: 0 });
+    expect(await runReminders({ db, now: NOW, dispatcher: createTestDispatcher(db) })).toEqual({
+      evaluated: 2,
+      created: 0,
+    });
     expect(rows(db)).toEqual([]);
   });
 
@@ -229,7 +235,10 @@ describe('runReminders', () => {
       ).toBe(200);
     }
 
-    expect(runReminders({ db, now: NOW })).toEqual({ evaluated: 0, created: 0 });
+    expect(await runReminders({ db, now: NOW, dispatcher: createTestDispatcher(db) })).toEqual({
+      evaluated: 0,
+      created: 0,
+    });
     expect(rows(db)).toEqual([]);
   });
 
@@ -247,7 +256,10 @@ describe('runReminders', () => {
     await madrid.createSchedule(await madrid.createVehicle(), rule);
     await newYork.createSchedule(await newYork.createVehicle(), rule);
 
-    expect(runReminders({ db, now })).toEqual({ evaluated: 2, created: 1 });
+    expect(await runReminders({ db, now, dispatcher: createTestDispatcher(db) })).toEqual({
+      evaluated: 2,
+      created: 1,
+    });
     expect(rows(db)).toMatchObject([{ userId: madrid.userId, type: 'schedule_overdue' }]);
   });
 
@@ -259,12 +271,19 @@ describe('runReminders', () => {
       await ada.createSchedule(vehicle, overdueRule);
       await ada.createSchedule(vehicle, dueSoonRule);
 
-      expect(runReminders({ db, now: NOW })).toEqual({ evaluated: 2, created: 2 });
+      expect(await runReminders({ db, now: NOW, dispatcher: createTestDispatcher(db) })).toEqual({
+        evaluated: 2,
+        created: 2,
+      });
       const first = rows(db);
-      expect(runReminders({ db, now: at('2026-10-22T18:00:00.000Z') })).toEqual({ evaluated: 2, created: 0 });
+      expect(
+        await runReminders({ db, now: at('2026-10-22T18:00:00.000Z'), dispatcher: createTestDispatcher(db) }),
+      ).toEqual({ evaluated: 2, created: 0 });
       expect(rows(db)).toEqual(first);
       // Still the same status and period on later days: nothing new either.
-      expect(runReminders({ db, now: at('2026-10-24T10:00:00.000Z') })).toEqual({ evaluated: 2, created: 0 });
+      expect(
+        await runReminders({ db, now: at('2026-10-24T10:00:00.000Z'), dispatcher: createTestDispatcher(db) }),
+      ).toEqual({ evaluated: 2, created: 0 });
       expect(rows(db)).toHaveLength(2);
     });
 
@@ -273,9 +292,17 @@ describe('runReminders', () => {
       const ada = await createUser(app, 'ada@example.com');
       const scheduleId = await ada.createSchedule(await ada.createVehicle(), dueSoonRule);
 
-      expect(runReminders({ db, now: NOW }).created).toBe(1);
+      expect((await runReminders({ db, now: NOW, dispatcher: createTestDispatcher(db) })).created).toBe(1);
       // Due on 2026-11-10.
-      expect(runReminders({ db, now: at('2026-11-10T10:00:00.000Z') }).created).toBe(1);
+      expect(
+        (
+          await runReminders({
+            db,
+            now: at('2026-11-10T10:00:00.000Z'),
+            dispatcher: createTestDispatcher(db),
+          })
+        ).created,
+      ).toBe(1);
       expect(rows(db).map((row) => [row.type, row.dedupeKey])).toEqual([
         ['schedule_due_soon', `schedule:${scheduleId}:due_soon:2025-11-10:`],
         ['schedule_overdue', `schedule:${scheduleId}:overdue:2025-11-10:`],
@@ -288,13 +315,13 @@ describe('runReminders', () => {
       const vehicle = await ada.createVehicle();
       const scheduleId = await ada.createSchedule(vehicle, overdueRule);
 
-      expect(runReminders({ db, now: NOW }).created).toBe(1);
+      expect((await runReminders({ db, now: NOW, dispatcher: createTestDispatcher(db) })).created).toBe(1);
       // Done again, but already overdue for the new period too (due 2026-10-01).
       await ada.patchSchedule(vehicle, scheduleId, { lastDoneDate: '2025-10-01', lastDoneOdometer: 20_000 });
-      expect(runReminders({ db, now: NOW }).created).toBe(1);
+      expect((await runReminders({ db, now: NOW, dispatcher: createTestDispatcher(db) })).created).toBe(1);
       // A new odometer alone also starts a new period.
       await ada.patchSchedule(vehicle, scheduleId, { lastDoneOdometer: 21_000 });
-      expect(runReminders({ db, now: NOW }).created).toBe(1);
+      expect((await runReminders({ db, now: NOW, dispatcher: createTestDispatcher(db) })).created).toBe(1);
 
       expect(
         rows(db)
@@ -348,7 +375,10 @@ describe('runReminders', () => {
         await user.createSchedule(await user.createVehicle(), overdueRule);
       }
 
-      expect(runReminders({ db, now: NOW })).toEqual({ evaluated: 1, created: 1 });
+      expect(await runReminders({ db, now: NOW, dispatcher: createTestDispatcher(db) })).toEqual({
+        evaluated: 1,
+        created: 1,
+      });
       expect(rows(db)).toMatchObject([{ userId: inTime.userId }]);
     });
 
@@ -359,8 +389,12 @@ describe('runReminders', () => {
       db.delete(userSettings).where(eq(userSettings.userId, ada.userId)).run();
 
       // 07:59 and 08:00 in Madrid.
-      expect(runReminders({ db, now: at('2026-10-22T05:59:00.000Z') })).toEqual({ evaluated: 0, created: 0 });
-      expect(runReminders({ db, now: at('2026-10-22T06:00:00.000Z') })).toEqual({ evaluated: 1, created: 1 });
+      expect(
+        await runReminders({ db, now: at('2026-10-22T05:59:00.000Z'), dispatcher: createTestDispatcher(db) }),
+      ).toEqual({ evaluated: 0, created: 0 });
+      expect(
+        await runReminders({ db, now: at('2026-10-22T06:00:00.000Z'), dispatcher: createTestDispatcher(db) }),
+      ).toEqual({ evaluated: 1, created: 1 });
     });
 
     it('catches up later the same day', async () => {
@@ -369,9 +403,33 @@ describe('runReminders', () => {
       await ada.createSchedule(await ada.createVehicle(), overdueRule);
 
       // 07:00, then 17:00 (the 08:00 run was missed), then 18:00 in Madrid.
-      expect(runReminders({ db, now: at('2026-10-22T05:00:00.000Z') }).created).toBe(0);
-      expect(runReminders({ db, now: at('2026-10-22T15:00:00.000Z') }).created).toBe(1);
-      expect(runReminders({ db, now: at('2026-10-22T16:00:00.000Z') }).created).toBe(0);
+      expect(
+        (
+          await runReminders({
+            db,
+            now: at('2026-10-22T05:00:00.000Z'),
+            dispatcher: createTestDispatcher(db),
+          })
+        ).created,
+      ).toBe(0);
+      expect(
+        (
+          await runReminders({
+            db,
+            now: at('2026-10-22T15:00:00.000Z'),
+            dispatcher: createTestDispatcher(db),
+          })
+        ).created,
+      ).toBe(1);
+      expect(
+        (
+          await runReminders({
+            db,
+            now: at('2026-10-22T16:00:00.000Z'),
+            dispatcher: createTestDispatcher(db),
+          })
+        ).created,
+      ).toBe(0);
       expect(rows(db)).toHaveLength(1);
     });
   });
