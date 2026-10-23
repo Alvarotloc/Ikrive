@@ -14,6 +14,7 @@ function renderApp(path: string, routes: MockRoutes) {
     'GET /me': { body: me },
     'GET /vehicles': { body: [] },
     'GET /notifications': { body: { items: [], total: 0, unreadCount: 0 } },
+    'GET /notification-channels': { body: [] },
     ...routes,
   });
   const queryClient = createTestQueryClient();

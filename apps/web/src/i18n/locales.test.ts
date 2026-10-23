@@ -1,4 +1,4 @@
-import { MAINTENANCE_CATEGORIES } from '@ikrive/shared';
+import { MAINTENANCE_CATEGORIES, NOTIFICATION_CHANNEL_TYPES } from '@ikrive/shared';
 import { describe, expect, it } from 'vitest';
 import en from './locales/en.json';
 import es from './locales/es.json';
@@ -19,6 +19,15 @@ describe('locales', () => {
       for (const category of MAINTENANCE_CATEGORIES) {
         expect(locale.maintenance.categories[category]).toEqual(expect.any(String));
         expect(locale.maintenance.categories[category]).not.toBe('');
+      }
+    }
+  });
+
+  it('defines a label for every notification channel type', () => {
+    for (const locale of [es, en]) {
+      for (const type of NOTIFICATION_CHANNEL_TYPES) {
+        expect(locale.notificationChannels.types[type]).toEqual(expect.any(String));
+        expect(locale.notificationChannels.types[type]).not.toBe('');
       }
     }
   });
