@@ -1,0 +1,39 @@
+# Tasks — notification-channels
+
+## Shared
+
+- [ ] T1 — Crear `packages/shared/src/schemas/notification-channels.ts` (configs por tipo, `createNotificationChannelSchema`, `updateNotificationChannelSchema`, `notificationChannelSchema` DTO sin token con `hasToken`, `notificationChannelTestResultSchema`, tipos) y exportarlo en `src/index.ts`. Cubre: R2, R3, R7, R9, R10.
+- [ ] T2 — Tests en `packages/shared/src/schemas/notification-channels.test.ts`: `accepts a valid config for every channel type`, `rejects an unknown type and missing required fields` (gotify sin token, ntfy sin topic), `rejects non-http urls` (`ftp://`, `javascript:`), `defaults enabled to true`, `update schema makes the token optional`. Cubre: R2, R3.
+
+## API: datos y canales
+
+- [ ] T3 — Tabla `notification_channels` en `apps/api/src/db/schema/notification-channels.ts` (+ barrel); generar `0006_notification_channels` con `pnpm --filter @ikrive/api exec drizzle-kit generate --name notification_channels` y revisar el SQL. Cubre: R1.
+- [ ] T4 — `apps/api/src/modules/notification-channels/repository.ts` (`listByUser` por `createdAt` asc, `findOwned`, `create`, `update`, `remove`, `listEnabledByUsers`, `setLastError`). Cubre: R1, R4, R12, R25, R27, R28.
+- [ ] T5 — `apps/api/src/modules/notification-channels/channels.ts`: `CHANNEL_TIMEOUT_MS`, `ChannelMessage`, `buildChannelRequest` por tipo, `createChannel(channel, { fetch, timeoutMs })` con `AbortSignal.timeout`, error `HTTP <status>`, error de timeout y recorte a 500 caracteres. Cubre: R16, R17, R18, R19, R20, R21.
+- [ ] T6 — Tests unitarios en `apps/api/src/modules/notification-channels/channels.test.ts` con `fetch` simulado (`vi.fn`): `builds the ntfy request` (con y sin token, `click`), `builds the gotify request` (`X-Gotify-Key`, `extras` solo con enlace), `builds the apprise request` (`/notify/<key>`, `tag`, enlace en `body`), `builds the webhook request` (con y sin token), `joins the server url without a double slash`, `fails with the HTTP status on a non-2xx response`, `aborts after the timeout` (fetch que espera al `signal` y `timeoutMs: 20`). Cubre: R16, R17, R18, R19, R20, R21.
+- [ ] T7 — `apps/api/src/modules/notification-channels/messages.ts` (`es`/`en`, `toChannelMessage`, `testMessage`) y `dispatcher.ts` (`createNotificationDispatcher` con `dispatch` y `sendTest`). Cubre: R22, R23, R24, R25, R26, R27, R28.
+- [ ] T8 — Test unitario en `apps/api/src/modules/notification-channels/messages.test.ts`: `composes the message in the owner's locale` (`es` y `en`, título con la etiqueta del tipo, enlace absoluto con `BASE_URL`, `body` nulo → título) y `builds the test message`. Cubre: R22, R23.
+
+## API: endpoints
+
+- [ ] T9 — `service.ts` (DTO sin token, `hasToken`, 404, tipo distinto → 400, fusión del token) y `routes.ts` del módulo; `AppDeps.fetch?` y cableado en `apps/api/src/app.ts`; `createTestApp(env, { fetch })` en `apps/api/test/helpers.ts`. Cubre: R4, R5, R6, R7, R8, R9, R10, R11, R13, R14, R15.
+- [ ] T10 — Tests en `apps/api/test/notification-channels.test.ts`: `creates and lists channels oldest first` (201, activo, `lastError: null`), `rejects an invalid channel` (400 problem+json, sin filas), `updates enabled and config keeping the stored token` (y el token en BD sigue siendo el original), `rejects a patch with a different type` (400, sin cambios), `deletes a channel` (204, fila borrada), `never returns the token` (POST, GET, PATCH: sin `token` en el cuerpo y `hasToken` correcto). Cubre: R3, R4, R5, R6, R7, R8, R9, R10.
+- [ ] T11 — Tests de autorización en `apps/api/test/notification-channels.test.ts`: `hides other users' channels`, `returns 404 for another user's channel` (PATCH, DELETE y test: sin cambios y `fetch` no llamado), `requires a session` (401 en los cinco endpoints). Cubre: R11, R12, R13.
+- [ ] T12 — Tests de la prueba en `apps/api/test/notification-channels.test.ts`: `sends a test message and clears the last error` (canal desactivado con `last_error` previo; `{ ok: true, error: null }`, petición con el texto de prueba en el idioma del usuario y `last_error` null), `reports a failed test and stores the error` (fetch → 500; `{ ok: false, error: 'HTTP 500' }` y `lastError` en `GET`). Cubre: R14, R15, R23, R28.
+
+## API: envío desde el job
+
+- [ ] T13 — `runReminders` async con `dispatcher` en `apps/api/src/jobs/reminders.job.ts` (despacha solo las filas devueltas por `createMany`); `startRemindersJob` devuelve la promesa de `run()`; `apps/api/src/server.ts` crea el dispatcher con `globalThis.fetch` y `BASE_URL`; añadir `await` y el dispatcher en los usos de `apps/api/test/reminders.test.ts` y `apps/api/test/notifications.test.ts`. Cubre: R24, R26.
+- [ ] T14 — Tests en `apps/api/test/notification-channels-dispatch.test.ts` con `runReminders` y `fetch` simulado: `sends new notifications through the owner's enabled channels` (dos usuarios; cada petición va al canal de su dueño con título y enlace esperados), `skips disabled channels`, `does not resend deduplicated notifications` (segunda ejecución sin peticiones), `a failing channel stores last_error and does not stop the rest` (un canal → rechazo de red, otro → 200: notificación in-app creada, `runReminders` resuelve, el segundo recibe la petición, `last_error` solo en el primero), `a successful send clears last_error`. Cubre: R24, R25, R26, R27, R28.
+
+## Web
+
+- [ ] T15 — `queryKeys.notificationChannels` en `apps/web/src/lib/query-keys.ts` y `apps/web/src/features/notification-channels/queries.ts`. Cubre: R29, R30, R31, R32, R33, R34.
+- [ ] T16 — `apps/web/src/features/notification-channels/form.ts` (`channelFormSchema`, `defaultsFrom`, `toCreateBody`, `toUpdateBody`, `channelSummary`) y tests en `form.test.ts`: `omits an empty token from the update body`, `builds the create body for each type`, `summarises each channel type`. Cubre: R29, R31.
+- [ ] T17 — `channel-form.tsx` (`ChannelFormDialog`) y `channels-section.tsx` (`NotificationChannelsSection`) en `apps/web/src/features/notification-channels/`; montar la sección y precargar la query en `apps/web/src/routes/_app/settings.tsx`. Cubre: R29, R30, R31, R32, R33, R34, R35, R36.
+- [ ] T18 — Bloque `notificationChannels` en `apps/web/src/i18n/locales/es.json` y `en.json`; test `defines a label for every notification channel type` en `apps/web/src/i18n/locales.test.ts`. Cubre: R37.
+- [ ] T19 — Añadir `'GET /notification-channels'` a los mocks de `apps/web/src/features/settings/settings-page.test.tsx` y `apps/web/src/features/settings/use-user-locale.test.tsx`. Cubre: R29.
+- [ ] T20 — Tests en `apps/web/src/features/notification-channels/channels-section.test.tsx` (`mockApi`): `shows an empty state`, `lists channels with type, summary and last error`, `toggles a channel` (PATCH `{ type, enabled: false }`), `deletes a channel after confirming` (DELETE enviado y fila fuera), `shows the test result` (toast de éxito; con `{ ok: false, error: 'HTTP 401' }` toast de fallo con el error). Cubre: R29, R32, R33, R34.
+- [ ] T21 — Tests en `apps/web/src/features/notification-channels/channel-form.test.tsx`: `creates a gotify channel` (cambiar tipo muestra sus campos; POST con el cuerpo esperado), `edits a channel without sending the token` (tipo deshabilitado, token vacío; PATCH sin `token`), `shows field errors without sending` (URL inválida → `aria-invalid` y mensaje; ningún POST), `shows the API error and stays open` (400 → `role="alert"`). Cubre: R30, R31, R35, R36.
+- [ ] T22 — Revisión visual de la sección y el formulario (claro, oscuro y móvil) con capturas; rutas en `progress/impl_notification-channels.md`. Cubre: R29, R30.
+- [ ] T23 — Ejecutar `pnpm harness --full` y documentar trazabilidad en `progress/impl_notification-channels.md`. Cubre: R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15, R16, R17, R18, R19, R20, R21, R22, R23, R24, R25, R26, R27, R28, R29, R30, R31, R32, R33, R34, R35, R36, R37.
