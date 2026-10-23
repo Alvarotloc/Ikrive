@@ -9,7 +9,7 @@ import {
 } from '@ikrive/shared';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -19,6 +19,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
+import { NotificationChannelsSection } from '@/features/notification-channels/channels-section';
+import { notificationChannelsQuery } from '@/features/notification-channels/queries';
 import { settingsQuery, useUpdateSettings } from '@/features/settings/queries';
 import { applyTheme, getStoredTheme, type Theme } from '@/lib/theme';
 
@@ -27,7 +29,11 @@ const REMINDER_HOURS = Array.from({ length: 24 }, (_, hour) => hour);
 const hourLabel = (hour: number) => `${String(hour).padStart(2, '0')}:00`;
 
 export const Route = createFileRoute('/_app/settings')({
-  loader: ({ context }) => context.queryClient.ensureQueryData(settingsQuery),
+  loader: ({ context }) =>
+    Promise.all([
+      context.queryClient.ensureQueryData(settingsQuery),
+      context.queryClient.ensureQueryData(notificationChannelsQuery),
+    ]),
   component: SettingsPage,
 });
 
@@ -128,6 +134,9 @@ function SettingsPage() {
           </form>
         </CardContent>
       </Card>
+      <Suspense>
+        <NotificationChannelsSection />
+      </Suspense>
       <Card>
         <CardHeader>
           <CardTitle>{t('settings.appearance')}</CardTitle>

@@ -10,6 +10,7 @@ import { Cron } from 'croner';
 import type { FastifyBaseLogger } from 'fastify';
 import type { Db } from '../db/client';
 import { hourIn, todayIn } from '../lib/dates';
+import type { NotificationDispatcher } from '../modules/notification-channels/dispatcher';
 import { createNotificationsRepository, type NewNotificationRow } from '../modules/notifications/repository';
 import { createSchedulesRepository } from '../modules/schedules/repository';
 import { createVehiclesRepository } from '../modules/vehicles/repository';
@@ -41,12 +42,18 @@ export function reminderDedupeKey(
 
 /**
  * Creates an in-app notification for every due soon or overdue schedule of an active vehicle whose
- * owner is past their reminder hour. Callable without the scheduler (tests, future admin trigger).
+ * owner is past their reminder hour, then sends the new ones (not the deduplicated) through their
+ * owners' enabled channels. Callable without the scheduler (tests, future admin trigger).
  */
-export function runReminders({ db, now = new Date() }: { db: Db; now?: Date }): {
-  evaluated: number;
-  created: number;
-} {
+export async function runReminders({
+  db,
+  now = new Date(),
+  dispatcher,
+}: {
+  db: Db;
+  now?: Date;
+  dispatcher: NotificationDispatcher;
+}): Promise<{ evaluated: number; created: number }> {
   const schedules = createSchedulesRepository(db);
   const vehicles = createVehiclesRepository(db);
   const notifications = createNotificationsRepository(db);
@@ -94,7 +101,10 @@ export function runReminders({ db, now = new Date() }: { db: Db; now?: Date }): 
     });
   }
 
-  return { evaluated: rules.length, created: notifications.createMany(rows).length };
+  // The in-app notifications are stored before any network I/O: a channel cannot undo them.
+  const created = notifications.createMany(rows);
+  await dispatcher.dispatch(created);
+  return { evaluated: rules.length, created: created.length };
 }
 
 /** Schedules `run` every hour, or nothing when disabled. Overlapping runs are skipped. */
@@ -104,11 +114,12 @@ export function startRemindersJob({
   logger,
 }: {
   enabled: boolean;
-  run: () => unknown;
+  run: () => Promise<unknown>;
   logger: FastifyBaseLogger;
 }): Cron | null {
   if (!enabled) return null;
-  return new Cron(REMINDERS_CRON, { protect: true, catch: (error) => logger.error(error) }, () => {
-    run();
+  // Awaiting `run` lets `protect` skip a run while the previous one is still sending.
+  return new Cron(REMINDERS_CRON, { protect: true, catch: (error) => logger.error(error) }, async () => {
+    await run();
   });
 }

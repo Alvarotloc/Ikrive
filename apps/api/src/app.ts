@@ -17,6 +17,10 @@ import { createMaintenanceRepository } from './modules/maintenance/repository';
 import { maintenanceRoutes } from './modules/maintenance/routes';
 import { createMaintenanceService } from './modules/maintenance/service';
 import { meRoutes } from './modules/me/routes';
+import { createNotificationDispatcher } from './modules/notification-channels/dispatcher';
+import { createNotificationChannelsRepository } from './modules/notification-channels/repository';
+import { notificationChannelsRoutes } from './modules/notification-channels/routes';
+import { createNotificationChannelsService } from './modules/notification-channels/service';
 import { createNotificationsRepository } from './modules/notifications/repository';
 import { notificationsRoutes } from './modules/notifications/routes';
 import { createNotificationsService } from './modules/notifications/service';
@@ -36,9 +40,11 @@ import staticSpa from './plugins/static-spa';
 export interface AppDeps {
   config: Config;
   db: Db;
+  /** HTTP client for the notification channels; tests replace it so nothing reaches the network. */
+  fetch?: typeof globalThis.fetch;
 }
 
-export async function buildApp({ config, db }: AppDeps) {
+export async function buildApp({ config, db, fetch = globalThis.fetch }: AppDeps) {
   const app = Fastify({
     logger: config.NODE_ENV === 'test' ? false : { level: config.LOG_LEVEL },
     trustProxy: true,
@@ -93,6 +99,10 @@ export async function buildApp({ config, db }: AppDeps) {
     settings: settingsService,
   });
   const notificationsService = createNotificationsService(createNotificationsRepository(db));
+  const notificationChannelsService = createNotificationChannelsService({
+    repo: createNotificationChannelsRepository(db),
+    dispatcher: createNotificationDispatcher({ db, fetch, baseUrl: config.BASE_URL }),
+  });
   const attachmentsService = createAttachmentsService({
     repo: attachmentsRepo,
     maintenance: maintenanceRepo,
@@ -111,6 +121,7 @@ export async function buildApp({ config, db }: AppDeps) {
       await api.register(schedulesRoutes, { service: schedulesService });
       await api.register(attachmentsRoutes, { service: attachmentsService });
       await api.register(notificationsRoutes, { service: notificationsService });
+      await api.register(notificationChannelsRoutes, { service: notificationChannelsService });
     },
     { prefix: '/api' },
   );

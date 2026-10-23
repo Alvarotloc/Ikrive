@@ -1,11 +1,17 @@
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { vi } from 'vitest';
 import { buildApp } from '../src/app';
 import { loadConfig } from '../src/config';
-import { createDb, runMigrations } from '../src/db/client';
+import { createDb, type Db, runMigrations } from '../src/db/client';
+import { createNotificationDispatcher } from '../src/modules/notification-channels/dispatcher';
 
-export async function createTestApp(env: Record<string, string> = {}) {
+/** `fetch` replaces the notification channels' HTTP client (no real network in tests). */
+export async function createTestApp(
+  env: Record<string, string> = {},
+  { fetch }: { fetch?: typeof globalThis.fetch } = {},
+) {
   const dataDir = mkdtempSync(join(tmpdir(), 'ikrive-test-'));
   const config = loadConfig({
     NODE_ENV: 'test',
@@ -15,7 +21,7 @@ export async function createTestApp(env: Record<string, string> = {}) {
   });
   const db = createDb(':memory:');
   runMigrations(db);
-  const app = await buildApp({ config, db });
+  const app = await buildApp({ config, db, fetch });
   await app.ready();
   return { app, db, dataDir };
 }
@@ -32,4 +38,14 @@ export async function signUp(app: TestApp, email = 'ada@example.com', name = 'Ad
   });
   const cookie = response.cookies.map((c) => `${c.name}=${c.value}`).join('; ');
   return { response, cookie };
+}
+
+export const TEST_BASE_URL = 'http://localhost:3000';
+
+/** Dispatcher for the jobs; by default its `fetch` answers 200 to every channel. */
+export function createTestDispatcher(
+  db: Db,
+  fetch = vi.fn<typeof globalThis.fetch>(async () => new Response(null, { status: 200 })),
+) {
+  return createNotificationDispatcher({ db, fetch, baseUrl: TEST_BASE_URL });
 }

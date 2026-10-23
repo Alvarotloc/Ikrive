@@ -8,6 +8,9 @@ export const queryKeys = {
     all: ['notifications'] as const,
     list: ['notifications', 'list'] as const,
   },
+  notificationChannels: {
+    all: ['notification-channels'] as const,
+  },
   vehicles: {
     all: ['vehicles'] as const,
     list: (status: NonNullable<VehicleListQuery['status']>) => ['vehicles', 'list', status] as const,

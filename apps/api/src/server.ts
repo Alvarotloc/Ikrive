@@ -2,6 +2,7 @@ import { buildApp, databasePath } from './app';
 import { loadConfig } from './config';
 import { createDb, runMigrations } from './db/client';
 import { runReminders, startRemindersJob } from './jobs/reminders.job';
+import { createNotificationDispatcher } from './modules/notification-channels/dispatcher';
 
 const config = loadConfig();
 const db = createDb(databasePath(config));
@@ -9,9 +10,10 @@ runMigrations(db);
 
 const app = await buildApp({ config, db });
 
+const dispatcher = createNotificationDispatcher({ db, fetch: globalThis.fetch, baseUrl: config.BASE_URL });
 const remindersJob = startRemindersJob({
   enabled: config.REMINDERS_ENABLED,
-  run: () => app.log.info(runReminders({ db }), 'reminders job finished'),
+  run: async () => app.log.info(await runReminders({ db, dispatcher }), 'reminders job finished'),
   logger: app.log,
 });
 
