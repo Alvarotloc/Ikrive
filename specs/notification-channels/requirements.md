@@ -124,6 +124,14 @@ SI la API responde con error al guardar un canal ENTONCES la web DEBE mostrar un
 ## R37
 La web DEBE tener todos los textos de la feature en `es.json` y `en.json`, con las mismas claves y una etiqueta por cada tipo de `NOTIFICATION_CHANNEL_TYPES`.
 
+## Cambios pedidos en Gate 2
+
+## R38
+SI una URL de la config (`serverUrl` o `url`) incluye credenciales (`usuario:contraseña@`) ENTONCES el sistema DEBE rechazarla con un error de validación que indique usar el campo token.
+
+## R39
+CUANDO el usuario guarda un canal nuevo desde la sección de Ajustes, la web DEBE mostrarlo en la lista sin recargar la página.
+
 ## Acceptance → requirements
 
 | Criterio de `feature_list.json` | Requirements |
