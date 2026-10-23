@@ -140,3 +140,21 @@
 - **Tests:** `apps/api/test/rate-limit.test.ts` (estáticos y fallback sin límite; `/api` responde 429 en la petición 301). API 93, web 152. `pnpm harness --full` en verde.
 - **Revisión:** APPROVED (`progress/review_rate-limit-api-only.md`). Avisos no bloqueantes: `startsWith('/api/')` distingue mayúsculas (sin hueco real, el router también) y el test hace ~1.280 `inject`.
 - **Gate 2:** merge aprobado por el humano.
+
+## 2026-10-23 — #16 notification-channels
+
+- **Rama:** `feat/notification-channels` (SDD, spec en `specs/notification-channels/`, 39 R / 26 T, con 2 exploraciones previas en `progress/explore_notification-channels_{backend,web}.md`).
+- **Gate 1:** aprobado sin cambios al spec. El humano aceptó el riesgo de SSRF (proyecto solo autoalojado) y descartó por ahora la versión hospedada (SaaS): se quitó «Decisiones aplazadas» de `docs/PLAN.md` (commit `docs(plan)` en la rama).
+- **Cambios:**
+  - Tabla `notification_channels` (config JSON, `enabled`, `last_error`), migración `0006`. Esquemas zod discriminados por tipo en `packages/shared`.
+  - `GET|POST /api/notification-channels`, `PATCH|DELETE /:id` y `POST /:id/test` (200 `{ ok, error }`). El token nunca se devuelve (`hasToken`); lo ajeno responde 404.
+  - `modules/notification-channels/`: `channels.ts` (ntfy, Gotify, Apprise con clave, webhook; timeout de 10 s, error `HTTP <status>`), `messages.ts` (es/en) y `dispatcher.ts` reutilizable por #17.
+  - `runReminders` pasa a async y envía solo las notificaciones nuevas por los canales activos del dueño; un fallo guarda `last_error` sin afectar al resto.
+  - Web: sección «Canales de notificación» en Ajustes (añadir, editar, activar, borrar, probar), textos en es/en.
+- **Gate 2:** el humano pidió 2 cambios: R38 (rechazar URLs con `usuario:contraseña@`, que el `fetch` de Node no admite) y R39 (test de canal nuevo visible en la lista).
+- **Tests:** shared 35, API 121, web 170. Capturas en claro, oscuro y 375 px. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED dos veces (`progress/review_notification-channels.md`). Avisos no bloqueantes:
+  - Sin test del borrado en cascada de canales al borrar un usuario (está en el SQL).
+  - Un fallo de BD al consultar canales hace fallar el job después de guardar las in-app (lo registra croner); se deja así.
+  - Envíos secuenciales por canal: con un canal caído, una ejecución puede tardar N × 10 s.
+- **Gate 2:** merge aprobado por el humano.
