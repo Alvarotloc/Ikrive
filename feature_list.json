@@ -340,6 +340,22 @@
       ],
       "sdd": true,
       "status": "pending"
+    },
+    {
+      "id": 21,
+      "name": "rate-limit-api-only",
+      "phase": "4",
+      "title": "Rate limit solo para la API",
+      "description": "El @fastify/rate-limit global (300 peticiones/min por IP, registrado en apps/api/src/app.ts) cuenta también los estáticos de la SPA que sirve static-spa.ts: unas pocas cargas completas seguidas agotan el límite y la app empieza a recibir 429. El límite debe aplicarse solo a /api/*. Prioritaria: va antes de notification-channels (#16). Detectado por el implementer en #15 (progress/impl_in-app-notifications.md).",
+      "acceptance": [
+        "Las peticiones a los estáticos de la SPA (index.html, /assets/* y el fallback de rutas del cliente) no cuentan para el rate limit ni reciben 429, aunque se superen las 300 peticiones por minuto desde la misma IP",
+        "Las rutas /api/* siguen limitadas: superar el máximo en la ventana responde 429",
+        "El rate limit propio de Better Auth en producción no cambia",
+        "Tests de integración en apps/api/test cubren los dos casos (estáticos sin límite, /api con límite)",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
+      "status": "done"
     }
   ]
 }

@@ -131,3 +131,12 @@
   - Cabecera móvil compactada para que quepa la campana.
   - El rate limit global cuenta también los estáticos de la SPA (problema previo, posible feature aparte).
 - **Gate 2:** merge aprobado por el humano.
+
+## 2026-10-23 — #21 rate-limit-api-only
+
+- **Rama:** `feat/rate-limit-api-only` (`sdd: false`, sin spec). Detectada por el implementer en #15; prioritaria sobre #16.
+- **Causa:** el `@fastify/rate-limit` global (300 req/min por IP) contaba también las rutas de `@fastify/static` de la SPA, así que unas pocas recargas agotaban el límite.
+- **Cambios:** `apps/api/src/app.ts` registra el rate limit con `allowList: (request) => !isApiRequest(request.url)`; el helper `isApiRequest` se reutiliza en el not-found handler. Better Auth sin cambios.
+- **Tests:** `apps/api/test/rate-limit.test.ts` (estáticos y fallback sin límite; `/api` responde 429 en la petición 301). API 93, web 152. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED (`progress/review_rate-limit-api-only.md`). Avisos no bloqueantes: `startsWith('/api/')` distingue mayúsculas (sin hueco real, el router también) y el test hace ~1.280 `inject`.
+- **Gate 2:** merge aprobado por el humano.

@@ -54,7 +54,13 @@ export async function buildApp({ config, db }: AppDeps) {
       directives: { 'style-src': ["'self'", "'unsafe-inline'"], 'img-src': ["'self'", 'data:', 'blob:'] },
     },
   });
-  await app.register(rateLimit, { max: 300, timeWindow: '1 minute' });
+  // Only the API is rate limited: SPA static files and the client-route fallback are free,
+  // otherwise a few full page loads would exhaust the budget and the app would get 429s.
+  await app.register(rateLimit, {
+    max: 300,
+    timeWindow: '1 minute',
+    allowList: (request) => !isApiRequest(request.url),
+  });
   await app.register(multipart, { limits: { fileSize: config.MAX_UPLOAD_MB * 1024 * 1024, files: 1 } });
 
   const auth = createAuth(db, config);
@@ -113,7 +119,7 @@ export async function buildApp({ config, db }: AppDeps) {
   if (config.WEB_DIST_DIR) await app.register(staticSpa, { root: config.WEB_DIST_DIR });
 
   app.setNotFoundHandler((request, reply) => {
-    if (spaEnabled && request.method === 'GET' && !request.url.startsWith('/api/')) {
+    if (spaEnabled && request.method === 'GET' && !isApiRequest(request.url)) {
       return reply.sendFile('index.html');
     }
     return reply
@@ -124,6 +130,8 @@ export async function buildApp({ config, db }: AppDeps) {
 
   return app;
 }
+
+const isApiRequest = (url: string) => url.startsWith('/api/');
 
 export const databasePath = (config: Config) => join(config.DATA_DIR, 'ikrive.db');
 export const uploadsPath = (config: Config) => join(config.DATA_DIR, 'uploads');
