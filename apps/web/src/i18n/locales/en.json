@@ -382,5 +382,46 @@
       "schedule_due_soon": "Maintenance due soon",
       "schedule_overdue": "Maintenance overdue"
     }
+  },
+  "notificationChannels": {
+    "title": "Notification channels",
+    "description": "Get your reminders outside the app too: ntfy, Gotify, Apprise or your own webhook.",
+    "add": "Add channel",
+    "edit": "Edit channel",
+    "empty": "No channels yet. For now, reminders only show up in the app's bell.",
+    "created": "Channel added",
+    "updated": "Channel updated",
+    "deleted": "Channel deleted",
+    "enabled": "Active",
+    "enabledLabel": "Active ({{channel}})",
+    "test": "Test",
+    "testLabel": "Test {{channel}}",
+    "testOk": "Test notification sent",
+    "testFailed": "The test failed: {{error}}",
+    "lastError": "Last error: {{error}}",
+    "tokenKeep": "A token is stored. Leave it blank to keep it.",
+    "editLabel": "Edit {{channel}}",
+    "deleteLabel": "Delete {{channel}}",
+    "deleteTitle": "Delete {{channel}}?",
+    "deleteDescription": "You will stop getting reminders through this channel. In-app notifications are not affected.",
+    "types": {
+      "ntfy": "ntfy",
+      "gotify": "Gotify",
+      "apprise": "Apprise",
+      "webhook": "Webhook"
+    },
+    "fields": {
+      "type": "Type",
+      "serverUrl": "Server URL",
+      "url": "URL",
+      "topic": "Topic",
+      "key": "Configuration key",
+      "tag": "Tag (optional)",
+      "token": "Token",
+      "tokenOptional": "Token (optional)"
+    },
+    "errors": {
+      "urlCredentials": "Do not put a username or password in the URL: use the token field."
+    }
   }
 }

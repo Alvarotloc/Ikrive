@@ -382,5 +382,46 @@
       "schedule_due_soon": "Mantenimiento próximo",
       "schedule_overdue": "Mantenimiento vencido"
     }
+  },
+  "notificationChannels": {
+    "title": "Canales de notificación",
+    "description": "Recibe los avisos también fuera de la app: ntfy, Gotify, Apprise o un webhook propio.",
+    "add": "Añadir canal",
+    "edit": "Editar canal",
+    "empty": "Todavía no hay canales. Por ahora, los avisos solo aparecen en la campana de la app.",
+    "created": "Canal añadido",
+    "updated": "Canal actualizado",
+    "deleted": "Canal eliminado",
+    "enabled": "Activo",
+    "enabledLabel": "Activo ({{channel}})",
+    "test": "Probar",
+    "testLabel": "Probar {{channel}}",
+    "testOk": "Notificación de prueba enviada",
+    "testFailed": "La prueba ha fallado: {{error}}",
+    "lastError": "Último error: {{error}}",
+    "tokenKeep": "Hay un token guardado. Déjalo vacío para conservarlo.",
+    "editLabel": "Editar {{channel}}",
+    "deleteLabel": "Eliminar {{channel}}",
+    "deleteTitle": "¿Eliminar {{channel}}?",
+    "deleteDescription": "Dejarás de recibir los avisos por este canal. Las notificaciones de la app no cambian.",
+    "types": {
+      "ntfy": "ntfy",
+      "gotify": "Gotify",
+      "apprise": "Apprise",
+      "webhook": "Webhook"
+    },
+    "fields": {
+      "type": "Tipo",
+      "serverUrl": "URL del servidor",
+      "url": "URL",
+      "topic": "Tema",
+      "key": "Clave de configuración",
+      "tag": "Etiqueta (opcional)",
+      "token": "Token",
+      "tokenOptional": "Token (opcional)"
+    },
+    "errors": {
+      "urlCredentials": "No pongas usuario ni contraseña en la URL: usa el campo token."
+    }
   }
 }
