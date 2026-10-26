@@ -72,4 +72,52 @@ describe('settings', () => {
     const current = await app.inject({ method: 'GET', url: '/api/settings', headers: { cookie } });
     expect(current.json().reminderHour).toBe(8);
   });
+
+  it('accepts a null odometer reminder weekday', async () => {
+    const { app } = await createTestApp();
+    const { cookie } = await signUp(app);
+
+    const initial = await app.inject({ method: 'GET', url: '/api/settings', headers: { cookie } });
+    expect(initial.json().odometerReminderWeekday).toBe(0);
+
+    const updated = await app.inject({
+      method: 'PATCH',
+      url: '/api/settings',
+      headers: { cookie },
+      payload: { odometerReminderWeekday: null },
+    });
+    expect(updated.statusCode).toBe(200);
+    expect(updated.json()).toEqual({ ...DEFAULT_USER_SETTINGS, odometerReminderWeekday: null });
+
+    const persisted = await app.inject({ method: 'GET', url: '/api/settings', headers: { cookie } });
+    expect(persisted.json().odometerReminderWeekday).toBeNull();
+
+    const restored = await app.inject({
+      method: 'PATCH',
+      url: '/api/settings',
+      headers: { cookie },
+      payload: { odometerReminderWeekday: 3 },
+    });
+    expect(restored.json().odometerReminderWeekday).toBe(3);
+  });
+
+  it('rejects an invalid odometer reminder weekday', async () => {
+    const { app } = await createTestApp();
+    const { cookie } = await signUp(app);
+
+    for (const odometerReminderWeekday of [7, 1.5, -1]) {
+      const response = await app.inject({
+        method: 'PATCH',
+        url: '/api/settings',
+        headers: { cookie },
+        payload: { odometerReminderWeekday },
+      });
+      expect(response.statusCode).toBe(400);
+      expect(response.headers['content-type']).toContain('application/problem+json');
+      expect(response.json()).toMatchObject({ title: 'Validation failed' });
+    }
+
+    const current = await app.inject({ method: 'GET', url: '/api/settings', headers: { cookie } });
+    expect(current.json().odometerReminderWeekday).toBe(0);
+  });
 });

@@ -39,6 +39,28 @@ describe('toChannelMessage', () => {
   });
 });
 
+describe('toChannelMessage odometer nudge', () => {
+  it('formats an odometer nudge', () => {
+    const nudge: NotificationRow = {
+      ...row,
+      vehicleId: null,
+      type: 'odometer_nudge',
+      title: 'Golf, Clio',
+      body: null,
+      link: '/odometer',
+    };
+    expect(toChannelMessage(nudge, 'es', 'https://ikrive.example.com')).toEqual({
+      event: 'notification',
+      type: 'odometer_nudge',
+      title: 'Registra los km: Golf, Clio',
+      body: 'Golf, Clio',
+      link: 'https://ikrive.example.com/odometer',
+      createdAt: '2026-10-23T08:00:00.000Z',
+    });
+    expect(toChannelMessage(nudge, 'en', 'http://localhost:3000').title).toBe('Log your mileage: Golf, Clio');
+  });
+});
+
 describe('testMessage', () => {
   it('builds the test message', () => {
     const now = new Date('2026-10-23T10:00:00.000Z');
