@@ -31,11 +31,33 @@ Todos los datos (la base de datos SQLite y los ficheros subidos) se guardan en e
 | `AUTH_SECRET` | — (obligatoria en producción) | Secreto para firmar sesiones |
 | `TZ` | — | Zona horaria del proceso (logs). Los recordatorios usan la zona y la hora que cada usuario elige en Ajustes |
 | `DISABLE_SIGNUP` | `false` | Bloquea nuevos registros tras el primero |
-| `REMINDERS_ENABLED` | `true` | Programa el job horario que crea los recordatorios de mantenimiento (`true`, `false`, `1`, `0`) |
+| `REMINDERS_ENABLED` | `true` | Programa los jobs horarios de recordatorios de mantenimiento (`reminders`) y de aviso de kilometraje (`odometer-nudge`) (`true`, `false`, `1`, `0`). No afecta a su lanzamiento manual |
 | `MAX_UPLOAD_MB` | `20` | Tamaño máximo de los adjuntos |
 | `PORT` | `3000` | Puerto HTTP |
 | `DATA_DIR` | `/data` | Carpeta de datos |
 | `LOG_LEVEL` | `info` | Nivel de log |
+
+### Lanzar los jobs a mano
+
+Los jobs `reminders` (recordatorios de mantenimiento) y `odometer-nudge` (aviso semanal de kilometraje) se ejecutan cada hora. Para probar la instalación sin esperar, se pueden lanzar a mano. Aplican las mismas reglas que el planificador: solo avisan a los usuarios que ya han pasado su hora de recordatorio (y, en `odometer-nudge`, en su día elegido), y no repiten avisos ya creados. Funcionan aunque `REMINDERS_ENABLED=false`.
+
+Ambas formas devuelven un resumen en JSON: `{"job":"reminders","evaluated":1,"created":1,"failed":0}` (entradas evaluadas, notificaciones creadas y envíos por canal que fallaron).
+
+**Desde el contenedor** (sin credenciales; aplica las migraciones pendientes):
+
+```bash
+docker compose exec ikrive node dist/job.js reminders
+docker compose exec ikrive node dist/job.js odometer-nudge
+```
+
+**Por HTTP**, con la sesión de la cuenta de administrador (copia la cookie `better-auth.session_token`, o `__Secure-better-auth.session_token` con HTTPS, desde las herramientas del navegador):
+
+```bash
+curl -X POST https://ikrive.example.com/api/admin/jobs/reminders/run \
+  -H 'Cookie: __Secure-better-auth.session_token=<valor>'
+```
+
+Responde `401` sin sesión, `403` si la cuenta no es de administrador y `404` si el job no existe.
 
 ## Desarrollo
 
@@ -47,6 +69,7 @@ pnpm dev          # API en :3000 y web en :5173 (con proxy de /api)
 pnpm test         # tests
 pnpm lint         # Biome
 pnpm typecheck
+pnpm --filter @ikrive/api job reminders   # lanza un job contra la BD de DATA_DIR (reminders | odometer-nudge)
 ```
 
 Más detalles sobre la arquitectura y cómo contribuir en [CONTRIBUTING.md](CONTRIBUTING.md).
