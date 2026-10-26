@@ -1,6 +1,7 @@
 import { buildApp, databasePath } from './app';
 import { loadConfig } from './config';
 import { createDb, runMigrations } from './db/client';
+import { runOdometerNudge, startOdometerNudgeJob } from './jobs/odometer-nudge.job';
 import { runReminders, startRemindersJob } from './jobs/reminders.job';
 import { createNotificationDispatcher } from './modules/notification-channels/dispatcher';
 
@@ -16,11 +17,17 @@ const remindersJob = startRemindersJob({
   run: async () => app.log.info(await runReminders({ db, dispatcher }), 'reminders job finished'),
   logger: app.log,
 });
+const odometerNudgeJob = startOdometerNudgeJob({
+  enabled: config.REMINDERS_ENABLED,
+  run: async () => app.log.info(await runOdometerNudge({ db, dispatcher }), 'odometer nudge job finished'),
+  logger: app.log,
+});
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.once(signal, async () => {
     app.log.info(`Received ${signal}, shutting down`);
     remindersJob?.stop();
+    odometerNudgeJob?.stop();
     await app.close();
     db.$client.close();
     process.exit(0);
