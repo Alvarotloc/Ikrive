@@ -2,7 +2,7 @@ import { fromNodeHeaders } from 'better-auth/node';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 import type { Auth, SessionUser } from '../auth';
-import { UnauthorizedError } from '../lib/errors';
+import { ForbiddenError, UnauthorizedError } from '../lib/errors';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -11,6 +11,8 @@ declare module 'fastify' {
   interface FastifyInstance {
     /** preHandler that rejects unauthenticated requests and populates `request.user`. */
     authenticate: (request: FastifyRequest) => Promise<void>;
+    /** preHandler like `authenticate` that also rejects users without the `admin` role (403). */
+    requireAdmin: (request: FastifyRequest) => Promise<void>;
   }
 }
 
@@ -27,6 +29,11 @@ export default fp(async (app: FastifyInstance, { auth }: { auth: Auth }) => {
     const session = await auth.api.getSession({ headers: fromNodeHeaders(request.headers) });
     if (!session) throw new UnauthorizedError();
     request.user = session.user;
+  });
+
+  app.decorate('requireAdmin', async (request: FastifyRequest) => {
+    await app.authenticate(request);
+    if (currentUser(request).role !== 'admin') throw new ForbiddenError();
   });
 
   // Bridge Fastify <-> Better Auth's Fetch-based handler.

@@ -43,7 +43,7 @@ export function reminderDedupeKey(
 /**
  * Creates an in-app notification for every due soon or overdue schedule of an active vehicle whose
  * owner is past their reminder hour, then sends the new ones (not the deduplicated) through their
- * owners' enabled channels. Callable without the scheduler (tests, future admin trigger).
+ * owners' enabled channels. Callable without the scheduler (tests, admin trigger).
  */
 export async function runReminders({
   db,
@@ -53,7 +53,7 @@ export async function runReminders({
   db: Db;
   now?: Date;
   dispatcher: NotificationDispatcher;
-}): Promise<{ evaluated: number; created: number }> {
+}): Promise<{ evaluated: number; created: number; failed: number }> {
   const schedules = createSchedulesRepository(db);
   const vehicles = createVehiclesRepository(db);
   const notifications = createNotificationsRepository(db);
@@ -67,7 +67,7 @@ export async function runReminders({
     }))
     .filter((rule) => isReminderTime(rule, now))
     .map((rule) => ({ ...rule, today: todayIn(rule.timezone, now) }));
-  if (rules.length === 0) return { evaluated: 0, created: 0 };
+  if (rules.length === 0) return { evaluated: 0, created: 0, failed: 0 };
 
   // The earliest «today» keeps every user's 90-day window inside the loaded readings.
   const earliestToday = rules.reduce(
@@ -103,8 +103,8 @@ export async function runReminders({
 
   // The in-app notifications are stored before any network I/O: a channel cannot undo them.
   const created = notifications.createMany(rows);
-  await dispatcher.dispatch(created);
-  return { evaluated: rules.length, created: created.length };
+  const { failed } = await dispatcher.dispatch(created);
+  return { evaluated: rules.length, created: created.length, failed };
 }
 
 /** Schedules `run` every hour, or nothing when disabled. Overlapping runs are skipped. */
