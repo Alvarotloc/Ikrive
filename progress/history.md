@@ -173,3 +173,19 @@
   - Ningún test de componente comprueba que Ajustes muestra «No avisar» con un ajuste `null` cargado.
   - `db/schema/settings.ts` usa `default(0)` literal (comentado) en vez de `DEFAULT_USER_SETTINGS`.
 - **Gate 2:** merge aprobado por el humano.
+
+## 2026-10-26 — #18 admin-run-jobs
+
+- **Rama:** `feat/admin-run-jobs` (SDD, spec en `specs/admin-run-jobs/`, 11 R / 15 T).
+- **Gate 1:** aprobado sin cambios.
+- **Cambios:**
+  - `POST /api/admin/jobs/:name/run` (`reminders` | `odometer-nudge`) devuelve `{ job, evaluated, created, failed }`. Decorador `requireAdmin`: 401/403 antes del 404 de job desconocido. Ignora `REMINDERS_ENABLED`.
+  - `dispatch` devuelve `{ sent, failed }` (`failed` = mensajes canal × notificación); los jobs lo propagan.
+  - `jobs/registry.ts` (única lista de jobs), `jobs/cli.ts` + `src/job.ts` (aplica migraciones, JSON por stdout, 1 si el nombre es inválido). Segunda entrada en tsup → `dist/job.js` en la imagen Docker.
+  - README: sección «Lanzar los jobs a mano».
+- **Tests:** API 153, web 175. Verificación Docker real (`docker exec … node dist/job.js reminders` → JSON, 0; `foo` → 1). `pnpm harness --full` en verde.
+- **Revisión:** APPROVED (`progress/review_admin-run-jobs.md`). Avisos no bloqueantes:
+  - `runs the odometer-nudge job` podría fallar si cruza la medianoche UTC durante el test.
+  - `job-cli.test.ts` no borra sus carpetas temporales `ikrive-cli-*`.
+  - Si falla el guardado de `last_error`, esos mensajes no cuentan ni en `sent` ni en `failed`.
+- **Gate 2:** merge aprobado por el humano.
