@@ -52,7 +52,7 @@ export const NOTIFICATION_CHANNEL_TYPES = ['ntfy', 'gotify', 'apprise', 'webhook
 export type NotificationChannelType = (typeof NOTIFICATION_CHANNEL_TYPES)[number];
 
 /** In-app notification kinds; the web translates them, the stored title and body are user data. */
-export const NOTIFICATION_TYPES = ['schedule_due_soon', 'schedule_overdue'] as const;
+export const NOTIFICATION_TYPES = ['schedule_due_soon', 'schedule_overdue', 'odometer_nudge'] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
 /** 0 = Sunday ... 6 = Saturday */
