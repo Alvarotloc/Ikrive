@@ -1,6 +1,7 @@
 export * from './domain/odometer';
 export * from './domain/schedules';
 export * from './enums';
+export * from './schemas/admin';
 export * from './schemas/attachments';
 export * from './schemas/common';
 export * from './schemas/maintenance';

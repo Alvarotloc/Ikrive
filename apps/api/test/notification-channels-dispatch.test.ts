@@ -73,6 +73,7 @@ describe('sending notifications through channels', () => {
     expect(await runReminders({ db, now: NOW, dispatcher: createTestDispatcher(db, fetch) })).toEqual({
       evaluated: 2,
       created: 2,
+      failed: 0,
     });
 
     expect(sentUrls(fetch)).toEqual([
@@ -137,12 +138,41 @@ describe('sending notifications through channels', () => {
     ).resolves.toEqual({
       evaluated: 1,
       created: 1,
+      failed: 1,
     });
 
     expect(db.select().from(notifications).where(eq(notifications.userId, ada.userId)).all()).toHaveLength(1);
     expect(sentUrls(fetch)).toEqual(['https://down.example.com/hook', 'https://hooks.example.com/ada']);
     expect(lastError(db, failing)).toBe('fetch failed: connect ECONNREFUSED');
     expect(lastError(db, working)).toBeNull();
+  });
+
+  it('counts failed sends', async () => {
+    const { app, db } = await createTestApp();
+    const ada = await userWithOverdueSchedule(app, 'ada@example.com', 'Coche');
+    await ada.addChannel(webhook('https://down.example.com/hook'));
+    await ada.addChannel(webhook('https://hooks.example.com/ada'));
+    const fetch = fakeFetch({ 'https://down.example.com/hook': 503 });
+
+    expect(await runReminders({ db, now: NOW, dispatcher: createTestDispatcher(db, fetch) })).toEqual({
+      evaluated: 1,
+      created: 1,
+      failed: 1,
+    });
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('counts no failed sends without channels', async () => {
+    const { app, db } = await createTestApp();
+    await userWithOverdueSchedule(app, 'ada@example.com', 'Coche');
+    const fetch = fakeFetch();
+
+    expect(await runReminders({ db, now: NOW, dispatcher: createTestDispatcher(db, fetch) })).toEqual({
+      evaluated: 1,
+      created: 1,
+      failed: 0,
+    });
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it('a successful send clears last_error', async () => {

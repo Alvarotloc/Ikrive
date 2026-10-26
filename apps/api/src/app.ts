@@ -8,6 +8,7 @@ import { createAuth } from './auth';
 import type { Config } from './config';
 import type { Db } from './db/client';
 import { createFileStorage } from './lib/storage';
+import { adminRoutes } from './modules/admin/routes';
 import { createAttachmentsRepository } from './modules/attachments/repository';
 import { attachmentsRoutes } from './modules/attachments/routes';
 import { createAttachmentsService } from './modules/attachments/service';
@@ -99,9 +100,11 @@ export async function buildApp({ config, db, fetch = globalThis.fetch }: AppDeps
     settings: settingsService,
   });
   const notificationsService = createNotificationsService(createNotificationsRepository(db));
+  // Shared by the channels' test send and the admin job runs, so tests can replace `fetch` once.
+  const dispatcher = createNotificationDispatcher({ db, fetch, baseUrl: config.BASE_URL });
   const notificationChannelsService = createNotificationChannelsService({
     repo: createNotificationChannelsRepository(db),
-    dispatcher: createNotificationDispatcher({ db, fetch, baseUrl: config.BASE_URL }),
+    dispatcher,
   });
   const attachmentsService = createAttachmentsService({
     repo: attachmentsRepo,
@@ -122,6 +125,7 @@ export async function buildApp({ config, db, fetch = globalThis.fetch }: AppDeps
       await api.register(attachmentsRoutes, { service: attachmentsService });
       await api.register(notificationsRoutes, { service: notificationsService });
       await api.register(notificationChannelsRoutes, { service: notificationChannelsService });
+      await api.register(adminRoutes, { db, dispatcher });
     },
     { prefix: '/api' },
   );

@@ -141,7 +141,7 @@ describe('runOdometerNudge', () => {
     addReading(db, golf, '2026-10-01', 10_000);
     addReading(db, clio, '2026-10-10', 20_000);
 
-    expect(await run(db)).toEqual({ evaluated: 1, created: 1 });
+    expect(await run(db)).toEqual({ evaluated: 1, created: 1, failed: 0 });
     expect(rows(db)).toEqual([
       {
         id: expect.any(String),
@@ -167,7 +167,7 @@ describe('runOdometerNudge', () => {
     // A user without vehicles is not evaluated at all.
     await createUser(app, 'bob@example.com');
 
-    expect(await run(db)).toEqual({ evaluated: 1, created: 0 });
+    expect(await run(db)).toEqual({ evaluated: 1, created: 0, failed: 0 });
     expect(rows(db)).toEqual([]);
   });
 
@@ -178,10 +178,10 @@ describe('runOdometerNudge', () => {
       const monday = await createUser(app, 'bob@example.com', { odometerReminderWeekday: 1 });
       for (const user of [sunday, monday]) setCreatedAt(db, await user.createVehicle(), LONG_AGO);
 
-      expect(await run(db)).toEqual({ evaluated: 1, created: 1 });
+      expect(await run(db)).toEqual({ evaluated: 1, created: 1, failed: 0 });
       expect(rows(db)).toMatchObject([{ userId: sunday.userId }]);
       // Monday 2026-10-26, 11:00 in Madrid.
-      expect(await run(db, at('2026-10-26T10:00:00.000Z'))).toEqual({ evaluated: 1, created: 1 });
+      expect(await run(db, at('2026-10-26T10:00:00.000Z'))).toEqual({ evaluated: 1, created: 1, failed: 0 });
       expect(rows(db).map((row) => row.userId)).toEqual([sunday.userId, monday.userId]);
     });
 
@@ -205,7 +205,7 @@ describe('runOdometerNudge', () => {
         setCreatedAt(db, await user.createVehicle(), LONG_AGO);
       }
 
-      expect(await run(db, now)).toEqual({ evaluated: 2, created: 2 });
+      expect(await run(db, now)).toEqual({ evaluated: 2, created: 2, failed: 0 });
       expect(
         rows(db)
           .map((row) => row.userId)
@@ -221,7 +221,7 @@ describe('runOdometerNudge', () => {
       db.delete(userSettings).where(eq(userSettings.userId, noSettings.userId)).run();
 
       expect(createVehiclesRepository(db).listActiveForOdometerNudge()).toEqual([]);
-      expect(await run(db)).toEqual({ evaluated: 0, created: 0 });
+      expect(await run(db)).toEqual({ evaluated: 0, created: 0, failed: 0 });
       expect(rows(db)).toEqual([]);
     });
 
@@ -231,10 +231,10 @@ describe('runOdometerNudge', () => {
       setCreatedAt(db, await ada.createVehicle(), LONG_AGO);
 
       // 08:00, then 09:00 in Madrid (CET).
-      expect(await run(db, at('2026-10-25T07:00:00.000Z'))).toEqual({ evaluated: 0, created: 0 });
-      expect(await run(db, at('2026-10-25T08:00:00.000Z'))).toEqual({ evaluated: 1, created: 1 });
+      expect(await run(db, at('2026-10-25T07:00:00.000Z'))).toEqual({ evaluated: 0, created: 0, failed: 0 });
+      expect(await run(db, at('2026-10-25T08:00:00.000Z'))).toEqual({ evaluated: 1, created: 1, failed: 0 });
       // Catches up later the same day without notifying twice.
-      expect(await run(db, at('2026-10-25T18:00:00.000Z'))).toEqual({ evaluated: 1, created: 0 });
+      expect(await run(db, at('2026-10-25T18:00:00.000Z'))).toEqual({ evaluated: 1, created: 0, failed: 0 });
     });
   });
 
@@ -251,7 +251,7 @@ describe('runOdometerNudge', () => {
       addReading(db, sixDays, '2026-10-01', 19_000);
       addReading(db, sixDays, '2026-10-19', 20_000);
 
-      expect(await run(db)).toEqual({ evaluated: 1, created: 1 });
+      expect(await run(db)).toEqual({ evaluated: 1, created: 1, failed: 0 });
       expect(rows(db)).toMatchObject([{ title: 'Siete' }]);
     });
 
@@ -265,7 +265,7 @@ describe('runOdometerNudge', () => {
       setCreatedAt(db, old, at('2026-10-18T10:00:00.000Z'));
       setCreatedAt(db, recent, at('2026-10-18T22:30:00.000Z'));
 
-      expect(await run(db)).toEqual({ evaluated: 1, created: 1 });
+      expect(await run(db)).toEqual({ evaluated: 1, created: 1, failed: 0 });
       expect(rows(db)).toMatchObject([{ title: 'Antiguo' }]);
     });
 
@@ -279,12 +279,12 @@ describe('runOdometerNudge', () => {
       await ada.patchVehicle(archived, { archived: true });
       await ada.patchVehicle(sold, { soldAt: '2026-03-01' });
 
-      expect(await run(db)).toEqual({ evaluated: 1, created: 1 });
+      expect(await run(db)).toEqual({ evaluated: 1, created: 1, failed: 0 });
       expect(rows(db)).toMatchObject([{ title: 'Activo' }]);
 
       // Without active vehicles the user is not evaluated.
       await ada.patchVehicle(active, { archived: true });
-      expect(await run(db, at('2026-11-01T10:00:00.000Z'))).toEqual({ evaluated: 0, created: 0 });
+      expect(await run(db, at('2026-11-01T10:00:00.000Z'))).toEqual({ evaluated: 0, created: 0, failed: 0 });
     });
   });
 
@@ -296,11 +296,11 @@ describe('runOdometerNudge', () => {
       setCreatedAt(db, await ada.createVehicle(), LONG_AGO);
 
       const wednesday = at('2026-10-21T10:00:00.000Z');
-      expect(await run(db, wednesday)).toEqual({ evaluated: 1, created: 1 });
-      expect(await run(db, at('2026-10-21T11:00:00.000Z'))).toEqual({ evaluated: 1, created: 0 });
+      expect(await run(db, wednesday)).toEqual({ evaluated: 1, created: 1, failed: 0 });
+      expect(await run(db, at('2026-10-21T11:00:00.000Z'))).toEqual({ evaluated: 1, created: 0, failed: 0 });
       // Changing the day to Sunday of the same week does not nudge again.
       await ada.patchSettings({ odometerReminderWeekday: 0 });
-      expect(await run(db)).toEqual({ evaluated: 1, created: 0 });
+      expect(await run(db)).toEqual({ evaluated: 1, created: 0, failed: 0 });
       expect(rows(db)).toMatchObject([
         { userId: ada.userId, dedupeKey: `odometer_nudge:${ada.userId}:2026-W43`, createdAt: wednesday },
       ]);
@@ -335,7 +335,11 @@ describe('runOdometerNudge', () => {
       await bob.addChannel({ type: 'webhook', config: { url: 'https://hooks.example.com/bob' } });
       const fetch = vi.fn<typeof globalThis.fetch>(async () => new Response(null, { status: 200 }));
 
-      expect(await run(db, NOW, createTestDispatcher(db, fetch))).toEqual({ evaluated: 2, created: 2 });
+      expect(await run(db, NOW, createTestDispatcher(db, fetch))).toEqual({
+        evaluated: 2,
+        created: 2,
+        failed: 0,
+      });
 
       const sent = Object.fromEntries(
         fetch.mock.calls.map(([url, init]) => [String(url), JSON.parse(String(init?.body))]),

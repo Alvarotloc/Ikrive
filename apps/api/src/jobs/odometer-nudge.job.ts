@@ -26,7 +26,7 @@ type NudgeVehicle = ReturnType<
  * On each user's reminder weekday (in their time zone) and from their reminder hour, creates one
  * in-app notification listing their active vehicles without an odometer reading in the last
  * `ODOMETER_NUDGE_DAYS` days, then sends the new ones (not the deduplicated) through their enabled
- * channels. Callable without the scheduler (tests, future admin trigger).
+ * channels. Callable without the scheduler (tests, admin trigger).
  */
 export async function runOdometerNudge({
   db,
@@ -36,7 +36,7 @@ export async function runOdometerNudge({
   db: Db;
   now?: Date;
   dispatcher: NotificationDispatcher;
-}): Promise<{ evaluated: number; created: number }> {
+}): Promise<{ evaluated: number; created: number; failed: number }> {
   const vehicles = createVehiclesRepository(db);
   const notifications = createNotificationsRepository(db);
 
@@ -77,8 +77,8 @@ export async function runOdometerNudge({
 
   // The in-app notifications are stored before any network I/O: a channel cannot undo them.
   const created = notifications.createMany(rows);
-  await dispatcher.dispatch(created);
-  return { evaluated, created: created.length };
+  const { failed } = await dispatcher.dispatch(created);
+  return { evaluated, created: created.length, failed };
 }
 
 /** Schedules `run` every hour, or nothing when disabled. Overlapping runs are skipped. */

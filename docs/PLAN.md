@@ -165,7 +165,7 @@ Los enums ya están definidos en `packages/shared/src/enums.ts`.
   - **Decisión (spec maintenance-schedules-api):** el estado (al día / próximo / vencido) solo usa la fecha por meses y los km reales; la fecha estimada se informa pero no avisa. Idea a futuro: avisar también por la fecha estimada.
 - `odometer-nudge.job`: el día elegido por cada usuario, avisa si un vehículo activo lleva 7 días sin lectura de km.
 - Interfaz `NotificationChannel.send()` con implementaciones para ntfy, Gotify, Apprise (apprise-api) y webhook, y botón de prueba.
-- Script o endpoint de admin para lanzar los jobs a mano.
+- Lanzar los jobs a mano: `POST /api/admin/jobs/:name/run` (solo `admin`) y script `node dist/job.js <name>` (`pnpm --filter @ikrive/api job <name>` en desarrollo). Aplican las mismas reglas que el planificador e ignoran `REMINDERS_ENABLED`.
 - Próximos mantenimientos en el calendario del usuario, sin calendario propio:
   - Botón «Añadir al calendario» por regla (enlaces de Google y Outlook, y descarga `.ics`). Funciona en cualquier instalación porque lo hace el navegador.
   - Feed iCal opcional con token. Google Calendar necesita que el servidor sea accesible desde internet; Apple Calendar, Thunderbird o ICSx5 sirven en red local o por VPN.
