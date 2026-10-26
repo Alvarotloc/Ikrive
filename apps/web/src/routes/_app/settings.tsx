@@ -14,6 +14,7 @@ import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { FormField } from '@/components/form-field';
+import { InfoPopover } from '@/components/info-popover';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -98,11 +99,24 @@ function SettingsPage() {
             <FormField id="timezone" label={t('settings.timezone')} error={errors.timezone?.message}>
               <Input id="timezone" {...form.register('timezone')} />
             </FormField>
-            <FormField id="odometerReminderWeekday" label={t('settings.odometerReminderWeekday')}>
+            <FormField
+              id="odometerReminderWeekday"
+              label={t('settings.odometerReminderWeekday')}
+              labelAction={
+                <InfoPopover label={t('settings.odometerReminderWeekdayInfoLabel')}>
+                  {t('settings.odometerReminderWeekdayInfo')}
+                </InfoPopover>
+              }
+            >
               <Select
                 id="odometerReminderWeekday"
-                {...form.register('odometerReminderWeekday', { valueAsNumber: true })}
+                {...form.register('odometerReminderWeekday', {
+                  // «No avisar» is the empty option: `null`, not `NaN`.
+                  setValueAs: (value: string | number | null) =>
+                    value === '' || value === null ? null : Number(value),
+                })}
               >
+                <option value="">{t('settings.odometerReminderOff')}</option>
                 {WEEKDAYS.map((day) => (
                   <option key={day} value={day}>
                     {weekdays[day]}
@@ -110,7 +124,15 @@ function SettingsPage() {
                 ))}
               </Select>
             </FormField>
-            <FormField id="reminderHour" label={t('settings.reminderHour')}>
+            <FormField
+              id="reminderHour"
+              label={t('settings.reminderHour')}
+              labelAction={
+                <InfoPopover label={t('settings.reminderHourInfoLabel')}>
+                  {t('settings.reminderHourInfo')}
+                </InfoPopover>
+              }
+            >
               <Select
                 id="reminderHour"
                 aria-describedby="reminderHour-hint"

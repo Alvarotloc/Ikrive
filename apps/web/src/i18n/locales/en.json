@@ -74,8 +74,13 @@
     "locale": "Language",
     "timezone": "Time zone",
     "odometerReminderWeekday": "Odometer reminder day",
+    "odometerReminderOff": "Don't remind me",
+    "odometerReminderWeekdayInfoLabel": "More about the odometer reminder",
+    "odometerReminderWeekdayInfo": "On that day, from the reminder time, we notify you once about active vehicles with no odometer reading for 7 days or more. Choose «Don't remind me» to turn it off.",
     "reminderHour": "Reminder time",
     "reminderHourHint": "We will notify you from this time in your time zone.",
+    "reminderHourInfoLabel": "More about the reminder time",
+    "reminderHourInfo": "The app checks reminders every hour on the hour. Each reminder is sent only once, at the first check from this time in your time zone. If the server was off at that time, it arrives at the next check that same day.",
     "theme": "Theme",
     "themes": {
       "system": "System",
@@ -380,7 +385,8 @@
     "loading": "Loading notifications…",
     "types": {
       "schedule_due_soon": "Maintenance due soon",
-      "schedule_overdue": "Maintenance overdue"
+      "schedule_overdue": "Maintenance overdue",
+      "odometer_nudge": "Log your mileage"
     }
   },
   "notificationChannels": {
