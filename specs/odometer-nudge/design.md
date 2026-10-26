@@ -56,6 +56,15 @@ Solo el selector de Ajustes gana la primera opción «No avisar». La campana no
 - **Interpretar «sin día configurado» solo como «sin fila de ajustes»**: las filas se crean al registrarse con `0`, así que nadie quedaría fuera; hace falta un valor explícito (`null`).
 - **Meter el aviso dentro de `runReminders`**: mezcla dos reglas distintas y el criterio pide un job propio invocable aparte.
 
+## Cambios de Gate 2
+
+| Capa | Archivo | Cambio |
+|---|---|---|
+| web | `apps/web/src/components/info-popover.tsx` (nuevo) | `InfoPopover`: botón de icono `Info` con `aria-label` traducido que abre un `Popover` con el texto explicativo; se abre al pulsar o tocar, así funciona en móvil. |
+| web | `apps/web/src/components/form-field.tsx` | Prop opcional `labelAction` para colocar el botón junto a la etiqueta; los demás `FormField` no cambian. |
+| web | `apps/web/src/routes/_app/settings.tsx` | `InfoPopover` junto a «Hora de los recordatorios» (R18) y «Día del recordatorio de kilometraje» (R19). Las horas siguen en `HH:00`. |
+| i18n | `apps/web/src/i18n/locales/{es,en}.json` | `settings.reminderHourInfo(Label)` y `settings.odometerReminderWeekdayInfo(Label)`. |
+
 ## Decisiones a validar (Gate 1)
 
 1. **`null` = «No avisar»** en `odometerReminderWeekday`; los usuarios nuevos y los existentes siguen con su valor (domingo por defecto), es decir, el aviso está activo salvo que se desactive.

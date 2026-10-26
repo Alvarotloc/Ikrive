@@ -62,6 +62,14 @@ CUANDO el job crea notificaciones de km, el sistema DEBE enviarlas por los canal
 ## R17
 El sistema DEBE mostrar el tipo `odometer_nudge` con una etiqueta traducida en la campana (`notifications.types.odometer_nudge` en `es.json` y `en.json`) y en los mensajes de canal (`TEXTS` de `messages.ts`).
 
+## Cambios pedidos en Gate 2
+
+## R18
+La página de Ajustes DEBE mostrar junto a la etiqueta «Hora de los recordatorios» un botón con icono de información (con nombre accesible traducido) que, al pulsarlo o tocarlo, abre un `Popover` explicando que la app revisa cada hora en punto, que cada aviso llega una sola vez en la primera revisión a partir de esa hora en la zona horaria del usuario, y que si el servidor estaba apagado a esa hora el aviso llega en la siguiente revisión del mismo día. Las opciones del selector siguen siendo `HH:00`.
+
+## R19
+La página de Ajustes DEBE mostrar junto a la etiqueta «Día del recordatorio de kilometraje» el mismo tipo de botón de información, con un `Popover` que explica que ese día, a partir de la hora de los recordatorios, se avisa una vez de los vehículos activos que llevan 7 días o más sin lectura de km, y que «No avisar» lo desactiva.
+
 ## Acceptance → requirements
 
 | Criterio de `feature_list.json` | Requirements |
