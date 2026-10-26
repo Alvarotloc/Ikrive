@@ -45,7 +45,7 @@ const dateTime = (iso: string) =>
     timeZone: 'Europe/Madrid',
   }).format(new Date(iso));
 
-/** The bell in a minimal in-memory router with a vehicle page to navigate to. */
+/** The bell in a minimal in-memory router with a vehicle and an odometer page to navigate to. */
 function setup(routes: MockRoutes) {
   const fetchMock = mockApi({ 'GET /settings': { body: DEFAULT_USER_SETTINGS }, ...routes });
   const rootRoute = createRootRoute({
@@ -64,9 +64,14 @@ function setup(routes: MockRoutes) {
       return <h1>Vehículo {vehicleId}</h1>;
     },
   });
+  const odometerRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/odometer',
+    component: () => <h1>Kilometraje</h1>,
+  });
   const indexRoute = createRoute({ getParentRoute: () => rootRoute, path: '/', component: () => null });
   const router = createRouter({
-    routeTree: rootRoute.addChildren([indexRoute, vehicleRoute]),
+    routeTree: rootRoute.addChildren([indexRoute, vehicleRoute, odometerRoute]),
     history: createMemoryHistory({ initialEntries: ['/'] }),
   });
   return { fetchMock, router, ...renderWithProviders(<RouterProvider router={router} />) };
@@ -171,5 +176,30 @@ describe('NotificationBell', () => {
     expect(calls(fetchMock, 'POST', '/notifications/read-all')).toHaveLength(1);
     expect((await bell(0)).textContent).toBe('');
     expect(screen.queryByRole('button', { name: 'Marcar todas como leídas' })).not.toBeInTheDocument();
+  });
+
+  it('shows the odometer nudge label', async () => {
+    const nudge = notification({
+      id: 'n4',
+      type: 'odometer_nudge',
+      title: 'Golf, Clio',
+      body: null,
+      link: '/odometer',
+    });
+    const { user, fetchMock, router } = setup({
+      'GET /notifications': { body: page([nudge]) },
+      'PATCH /notifications/n4/read': { body: { ...nudge, readAt: '2026-10-22T09:00:00.000Z' } },
+    });
+
+    await user.click(await bell(1));
+    const panel = await screen.findByRole('dialog', { name: 'Notificaciones' });
+    const item = within(panel).getByRole('listitem');
+    expect(within(item).getByText('Registra los km')).toBeInTheDocument();
+    expect(within(item).getByText('Golf, Clio')).toBeInTheDocument();
+
+    await user.click(within(item).getByRole('button', { name: /Golf, Clio/ }));
+    expect(await screen.findByRole('heading', { name: 'Kilometraje' })).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/odometer');
+    expect(calls(fetchMock, 'PATCH', '/notifications/n4/read')).toHaveLength(1);
   });
 });
