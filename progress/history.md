@@ -158,3 +158,18 @@
   - Un fallo de BD al consultar canales hace fallar el job después de guardar las in-app (lo registra croner); se deja así.
   - Envíos secuenciales por canal: con un canal caído, una ejecución puede tardar N × 10 s.
 - **Gate 2:** merge aprobado por el humano.
+
+## 2026-10-26 — #17 odometer-nudge
+
+- **Rama:** `feat/odometer-nudge` (SDD, spec en `specs/odometer-nudge/`, 19 R / 19 T).
+- **Gate 1:** aprobado sin cambios. El humano confirmó que recrear tablas en migraciones no es problema (desarrollo, sin usuarios reales).
+- **Cambios:**
+  - `odometerReminderWeekday` admite `null` («No avisar»); migración `0007` recrea `user_settings` copiando sus 8 columnas. Nuevo tipo de notificación `odometer_nudge`.
+  - `jobs/odometer-nudge.job.ts`: cada hora en punto, el día de recordatorio del usuario y a partir de su `reminderHour` (en su zona horaria), una notificación con los vehículos activos con ≥ 7 días sin lectura (sin lecturas: desde el alta), enlace a `/odometer`. Dedupe por usuario y semana ISO; enviada por los canales activos. Mismo `REMINDERS_ENABLED`.
+  - Web: opción «No avisar» en Ajustes y etiqueta del tipo en la campana y en los canales (es/en).
+- **Gate 2:** el humano preguntó por una hora `hh:mm` y la descartó; pidió un icono de información junto a la hora de los recordatorios (R18). Se añadió también junto al día de km (R19). `InfoPopover` sobre `Popover` (funciona al tocar en móvil) y prop `labelAction` en `FormField`.
+- **Tests:** shared 35, API 142, web 175. Capturas en claro, oscuro y móvil. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED dos veces (`progress/review_odometer-nudge.md`). Avisos no bloqueantes:
+  - Ningún test de componente comprueba que Ajustes muestra «No avisar» con un ajuste `null` cargado.
+  - `db/schema/settings.ts` usa `default(0)` literal (comentado) en vez de `DEFAULT_USER_SETTINGS`.
+- **Gate 2:** merge aprobado por el humano.

@@ -115,7 +115,7 @@ Los errores se lanzan como `AppError` y se serializan como `application/problem+
 Ya existen:
 
 - **user / session / account / verification**: los gestiona Better Auth. `user.role` puede ser `admin` o `user`.
-- **user_settings**: moneda, unidad de distancia, unidad de volumen, idioma, zona horaria y `odometerReminderWeekday`.
+- **user_settings**: moneda, unidad de distancia, unidad de volumen, idioma, zona horaria, `odometerReminderWeekday` (`null` = «No avisar») y `reminderHour`.
 
 - **vehicles**: id, owner_id, alias (`name`), marca, modelo, versión, año, matrícula, VIN, tipo, combustible, fecha y precio de compra, km de compra, foto (clave en disco), notas, `sold_at` (fecha) y `archived_at`.
   - El estado (`active|archived|sold`) se deriva: vendido gana a archivado.
