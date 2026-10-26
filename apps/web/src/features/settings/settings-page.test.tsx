@@ -1,6 +1,6 @@
 import { DEFAULT_USER_SETTINGS, type Me, type UserSettings } from '@ikrive/shared';
 import { createMemoryHistory, createRouter, RouterProvider } from '@tanstack/react-router';
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { routeTree } from '@/routeTree.gen';
 import { createTestQueryClient, mockApi, renderWithProviders } from '@/test/render';
@@ -48,5 +48,55 @@ describe('settings page', () => {
 
     expect(await screen.findByText('Ajustes guardados')).toBeInTheDocument();
     expect(saved()).toMatchObject({ reminderHour: 20 });
+  });
+
+  it('saves no odometer reminder day', async () => {
+    const { user, saved } = renderSettings();
+
+    const select = await screen.findByLabelText('Día del recordatorio de kilometraje');
+    const options = within(select).getAllByRole('option');
+    expect(options).toHaveLength(8);
+    expect(options[0]).toHaveTextContent('No avisar');
+    expect(select).toHaveValue('0');
+
+    await user.selectOptions(select, 'No avisar');
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+    // Earlier tests' toasts may still be on screen: wait for the request instead.
+    await waitFor(() => expect(saved()).toMatchObject({ odometerReminderWeekday: null }));
+  });
+
+  it('saves an odometer reminder day as a number', async () => {
+    const { user, saved } = renderSettings();
+
+    const select = await screen.findByLabelText('Día del recordatorio de kilometraje');
+    await user.selectOptions(select, 'Miércoles');
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+    // Earlier tests' toasts may still be on screen: wait for the request instead.
+    await waitFor(() => expect(saved()).toMatchObject({ odometerReminderWeekday: 3 }));
+  });
+  it('explains the reminder hour', async () => {
+    const { user } = renderSettings();
+
+    await user.click(
+      await screen.findByRole('button', { name: 'Más información sobre la hora de los recordatorios' }),
+    );
+
+    const popover = await screen.findByRole('dialog');
+    expect(popover).toHaveTextContent('La app revisa los recordatorios cada hora en punto.');
+    expect(popover).toHaveTextContent('Si el servidor estaba apagado a esa hora');
+  });
+
+  it('explains the odometer reminder day', async () => {
+    const { user } = renderSettings();
+
+    await user.click(
+      await screen.findByRole('button', { name: 'Más información sobre el recordatorio de kilometraje' }),
+    );
+
+    const popover = await screen.findByRole('dialog');
+    expect(popover).toHaveTextContent('7 días o más sin lectura de kilómetros');
+    expect(popover).toHaveTextContent('«No avisar»');
   });
 });

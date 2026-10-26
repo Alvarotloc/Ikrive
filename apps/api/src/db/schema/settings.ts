@@ -11,7 +11,11 @@ export const userSettings = sqliteTable('user_settings', {
   volumeUnit: text({ enum: VOLUME_UNITS }).notNull().default(DEFAULT_USER_SETTINGS.volumeUnit),
   locale: text({ enum: LOCALES }).notNull().default(DEFAULT_USER_SETTINGS.locale),
   timezone: text().notNull().default(DEFAULT_USER_SETTINGS.timezone),
-  odometerReminderWeekday: integer().notNull().default(DEFAULT_USER_SETTINGS.odometerReminderWeekday),
+  /**
+   * `null` = the user does not want the weekly odometer reminder. Literal default: the shared one
+   * is typed nullable (same value as `DEFAULT_USER_SETTINGS.odometerReminderWeekday`).
+   */
+  odometerReminderWeekday: integer().default(0),
   /** Local hour (0-23) from which the reminders job notifies the user. */
   reminderHour: integer().notNull().default(DEFAULT_USER_SETTINGS.reminderHour),
 });

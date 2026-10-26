@@ -11,11 +11,19 @@ interface ChannelTexts {
 /** `Record<Locale, …>`: a new locale or notification type does not compile until it is translated. */
 const TEXTS: Record<Locale, ChannelTexts> = {
   es: {
-    types: { schedule_due_soon: 'Mantenimiento próximo', schedule_overdue: 'Mantenimiento vencido' },
+    types: {
+      schedule_due_soon: 'Mantenimiento próximo',
+      schedule_overdue: 'Mantenimiento vencido',
+      odometer_nudge: 'Registra los km',
+    },
     test: { title: 'Ikrive: notificación de prueba', body: 'Si lees esto, el canal funciona.' },
   },
   en: {
-    types: { schedule_due_soon: 'Maintenance due soon', schedule_overdue: 'Maintenance overdue' },
+    types: {
+      schedule_due_soon: 'Maintenance due soon',
+      schedule_overdue: 'Maintenance overdue',
+      odometer_nudge: 'Log your mileage',
+    },
     test: { title: 'Ikrive: test notification', body: 'If you can read this, the channel works.' },
   },
 };

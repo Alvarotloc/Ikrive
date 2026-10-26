@@ -74,8 +74,13 @@
     "locale": "Idioma",
     "timezone": "Zona horaria",
     "odometerReminderWeekday": "Día del recordatorio de kilometraje",
+    "odometerReminderOff": "No avisar",
+    "odometerReminderWeekdayInfoLabel": "Más información sobre el recordatorio de kilometraje",
+    "odometerReminderWeekdayInfo": "Ese día, a partir de la hora de los recordatorios, te avisamos una vez de los vehículos activos que llevan 7 días o más sin lectura de kilómetros. Elige «No avisar» para desactivarlo.",
     "reminderHour": "Hora de los recordatorios",
     "reminderHourHint": "Te avisaremos a partir de esta hora en tu zona horaria.",
+    "reminderHourInfoLabel": "Más información sobre la hora de los recordatorios",
+    "reminderHourInfo": "La app revisa los recordatorios cada hora en punto. Cada aviso llega una sola vez, en la primera revisión a partir de esta hora en tu zona horaria. Si el servidor estaba apagado a esa hora, llegará en la siguiente revisión del mismo día.",
     "theme": "Tema",
     "themes": {
       "system": "Sistema",
@@ -380,7 +385,8 @@
     "loading": "Cargando notificaciones…",
     "types": {
       "schedule_due_soon": "Mantenimiento próximo",
-      "schedule_overdue": "Mantenimiento vencido"
+      "schedule_overdue": "Mantenimiento vencido",
+      "odometer_nudge": "Registra los km"
     }
   },
   "notificationChannels": {

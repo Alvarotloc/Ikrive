@@ -1,8 +1,8 @@
 import type { VehicleStatus } from '@ikrive/shared';
-import { and, desc, eq, gte, inArray, isNotNull, isNull, max, or, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, max, or, type SQL } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/sqlite-core';
 import type { Db } from '../../db/client';
-import { attachments, maintenanceRecords, odometerReadings, vehicles } from '../../db/schema';
+import { attachments, maintenanceRecords, odometerReadings, userSettings, vehicles } from '../../db/schema';
 
 export type VehicleRow = typeof vehicles.$inferSelect;
 export type NewVehicleRow = typeof vehicles.$inferInsert;
@@ -101,6 +101,33 @@ export function createVehiclesRepository(db: Db) {
             or(gte(odometerReadings.date, since), eq(odometerReadings.date, latestDate)),
           ),
         )
+        .all();
+    },
+    /**
+     * Active vehicles of the users with an odometer reminder day, with their latest reading date
+     * (`null` without readings) and their owner's reminder settings, oldest vehicle first. Users
+     * without a settings row or with `odometerReminderWeekday: null` are left out.
+     */
+    listActiveForOdometerNudge() {
+      return db
+        .select({
+          vehicleId: vehicles.id,
+          ownerId: vehicles.ownerId,
+          name: vehicles.name,
+          make: vehicles.make,
+          model: vehicles.model,
+          createdAt: vehicles.createdAt,
+          lastReadingDate: max(odometerReadings.date),
+          weekday: userSettings.odometerReminderWeekday,
+          timezone: userSettings.timezone,
+          reminderHour: userSettings.reminderHour,
+        })
+        .from(vehicles)
+        .innerJoin(userSettings, eq(userSettings.userId, vehicles.ownerId))
+        .leftJoin(odometerReadings, eq(odometerReadings.vehicleId, vehicles.id))
+        .where(and(activeVehicleFilter, isNotNull(userSettings.odometerReminderWeekday)))
+        .groupBy(vehicles.id)
+        .orderBy(asc(vehicles.createdAt))
         .all();
     },
     latestReading(vehicleId: string) {

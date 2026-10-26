@@ -7,8 +7,8 @@ export const userSettingsSchema = z.object({
   volumeUnit: z.enum(VOLUME_UNITS),
   locale: z.enum(LOCALES),
   timezone: z.string().min(1),
-  /** Day of week (0 = Sunday) on which the user is reminded to log the odometer. */
-  odometerReminderWeekday: z.number().int().min(0).max(6),
+  /** Day of week (0 = Sunday) on which the user is reminded to log the odometer; `null` = no reminder. */
+  odometerReminderWeekday: z.number().int().min(0).max(6).nullable(),
   /** Local hour (0-23, in `timezone`) from which the user receives the day's reminders. */
   reminderHour: z.number().int().min(0).max(23),
 });
