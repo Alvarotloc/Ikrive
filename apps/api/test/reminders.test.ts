@@ -158,6 +158,7 @@ describe('runReminders', () => {
     expect(await runReminders({ db, now: NOW, dispatcher: createTestDispatcher(db) })).toEqual({
       evaluated: 3,
       created: 2,
+      failed: 0,
     });
 
     expect(rows(db)).toEqual([
@@ -214,6 +215,7 @@ describe('runReminders', () => {
     expect(await runReminders({ db, now: NOW, dispatcher: createTestDispatcher(db) })).toEqual({
       evaluated: 2,
       created: 0,
+      failed: 0,
     });
     expect(rows(db)).toEqual([]);
   });
@@ -238,6 +240,7 @@ describe('runReminders', () => {
     expect(await runReminders({ db, now: NOW, dispatcher: createTestDispatcher(db) })).toEqual({
       evaluated: 0,
       created: 0,
+      failed: 0,
     });
     expect(rows(db)).toEqual([]);
   });
@@ -259,6 +262,7 @@ describe('runReminders', () => {
     expect(await runReminders({ db, now, dispatcher: createTestDispatcher(db) })).toEqual({
       evaluated: 2,
       created: 1,
+      failed: 0,
     });
     expect(rows(db)).toMatchObject([{ userId: madrid.userId, type: 'schedule_overdue' }]);
   });
@@ -274,16 +278,17 @@ describe('runReminders', () => {
       expect(await runReminders({ db, now: NOW, dispatcher: createTestDispatcher(db) })).toEqual({
         evaluated: 2,
         created: 2,
+        failed: 0,
       });
       const first = rows(db);
       expect(
         await runReminders({ db, now: at('2026-10-22T18:00:00.000Z'), dispatcher: createTestDispatcher(db) }),
-      ).toEqual({ evaluated: 2, created: 0 });
+      ).toEqual({ evaluated: 2, created: 0, failed: 0 });
       expect(rows(db)).toEqual(first);
       // Still the same status and period on later days: nothing new either.
       expect(
         await runReminders({ db, now: at('2026-10-24T10:00:00.000Z'), dispatcher: createTestDispatcher(db) }),
-      ).toEqual({ evaluated: 2, created: 0 });
+      ).toEqual({ evaluated: 2, created: 0, failed: 0 });
       expect(rows(db)).toHaveLength(2);
     });
 
@@ -378,6 +383,7 @@ describe('runReminders', () => {
       expect(await runReminders({ db, now: NOW, dispatcher: createTestDispatcher(db) })).toEqual({
         evaluated: 1,
         created: 1,
+        failed: 0,
       });
       expect(rows(db)).toMatchObject([{ userId: inTime.userId }]);
     });
@@ -391,10 +397,10 @@ describe('runReminders', () => {
       // 07:59 and 08:00 in Madrid.
       expect(
         await runReminders({ db, now: at('2026-10-22T05:59:00.000Z'), dispatcher: createTestDispatcher(db) }),
-      ).toEqual({ evaluated: 0, created: 0 });
+      ).toEqual({ evaluated: 0, created: 0, failed: 0 });
       expect(
         await runReminders({ db, now: at('2026-10-22T06:00:00.000Z'), dispatcher: createTestDispatcher(db) }),
-      ).toEqual({ evaluated: 1, created: 1 });
+      ).toEqual({ evaluated: 1, created: 1, failed: 0 });
     });
 
     it('catches up later the same day', async () => {
