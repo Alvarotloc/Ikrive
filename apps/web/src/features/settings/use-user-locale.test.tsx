@@ -15,6 +15,7 @@ function renderApp(path: string, routes: MockRoutes) {
     'GET /vehicles': { body: [] },
     'GET /notifications': { body: { items: [], total: 0, unreadCount: 0 } },
     'GET /notification-channels': { body: [] },
+    'GET /settings/calendar-feed': { body: { enabled: false, createdAt: null } },
     ...routes,
   });
   const queryClient = createTestQueryClient();

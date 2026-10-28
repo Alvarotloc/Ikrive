@@ -68,7 +68,7 @@ function setup(
     <>
       <Toaster />
       <Suspense fallback={null}>
-        <SchedulesSection vehicle={{ id: 'v1', status }} />
+        <SchedulesSection vehicle={{ id: 'v1', status, name: 'Clio', make: 'Renault', model: 'Clio' }} />
       </Suspense>
     </>,
   );

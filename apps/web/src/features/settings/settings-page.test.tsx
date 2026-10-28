@@ -14,6 +14,7 @@ function renderSettings() {
     'GET /me': { body: me },
     'GET /notifications': { body: { items: [], total: 0, unreadCount: 0 } },
     'GET /notification-channels': { body: [] },
+    'GET /settings/calendar-feed': { body: { enabled: false, createdAt: null } },
     'GET /settings': { body: DEFAULT_USER_SETTINGS },
     'PATCH /settings': async (request) => {
       saved = (await request.json()) as Partial<UserSettings>;

@@ -503,7 +503,9 @@ describe('MaintenanceFormDialog', () => {
       const { user } = renderWithProviders(
         <>
           <Suspense fallback={null}>
-            <SchedulesSection vehicle={{ id: 'v1', status: 'active' }} />
+            <SchedulesSection
+              vehicle={{ id: 'v1', status: 'active', name: null, make: 'Seat', model: 'León' }}
+            />
           </Suspense>
           <Harness />
         </>,
