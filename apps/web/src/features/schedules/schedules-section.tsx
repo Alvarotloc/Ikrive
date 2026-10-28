@@ -18,12 +18,15 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { useFormat } from '@/lib/format';
+import { AddToCalendarMenu } from './add-to-calendar';
 import { schedulesQuery, useDeleteSchedule } from './queries';
 import { ScheduleFormDialog } from './schedule-form';
 import { sortSchedules } from './schedules';
 
+type SectionVehicle = Pick<Vehicle, 'id' | 'status' | 'name' | 'make' | 'model'>;
+
 /** Upcoming maintenance of a vehicle: its schedules in due order, create, edit and delete. */
-export function SchedulesSection({ vehicle }: { vehicle: Pick<Vehicle, 'id' | 'status'> }) {
+export function SchedulesSection({ vehicle }: { vehicle: SectionVehicle }) {
   const { t } = useTranslation();
   const { data } = useSuspenseQuery(schedulesQuery(vehicle.id));
   const schedules = sortSchedules(data);
@@ -54,7 +57,7 @@ export function SchedulesSection({ vehicle }: { vehicle: Pick<Vehicle, 'id' | 's
             {schedules.map((schedule) => (
               <ScheduleRow
                 key={schedule.id}
-                vehicleId={vehicle.id}
+                vehicle={vehicle}
                 schedule={schedule}
                 onEdit={() => openForm(schedule)}
               />
@@ -80,11 +83,11 @@ export function ScheduleStatusBadge({ status }: { status: ScheduleStatus }) {
 }
 
 function ScheduleRow({
-  vehicleId,
+  vehicle,
   schedule,
   onEdit,
 }: {
-  vehicleId: string;
+  vehicle: SectionVehicle;
   schedule: MaintenanceSchedule;
   onEdit: () => void;
 }) {
@@ -126,6 +129,7 @@ function ScheduleRow({
         <span className="block text-sm font-medium break-words">{due}</span>
       </div>
       <div className="col-start-2 row-start-1 flex sm:col-start-3">
+        <AddToCalendarMenu schedule={schedule} vehicle={vehicle} />
         <Button
           variant="ghost"
           size="icon"
@@ -135,7 +139,7 @@ function ScheduleRow({
         >
           <Pencil aria-hidden />
         </Button>
-        <DeleteScheduleDialog vehicleId={vehicleId} schedule={schedule} />
+        <DeleteScheduleDialog vehicleId={vehicle.id} schedule={schedule} />
       </div>
     </li>
   );

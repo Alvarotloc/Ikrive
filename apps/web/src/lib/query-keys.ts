@@ -4,6 +4,7 @@ export const queryKeys = {
   me: ['me'] as const,
   settings: ['settings'] as const,
   config: ['config'] as const,
+  calendarFeed: ['calendar-feed'] as const,
   notifications: {
     all: ['notifications'] as const,
     list: ['notifications', 'list'] as const,
