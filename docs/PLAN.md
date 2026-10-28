@@ -39,7 +39,7 @@ Ikrive es una aplicación open source y autoalojada (Docker) para gestionar tus 
 | 1b. Alineación visual con la landing | ✅ Hecha |
 | 2. Vehículos y odómetro | ✅ Hecha |
 | 3. Mantenimiento y adjuntos | ✅ Hecha |
-| 4. Reglas y alertas | Pendiente |
+| 4. Reglas y alertas | ✅ Hecha |
 | 5. Repostajes y estadísticas | Pendiente |
 | 6. Informe de venta | Pendiente |
 | 7. Pulido y release v0.1.0 | Pendiente |
@@ -158,7 +158,7 @@ Los enums ya están definidos en `packages/shared/src/enums.ts`.
 - Validación de MIME y tamaño (`MAX_UPLOAD_MB`).
 - `GET /api/config` (autenticado) expone `maxUploadMb` para que la web muestre el límite y descarte antes de subir los ficheros que lo superan.
 
-### Fase 4: reglas y alertas
+### Fase 4: reglas y alertas ✅
 - `reminders.job` (diario):
   - Evalúa las reglas. Para las de km estima la fecha de vencimiento con la media de km/día de los últimos 90 días.
   - Crea la notificación in-app, deduplicada, y la envía por los canales del usuario.

@@ -189,3 +189,18 @@
   - `job-cli.test.ts` no borra sus carpetas temporales `ikrive-cli-*`.
   - Si falla el guardado de `last_error`, esos mensajes no cuentan ni en `sent` ni en `failed`.
 - **Gate 2:** merge aprobado por el humano.
+
+## 2026-10-28 — #19 maintenance-calendar
+
+- **Rama:** `feat/maintenance-calendar` (SDD, spec en `specs/maintenance-calendar/`, 31 R / 26 T).
+- **Gate 1:** aprobado. El humano pidió aclarar la decisión 1 y aceptó que los textos del evento vivan en `packages/shared` (`CALENDAR_EVENT_TEXTS`, es/en), no en `es.json`/`en.json`, porque la API genera el feed sin i18next (mismo patrón que `notification-channels/messages.ts`).
+- **Cambios:**
+  - shared: `domain/calendar.ts` con `scheduleCalendarEvent`, `googleCalendarUrl`, `outlookCalendarUrl` y `toICalendar` (RFC 5545: CRLF, escapado, plegado a 75 octetos UTF-8, eventos de día completo, UID `schedule-<id>@ikrive`). Sin `URL`/`TextEncoder` (shared no tiene tipos DOM/Node).
+  - api: tabla `calendar_feeds` (`0008_calendar_feeds.sql`), token selector + verificador con `sha256` y `timingSafeEqual` (`lib/tokens.ts`). Gestión en `/api/settings/calendar-feed` (GET/POST activar=regenerar/DELETE) y feed público `GET /api/calendar/<token>.ics` con las reglas con fecha de los vehículos activos del dueño, en su idioma, unidad y zona horaria; 404 uniforme. `lib/logging.ts` oculta el token en los logs.
+  - web: `DropdownMenu`, «Añadir al calendario» por regla (Google, Outlook, `.ics`; desactivado con explicación sin fecha) y sección «Calendario» en Ajustes (activar, copiar, regenerar, desactivar).
+- **Gate 2:** el humano pidió cerrar tres avisos del reviewer: ocultar el token en los logs, test de zona horaria del feed y escapar cualquier salto de línea en el `.ics`. Tras la re-revisión se cerraron también las rutas no canónicas en la redacción (barras dobles, mayúsculas, codificadas, rachas de 32+ hex) y los caracteres de control en el `.ics` (T22–T26).
+- **Tests:** shared 51, API 176, web 183. Capturas en claro, oscuro y móvil. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED tres veces (`progress/review_maintenance-calendar.md`). Avisos no bloqueantes que quedan:
+  - Un proxy inverso delante de Ikrive registra la URL del feed con el token en sus propios logs (fuera del alcance de la app).
+  - Idea a futuro: que los formularios rechacen caracteres de control en títulos y nombres (el `.ics` ya los limpia).
+- **Gate 2:** merge aprobado por el humano. Cierra la fase 4.
