@@ -5,12 +5,16 @@ import { vi } from 'vitest';
 import { buildApp } from '../src/app';
 import { loadConfig } from '../src/config';
 import { createDb, type Db, runMigrations } from '../src/db/client';
+import type { LogStream } from '../src/lib/logging';
 import { createNotificationDispatcher } from '../src/modules/notification-channels/dispatcher';
 
-/** `fetch` replaces the notification channels' HTTP client (no real network in tests). */
+/**
+ * `fetch` replaces the notification channels' HTTP client (no real network in tests); `logStream`
+ * turns the logger on and receives its output.
+ */
 export async function createTestApp(
   env: Record<string, string> = {},
-  { fetch }: { fetch?: typeof globalThis.fetch } = {},
+  { fetch, logStream }: { fetch?: typeof globalThis.fetch; logStream?: LogStream } = {},
 ) {
   const dataDir = mkdtempSync(join(tmpdir(), 'ikrive-test-'));
   const config = loadConfig({
@@ -21,7 +25,7 @@ export async function createTestApp(
   });
   const db = createDb(':memory:');
   runMigrations(db);
-  const app = await buildApp({ config, db, fetch });
+  const app = await buildApp({ config, db, fetch, logStream });
   await app.ready();
   return { app, db, dataDir };
 }
