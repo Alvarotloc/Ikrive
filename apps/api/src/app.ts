@@ -7,11 +7,15 @@ import { serializerCompiler, validatorCompiler, type ZodTypeProvider } from 'fas
 import { createAuth } from './auth';
 import type { Config } from './config';
 import type { Db } from './db/client';
+import { type LogStream, loggerOptions } from './lib/logging';
 import { createFileStorage } from './lib/storage';
 import { adminRoutes } from './modules/admin/routes';
 import { createAttachmentsRepository } from './modules/attachments/repository';
 import { attachmentsRoutes } from './modules/attachments/routes';
 import { createAttachmentsService } from './modules/attachments/service';
+import { createCalendarRepository } from './modules/calendar/repository';
+import { calendarFeedRoutes, calendarFeedSettingsRoutes } from './modules/calendar/routes';
+import { createCalendarService } from './modules/calendar/service';
 import { clientConfigRoutes } from './modules/client-config/routes';
 import { healthRoutes } from './modules/health/routes';
 import { createMaintenanceRepository } from './modules/maintenance/repository';
@@ -43,11 +47,13 @@ export interface AppDeps {
   db: Db;
   /** HTTP client for the notification channels; tests replace it so nothing reaches the network. */
   fetch?: typeof globalThis.fetch;
+  /** Log destination; tests pass one to inspect the logs (otherwise logging is off under `test`). */
+  logStream?: LogStream;
 }
 
-export async function buildApp({ config, db, fetch = globalThis.fetch }: AppDeps) {
+export async function buildApp({ config, db, fetch = globalThis.fetch, logStream }: AppDeps) {
   const app = Fastify({
-    logger: config.NODE_ENV === 'test' ? false : { level: config.LOG_LEVEL },
+    logger: config.NODE_ENV === 'test' && !logStream ? false : loggerOptions(config.LOG_LEVEL, logStream),
     trustProxy: true,
   }).withTypeProvider<ZodTypeProvider>();
 
@@ -99,6 +105,13 @@ export async function buildApp({ config, db, fetch = globalThis.fetch }: AppDeps
     vehicles: vehiclesRepo,
     settings: settingsService,
   });
+  const calendarService = createCalendarService({
+    repo: createCalendarRepository(db),
+    schedules: schedulesRepo,
+    vehicles: vehiclesRepo,
+    settings: settingsService,
+    baseUrl: config.BASE_URL,
+  });
   const notificationsService = createNotificationsService(createNotificationsRepository(db));
   // Shared by the channels' test send and the admin job runs, so tests can replace `fetch` once.
   const dispatcher = createNotificationDispatcher({ db, fetch, baseUrl: config.BASE_URL });
@@ -119,6 +132,8 @@ export async function buildApp({ config, db, fetch = globalThis.fetch }: AppDeps
       await api.register(clientConfigRoutes, { maxUploadMb: config.MAX_UPLOAD_MB });
       await api.register(meRoutes);
       await api.register(settingsRoutes, { service: settingsService });
+      await api.register(calendarFeedSettingsRoutes, { service: calendarService });
+      await api.register(calendarFeedRoutes, { service: calendarService });
       await api.register(vehiclesRoutes, { service: vehiclesService });
       await api.register(maintenanceRoutes, { service: maintenanceService });
       await api.register(schedulesRoutes, { service: schedulesService });

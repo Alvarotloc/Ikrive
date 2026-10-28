@@ -20,6 +20,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
+import { CalendarFeedSection } from '@/features/calendar-feed/calendar-feed-section';
+import { calendarFeedQuery } from '@/features/calendar-feed/queries';
 import { NotificationChannelsSection } from '@/features/notification-channels/channels-section';
 import { notificationChannelsQuery } from '@/features/notification-channels/queries';
 import { settingsQuery, useUpdateSettings } from '@/features/settings/queries';
@@ -34,6 +36,7 @@ export const Route = createFileRoute('/_app/settings')({
     Promise.all([
       context.queryClient.ensureQueryData(settingsQuery),
       context.queryClient.ensureQueryData(notificationChannelsQuery),
+      context.queryClient.ensureQueryData(calendarFeedQuery),
     ]),
   component: SettingsPage,
 });
@@ -158,6 +161,9 @@ function SettingsPage() {
       </Card>
       <Suspense>
         <NotificationChannelsSection />
+      </Suspense>
+      <Suspense>
+        <CalendarFeedSection />
       </Suspense>
       <Card>
         <CardHeader>

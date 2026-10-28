@@ -373,6 +373,13 @@
     "lastDoneHelp": "If you leave it blank, it counts from the vehicle's purchase.",
     "errors": {
       "intervalRequired": "Enter an interval in months or in {{unit}}"
+    },
+    "calendar": {
+      "label": "Add “{{title}}” to calendar",
+      "google": "Google Calendar",
+      "outlook": "Outlook",
+      "ics": "Download .ics",
+      "noDate": "This schedule cannot be added to a calendar because it has no date: it is only due by distance and there are not enough readings yet to estimate when."
     }
   },
   "notifications": {
@@ -429,5 +436,24 @@
     "errors": {
       "urlCredentials": "Do not put a username or password in the URL: use the token field."
     }
+  },
+  "calendarFeed": {
+    "title": "Calendar",
+    "description": "Subscribe to your upcoming maintenance from your calendar app with a private URL. Google Calendar needs this server to be reachable from the internet; Apple Calendar, Thunderbird or ICSx5 also work on a local network or over a VPN.",
+    "enable": "Enable feed",
+    "enabled": "Feed enabled",
+    "activeSince": "Active since {{date}}",
+    "urlLabel": "Feed URL",
+    "urlHint": "Copy it now: for security it is only shown once. If you lose it, regenerate the feed.",
+    "copy": "Copy",
+    "copied": "URL copied",
+    "regenerate": "Regenerate",
+    "regenerateTitle": "Regenerate the feed URL?",
+    "regenerateDescription": "A new URL will be created and the old one will stop working: you will have to update it in your calendars.",
+    "regenerated": "URL regenerated",
+    "disable": "Disable",
+    "disableTitle": "Disable the feed?",
+    "disableDescription": "The URL will stop working and your calendars will no longer receive your maintenance.",
+    "disabled": "Feed disabled"
   }
 }

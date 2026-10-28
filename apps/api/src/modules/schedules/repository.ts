@@ -38,6 +38,21 @@ export function createSchedulesRepository(db: Db) {
         .where(activeVehicleFilter)
         .all();
     },
+    /** Schedules of one user's active vehicles, with the vehicle's name, make and model. For the iCal feed. */
+    listForOwnerActiveVehicles(ownerId: string) {
+      return db
+        .select({
+          ...getTableColumns(maintenanceSchedules),
+          vehicleName: vehicles.name,
+          vehicleMake: vehicles.make,
+          vehicleModel: vehicles.model,
+        })
+        .from(maintenanceSchedules)
+        .innerJoin(vehicles, eq(vehicles.id, maintenanceSchedules.vehicleId))
+        .where(and(eq(vehicles.ownerId, ownerId), activeVehicleFilter))
+        .orderBy(asc(maintenanceSchedules.createdAt), asc(sql`${maintenanceSchedules}.rowid`))
+        .all();
+    },
     find(vehicleId: string, id: string) {
       return db
         .select()

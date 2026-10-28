@@ -373,6 +373,13 @@
     "lastDoneHelp": "Si lo dejas vacío, se cuenta desde la compra del vehículo.",
     "errors": {
       "intervalRequired": "Indica un intervalo en meses o en {{unit}}"
+    },
+    "calendar": {
+      "label": "Añadir «{{title}}» al calendario",
+      "google": "Google Calendar",
+      "outlook": "Outlook",
+      "ics": "Descargar .ics",
+      "noDate": "No se puede añadir al calendario porque esta regla no tiene fecha: solo vence por kilómetros y todavía no hay lecturas suficientes para estimar cuándo."
     }
   },
   "notifications": {
@@ -429,5 +436,24 @@
     "errors": {
       "urlCredentials": "No pongas usuario ni contraseña en la URL: usa el campo token."
     }
+  },
+  "calendarFeed": {
+    "title": "Calendario",
+    "description": "Suscríbete a tus próximos mantenimientos desde tu app de calendario con una URL privada. Google Calendar necesita que este servidor sea accesible desde internet; Apple Calendar, Thunderbird o ICSx5 funcionan también en red local o por VPN.",
+    "enable": "Activar feed",
+    "enabled": "Feed activado",
+    "activeSince": "Activo desde {{date}}",
+    "urlLabel": "URL del feed",
+    "urlHint": "Cópiala ahora: por seguridad solo se muestra una vez. Si la pierdes, regenera el feed.",
+    "copy": "Copiar",
+    "copied": "URL copiada",
+    "regenerate": "Regenerar",
+    "regenerateTitle": "¿Regenerar la URL del feed?",
+    "regenerateDescription": "Se creará una URL nueva y la anterior dejará de funcionar: tendrás que actualizarla en tus calendarios.",
+    "regenerated": "URL regenerada",
+    "disable": "Desactivar",
+    "disableTitle": "¿Desactivar el feed?",
+    "disableDescription": "La URL dejará de funcionar y tus calendarios dejarán de recibir los mantenimientos.",
+    "disabled": "Feed desactivado"
   }
 }
