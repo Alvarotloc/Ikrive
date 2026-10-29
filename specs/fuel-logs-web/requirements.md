@@ -92,13 +92,15 @@ El sistema DEBE definir todos los textos de la feature (namespace `fuel.*`, incl
 El sistema DEBE ser usable a 375 px de ancho y en modo oscuro (formulario con scroll dentro del diálogo y filas sin desbordamiento horizontal), comprobado con capturas.
 ## R27
 MIENTRAS el formulario está en modo edición, el sistema DEBE mostrar junto a los tres valores una pista que explique que, al vaciar uno de ellos, se recalcula a partir de los otros dos.
+## R28
+CUANDO el usuario vacía o modifica el valor calculado, el sistema NO DEBE volver a calcularlo ni sobrescribirlo hasta que el usuario modifique uno de los otros dos valores.
 
 ## Acceptance → requirements
 
 | Criterio de `feature_list.json` | Requirements |
 |---|---|
 | La ficha muestra la lista de repostajes (fecha, km, cantidad, precio total, precio por unidad y depósito lleno), del más reciente al más antiguo | R1, R2, R3, R4 |
-| Formulario rápido, usable en el móvil: dos de cantidad/total/precio unitario calculan el tercero; km propuestos a partir de la última lectura | R5, R6, R7, R8, R9, R10, R11, R12, R14, R15, R24, R25, R26 |
+| Formulario rápido, usable en el móvil: dos de cantidad/total/precio unitario calculan el tercero; km propuestos a partir de la última lectura | R5, R6, R7, R8, R9, R10, R11, R12, R14, R15, R24, R25, R26, R28 |
 | Editar y borrar (con confirmación); se refrescan los km del vehículo | R16, R17, R18, R19, R27 |
 | Unidades y moneda según los ajustes; kWh en eléctricos | R3, R13 |
 | Un 409 de km se muestra en el campo de km con un mensaje claro | R20, R21, R22 |

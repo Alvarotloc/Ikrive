@@ -88,11 +88,11 @@ export function FuelLogFormDialog(props: {
 
 `useFormat()` no expone `volumeUnit`; `useFuelFormat` lee `settingsQuery` (con `DEFAULT_USER_SETTINGS` como respaldo), igual que `maintenance-form.tsx` lee la moneda. No se toca `lib/format.ts`.
 
-## Cálculo del tercer valor (R8, R9)
+## Cálculo del tercer valor (R8, R9, R28)
 
 Estado local `computed: FuelValueField | null` en el formulario. En el `onChange` de cada uno de los tres campos (vía `register(name, { onChange })`):
 
-1. Si el campo editado es `computed`, el usuario lo sobrescribe → `computed = null`.
+1. Si el campo editado es `computed`, el usuario lo sobrescribe o lo vacía → `computed = null` y **se termina aquí**: en ese mismo cambio no se ejecutan los pasos 2 y 3, así que borrar el valor calculado no lo vuelve a rellenar (R28). Se volverá a calcular cuando el usuario cambie uno de los otros dos. Para que esto aguante varios retrocesos seguidos (tras el primero el campo ya no es `computed`), el formulario guarda en una `useRef` `userOwned` el campo que el usuario ha hecho suyo; mientras lo edita no se ejecutan los pasos 2 y 3, y se libera al cambiar uno de los otros dos (añadido en la revisión de Gate 2).
 2. Si `computed` no es `null` → recalcularlo con `computeThirdValue`; si ya no se puede (un origen vacío o inválido), vaciarlo y `computed = null`.
 3. Si `computed` es `null` y hay exactamente dos valores válidos con el tercero vacío → `computed = tercero` y escribirlo con `setValue(…, formatInputNumber(v, i18n.language))`.
 
