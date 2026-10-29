@@ -392,7 +392,7 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
-      "status": "in_progress"
+      "status": "done"
     },
     {
       "id": 24,
@@ -427,6 +427,23 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 26,
+      "name": "form-field-error-a11y",
+      "phase": "5",
+      "title": "Errores de formulario asociados a su campo",
+      "description": "Los mensajes de error de FormField (apps/web/src/components/form-field.tsx, role=\"alert\") no están enlazados a sus inputs: un lector de pantalla no anuncia el error al llegar al campo. Afecta a todos los formularios de la app. Detectado por el reviewer de #23 (progress/review_fuel-logs-web.md, aviso 4).",
+      "acceptance": [
+        "FormField enlaza el mensaje de error con su input mediante aria-describedby (con un id estable por campo), además de aria-invalid",
+        "Si el input ya tiene una descripción (p. ej. «Calculado» o una pista), aria-describedby conserva ambas referencias",
+        "Sin error, el input no apunta a ningún id inexistente",
+        "Todos los formularios que usan FormField se benefician sin cambios en cada formulario, o con cambios mínimos documentados",
+        "Tests de componente comprueban que la descripción accesible de un campo con error incluye el mensaje (toHaveAccessibleDescription)",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
       "status": "pending"
     }
   ]
