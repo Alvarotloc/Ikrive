@@ -1,4 +1,4 @@
-import { MAINTENANCE_CATEGORIES, NOTIFICATION_CHANNEL_TYPES } from '@ikrive/shared';
+import { FUEL_QUANTITY_UNITS, MAINTENANCE_CATEGORIES, NOTIFICATION_CHANNEL_TYPES } from '@ikrive/shared';
 import { describe, expect, it } from 'vitest';
 import en from './locales/en.json';
 import es from './locales/es.json';
@@ -28,6 +28,15 @@ describe('locales', () => {
       for (const type of NOTIFICATION_CHANNEL_TYPES) {
         expect(locale.notificationChannels.types[type]).toEqual(expect.any(String));
         expect(locale.notificationChannels.types[type]).not.toBe('');
+      }
+    }
+  });
+
+  it('defines a label for every fuel quantity unit', () => {
+    for (const locale of [es, en]) {
+      for (const unit of FUEL_QUANTITY_UNITS) {
+        expect(locale.fuel.units[unit]).toEqual(expect.any(String));
+        expect(locale.fuel.units[unit]).not.toBe('');
       }
     }
   });

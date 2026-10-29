@@ -218,3 +218,24 @@
   - Un PATCH vacío responde 200 y solo actualiza `updatedAt`, igual que el resto de módulos (aceptado por el humano).
   - Si cambia el `fuelType` del vehículo, los repostajes antiguos se muestran con la otra unidad (aceptado por el humano).
 - **Gate 2:** merge aprobado por el humano.
+
+## 2026-10-29 — #23 fuel-logs-web
+
+- **Rama:** `feat/fuel-logs-web` (SDD, spec en `specs/fuel-logs-web/`, 28 R / 17 T). Solo `apps/web`.
+- **Gate 1:** aprobado con dos cambios:
+  - Un único `.` o `,` en cantidad, total y precio por unidad es siempre decimal; los separadores de miles no se aceptan. La cantidad admite 3 decimales (surtidores con 3), el total 2 y el precio por unidad 3. Las entradas ambiguas o con demasiados decimales dan error y nunca se reinterpretan (R12, R25, R26).
+  - Pista en edición: «Vacía un campo para recalcularlo con los otros dos» (R27).
+  - El humano confirmó que los km se precarguen con la última lectura aunque no se actualicen.
+- **Cambios (web):**
+  - Sección «Repostajes» en la ficha (`features/fuel/`): lista ordenada, badge «Lleno»/«Parcial», alta solo en vehículos activos, y borrado con `AlertDialog`.
+  - `FuelLogFormDialog` (alta y edición): calcula el tercer valor en vivo; usa `parseFuelNumber` propio (sin tocar `parseDecimal`); `inputMode` numeric/decimal.
+  - Errores: 409 → campo de km, 400 → campo de fecha. Las mutaciones invalidan `vehicles.all`.
+  - kWh en eléctricos; unidad y moneda según los ajustes del usuario.
+- **Gate 2:** el humano pidió que borrar o sobrescribir el valor calculado no lo vuelva a rellenar hasta cambiar otro valor (R28, T17, `useRef userOwned`). Re-revisado y aprobado.
+- **Tests:** shared 60, API 190, web 234. Capturas en claro, oscuro y 375 px. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED dos veces (`progress/review_fuel-logs-web.md`). Avisos no bloqueantes que quedan:
+  - Un repostaje creado por la API con más decimales de los permitidos se redondea o bloquea el guardado al editarlo. No puede pasar desde la UI.
+  - Un 0 en cantidad o precio muestra el mensaje genérico de zod.
+  - Los errores de `FormField` no están enlazados a su campo: abierta la #26 `form-field-error-a11y` en el backlog.
+- El humano preguntó por los impuestos. El cálculo es aritmético (los precios del surtidor ya llevan IVA). Con descuentos en el ticket hay que escribir los tres valores.
+- **Gate 2:** merge aprobado por el humano.

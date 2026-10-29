@@ -333,6 +333,45 @@
       }
     }
   },
+  "fuel": {
+    "title": "Refuels",
+    "add": "Add refuel",
+    "edit": "Edit refuel",
+    "empty": "No refuels logged yet.",
+    "created": "Refuel added",
+    "updated": "Refuel updated",
+    "deleted": "Refuel deleted",
+    "deleteTitle": "Delete the refuel of {{date}}?",
+    "deleteDescription": "The refuel and its odometer reading will be deleted. This cannot be undone.",
+    "editLabel": "Edit the refuel of {{date}}",
+    "deleteLabel": "Delete the refuel of {{date}}",
+    "fullTank": "Full",
+    "partial": "Partial",
+    "computed": "Calculated",
+    "recomputeHint": "Clear a field to recalculate it from the other two.",
+    "lastReading": "Last reading: {{value}} on {{date}}",
+    "fields": {
+      "date": "Date",
+      "odometer": "Odometer ({{unit}})",
+      "quantity": "Quantity ({{unit}})",
+      "totalPrice": "Total price ({{currency}})",
+      "pricePerUnit": "Price per {{unit}} ({{currency}})",
+      "fullTank": "Full tank",
+      "missedPrevious": "I missed a previous refuel"
+    },
+    "units": {
+      "l": "L",
+      "gal": "gal",
+      "kwh": "kWh"
+    },
+    "errors": {
+      "odometerConflict": "The odometer does not fit the vehicle's readings: it cannot be lower than an earlier one or higher than a later one.",
+      "future": "The date cannot be in the future.",
+      "twoOfThree": "Fill in at least two of: quantity, total price and price per unit.",
+      "maxDecimals_one": "At most {{count}} decimal.",
+      "maxDecimals_other": "At most {{count}} decimals."
+    }
+  },
   "schedules": {
     "title": "Upcoming maintenance",
     "add": "Add schedule",
