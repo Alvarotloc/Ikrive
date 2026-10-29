@@ -1,4 +1,5 @@
 export * from './domain/calendar';
+export * from './domain/fuel';
 export * from './domain/odometer';
 export * from './domain/schedules';
 export * from './enums';
@@ -6,6 +7,7 @@ export * from './schemas/admin';
 export * from './schemas/attachments';
 export * from './schemas/calendar';
 export * from './schemas/common';
+export * from './schemas/fuel-logs';
 export * from './schemas/maintenance';
 export * from './schemas/notification-channels';
 export * from './schemas/notifications';
