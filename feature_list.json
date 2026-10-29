@@ -373,7 +373,7 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
-      "status": "in_progress"
+      "status": "done"
     },
     {
       "id": 23,
@@ -403,6 +403,7 @@
       "acceptance": [
         "packages/shared tiene funciones puras con tests unitarios para: km/año y km/mes a partir de las lecturas de odómetro; consumo medio y por tramo entre repostajes de depósito lleno (un tramo que contiene un repostaje con missed_previous no se cuenta); coste por km de combustible y de mantenimiento; coste total de propiedad (compra + combustible + mantenimiento) y gasto por categoría de mantenimiento",
         "Los casos sin datos suficientes (menos de dos lecturas o de dos repostajes llenos, km recorridos 0) devuelven null en vez de lanzar errores o dividir por cero",
+        "Un repostaje con precio o cantidad 0 (posible por redondeo en fuel-logs-api, aviso del reviewer de #22) no provoca divisiones por cero ni valores infinitos o NaN; hay un test unitario que lo cubre",
         "GET /api/vehicles/:id/stats devuelve esas métricas y las series necesarias para los gráficos (km por mes, consumo por tramo, gasto por mes), en las unidades guardadas; 404 para un vehículo de otro usuario",
         "Tests de integración cubren el endpoint con datos reales y con un vehículo sin datos",
         "pnpm harness --full pasa en verde"
