@@ -17,6 +17,9 @@ import { createCalendarRepository } from './modules/calendar/repository';
 import { calendarFeedRoutes, calendarFeedSettingsRoutes } from './modules/calendar/routes';
 import { createCalendarService } from './modules/calendar/service';
 import { clientConfigRoutes } from './modules/client-config/routes';
+import { createFuelLogsRepository } from './modules/fuel-logs/repository';
+import { fuelLogsRoutes } from './modules/fuel-logs/routes';
+import { createFuelLogsService } from './modules/fuel-logs/service';
 import { healthRoutes } from './modules/health/routes';
 import { createMaintenanceRepository } from './modules/maintenance/repository';
 import { maintenanceRoutes } from './modules/maintenance/routes';
@@ -100,6 +103,11 @@ export async function buildApp({ config, db, fetch = globalThis.fetch, logStream
     storage,
     schedules: schedulesRepo,
   });
+  const fuelLogsService = createFuelLogsService({
+    repo: createFuelLogsRepository(db),
+    vehicles: vehiclesRepo,
+    settings: settingsService,
+  });
   const schedulesService = createSchedulesService({
     repo: schedulesRepo,
     vehicles: vehiclesRepo,
@@ -136,6 +144,7 @@ export async function buildApp({ config, db, fetch = globalThis.fetch, logStream
       await api.register(calendarFeedRoutes, { service: calendarService });
       await api.register(vehiclesRoutes, { service: vehiclesService });
       await api.register(maintenanceRoutes, { service: maintenanceService });
+      await api.register(fuelLogsRoutes, { service: fuelLogsService });
       await api.register(schedulesRoutes, { service: schedulesService });
       await api.register(attachmentsRoutes, { service: attachmentsService });
       await api.register(notificationsRoutes, { service: notificationsService });
