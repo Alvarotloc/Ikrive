@@ -20,6 +20,8 @@ export const queryKeys = {
     maintenance: (id: string) => ['vehicles', 'detail', id, 'maintenance'] as const,
     /** Under `maintenance(id)`: saving or deleting a record refreshes it. */
     maintenanceSpending: (id: string) => ['vehicles', 'detail', id, 'maintenance', 'spending'] as const,
+    /** Under `vehicles.all`: saving a refuel refreshes the vehicle's odometer and readings too. */
+    fuelLogs: (id: string) => ['vehicles', 'detail', id, 'fuel-logs'] as const,
     /** Under `vehicles.all`: saving a maintenance record refreshes the next due dates too. */
     schedules: (id: string) => ['vehicles', 'detail', id, 'schedules'] as const,
     /** Under `maintenance(id)`: creating or deleting a record already invalidates them. */

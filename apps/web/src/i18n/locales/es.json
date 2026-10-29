@@ -333,6 +333,45 @@
       }
     }
   },
+  "fuel": {
+    "title": "Repostajes",
+    "add": "Añadir repostaje",
+    "edit": "Editar repostaje",
+    "empty": "Todavía no hay repostajes registrados.",
+    "created": "Repostaje añadido",
+    "updated": "Repostaje actualizado",
+    "deleted": "Repostaje eliminado",
+    "deleteTitle": "¿Eliminar el repostaje del {{date}}?",
+    "deleteDescription": "Se borrarán el repostaje y su lectura de kilómetros. No se puede deshacer.",
+    "editLabel": "Editar el repostaje del {{date}}",
+    "deleteLabel": "Eliminar el repostaje del {{date}}",
+    "fullTank": "Lleno",
+    "partial": "Parcial",
+    "computed": "Calculado",
+    "recomputeHint": "Vacía un campo para recalcularlo con los otros dos.",
+    "lastReading": "Última lectura: {{value}} el {{date}}",
+    "fields": {
+      "date": "Fecha",
+      "odometer": "Kilometraje ({{unit}})",
+      "quantity": "Cantidad ({{unit}})",
+      "totalPrice": "Precio total ({{currency}})",
+      "pricePerUnit": "Precio por {{unit}} ({{currency}})",
+      "fullTank": "Depósito lleno",
+      "missedPrevious": "Me salté un repostaje anterior"
+    },
+    "units": {
+      "l": "L",
+      "gal": "gal",
+      "kwh": "kWh"
+    },
+    "errors": {
+      "odometerConflict": "El kilometraje no encaja con las lecturas del vehículo: no puede ser menor que una anterior ni mayor que una posterior.",
+      "future": "La fecha no puede ser futura.",
+      "twoOfThree": "Rellena al menos dos de: cantidad, precio total y precio por unidad.",
+      "maxDecimals_one": "Como mucho {{count}} decimal.",
+      "maxDecimals_other": "Como mucho {{count}} decimales."
+    }
+  },
   "schedules": {
     "title": "Próximos mantenimientos",
     "add": "Añadir regla",

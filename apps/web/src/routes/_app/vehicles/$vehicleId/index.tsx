@@ -6,6 +6,8 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { FuelLogsSection } from '@/features/fuel/fuel-logs-section';
+import { fuelLogsQuery } from '@/features/fuel/queries';
 import { MaintenanceSpendingMetric } from '@/features/maintenance/maintenance-spending';
 import { MaintenanceSection } from '@/features/maintenance/maintenance-timeline';
 import { maintenanceQuery, maintenanceSpendingQuery } from '@/features/maintenance/queries';
@@ -29,6 +31,7 @@ export const Route = createFileRoute('/_app/vehicles/$vehicleId/')({
         queryClient.ensureQueryData(maintenanceQuery(vehicleId)),
         queryClient.ensureQueryData(maintenanceSpendingQuery(vehicleId)),
         queryClient.ensureQueryData(schedulesQuery(vehicleId)),
+        queryClient.ensureQueryData(fuelLogsQuery(vehicleId)),
       ]);
     } catch (error) {
       if (error instanceof ApiError && error.problem.status === 404) throw notFound();
@@ -158,6 +161,8 @@ function VehiclePage() {
           </CardContent>
         </Card>
       </div>
+
+      <FuelLogsSection vehicle={vehicle} />
 
       <SchedulesSection vehicle={vehicle} />
 
