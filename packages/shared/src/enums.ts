@@ -7,6 +7,10 @@ export type DistanceUnit = (typeof DISTANCE_UNITS)[number];
 export const VOLUME_UNITS = ['l', 'gal'] as const;
 export type VolumeUnit = (typeof VOLUME_UNITS)[number];
 
+/** Unit of a fuel log's quantity: the user's volume unit, or kWh for electric vehicles. */
+export const FUEL_QUANTITY_UNITS = ['l', 'gal', 'kwh'] as const;
+export type FuelQuantityUnit = (typeof FUEL_QUANTITY_UNITS)[number];
+
 export const LOCALES = ['es', 'en'] as const;
 export type Locale = (typeof LOCALES)[number];
 

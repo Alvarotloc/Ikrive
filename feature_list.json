@@ -356,6 +356,78 @@
       ],
       "sdd": false,
       "status": "done"
+    },
+    {
+      "id": 22,
+      "name": "fuel-logs-api",
+      "phase": "5",
+      "title": "Repostajes (API)",
+      "description": "Tabla fuel_logs y CRUD de repostajes por vehículo: fecha, km, cantidad (L o kWh según el combustible del vehículo), precio total, precio por unidad, full_tank y missed_previous. Cada repostaje genera una lectura de odómetro source fuel, igual que los mantenimientos. Sin adjuntos (el ticket queda para más adelante). Primera feature de la fase 5.",
+      "acceptance": [
+        "GET|POST /api/vehicles/:id/fuel-logs y GET|PATCH|DELETE /api/vehicles/:id/fuel-logs/:logId; un vehículo o repostaje de otro usuario responde 404",
+        "Los schemas Zod de entrada y salida están en packages/shared; si falta el precio por unidad se calcula a partir de la cantidad y el precio total (y al revés), y cantidad y precios deben ser positivos",
+        "Crear un repostaje crea una lectura de odómetro source fuel validada con findOdometerConflict (409 si rompe la monotonía); editarlo actualiza esa lectura y borrarlo la borra",
+        "La lectura de odómetro de un repostaje no se puede borrar directamente desde el endpoint de odómetro",
+        "La migración crea fuel_logs con borrado en cascada al borrar el vehículo",
+        "Tests de integración cubren el CRUD, la lectura de odómetro asociada, el conflicto de km y la autorización entre usuarios",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "done"
+    },
+    {
+      "id": 23,
+      "name": "fuel-logs-web",
+      "phase": "5",
+      "title": "Repostajes (web)",
+      "description": "Interfaz de repostajes: formulario rápido pensado para el móvil y lista de repostajes en la ficha del vehículo. Necesita fuel-logs-api (#22).",
+      "acceptance": [
+        "La ficha del vehículo muestra la lista de repostajes (fecha, km, cantidad, precio total, precio por unidad y depósito lleno), del más reciente al más antiguo",
+        "Un formulario rápido, usable en el móvil, permite añadir un repostaje: rellenando dos de cantidad, precio total y precio por unidad se calcula el tercero; los km se proponen a partir de la última lectura",
+        "Se puede editar y borrar un repostaje (con confirmación); al hacerlo se refrescan los km del vehículo",
+        "Las unidades y la moneda siguen los ajustes del usuario, y la cantidad se muestra en kWh para vehículos eléctricos",
+        "Un error 409 de km se muestra en el campo de km con un mensaje claro",
+        "Todos los textos están en es.json y en.json",
+        "Tests de componente cubren el formulario (cálculo del tercer valor y validación) y la lista",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 24,
+      "name": "vehicle-stats-api",
+      "phase": "5",
+      "title": "Estadísticas del vehículo (fórmulas y API)",
+      "description": "Fórmulas de estadísticas como funciones puras en packages/shared y endpoint que las expone por vehículo. Necesita fuel-logs-api (#22); va después de fuel-logs-web (#23).",
+      "acceptance": [
+        "packages/shared tiene funciones puras con tests unitarios para: km/año y km/mes a partir de las lecturas de odómetro; consumo medio y por tramo entre repostajes de depósito lleno (un tramo que contiene un repostaje con missed_previous no se cuenta); coste por km de combustible y de mantenimiento; coste total de propiedad (compra + combustible + mantenimiento) y gasto por categoría de mantenimiento",
+        "Los casos sin datos suficientes (menos de dos lecturas o de dos repostajes llenos, km recorridos 0) devuelven null en vez de lanzar errores o dividir por cero",
+        "Un repostaje con precio o cantidad 0 (posible por redondeo en fuel-logs-api, aviso del reviewer de #22) no provoca divisiones por cero ni valores infinitos o NaN; hay un test unitario que lo cubre",
+        "GET /api/vehicles/:id/stats devuelve esas métricas y las series necesarias para los gráficos (km por mes, consumo por tramo, gasto por mes), en las unidades guardadas; 404 para un vehículo de otro usuario",
+        "Tests de integración cubren el endpoint con datos reales y con un vehículo sin datos",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 25,
+      "name": "vehicle-stats-web",
+      "phase": "5",
+      "title": "Estadísticas del vehículo (web)",
+      "description": "Sección de estadísticas del vehículo con cifras clave y gráficos con Recharts, siguiendo el diseño de la landing. Necesita vehicle-stats-api (#24).",
+      "acceptance": [
+        "El vehículo tiene una sección de estadísticas con las cifras clave: km/año, consumo medio, coste por km (combustible y mantenimiento) y coste total de propiedad",
+        "Gráficos con Recharts: km por mes, consumo por tramo y gasto por mes y por categoría",
+        "Cuando no hay datos suficientes para una métrica o un gráfico se muestra un estado vacío que explica qué falta (p. ej. dos repostajes de depósito lleno)",
+        "Unidades, moneda y formato de números y fechas siguen los ajustes y el idioma del usuario",
+        "Todos los textos están en es.json y en.json",
+        "Tests de componente cubren las cifras y los estados vacíos",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
     }
   ]
 }

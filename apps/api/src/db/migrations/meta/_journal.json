@@ -64,6 +64,13 @@
       "when": 1793032595243,
       "tag": "0008_calendar_feeds",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1793193160470,
+      "tag": "0009_fuel_logs",
+      "breakpoints": true
     }
   ]
 }

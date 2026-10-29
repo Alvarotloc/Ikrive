@@ -204,3 +204,17 @@
   - Un proxy inverso delante de Ikrive registra la URL del feed con el token en sus propios logs (fuera del alcance de la app).
   - Idea a futuro: que los formularios rechacen caracteres de control en títulos y nombres (el `.ics` ya los limpia).
 - **Gate 2:** merge aprobado por el humano. Cierra la fase 4.
+
+## 2026-10-29 — #22 fuel-logs-api
+
+- **Rama:** `feat/fuel-logs-api` (SDD, spec en `specs/fuel-logs-api/`, 26 R / 16 T). Primera feature de la fase 5, que se dividió en #22–#25 (repostajes API y web, estadísticas API y web).
+- **Gate 1:** aprobado sin cambios. Los repostajes no llevan adjuntos en esta fase; se valorará más adelante.
+- **Cambios:**
+  - shared: `FUEL_QUANTITY_UNITS` (`l`, `gal`, `kwh`), `fuelQuantityUnit()` (`electric` → kWh; el resto, incluido `plugin_hybrid`, → `volumeUnit` del usuario) y `resolveFuelPrices()` (el precio que falta: total a 2 decimales, precio por unidad a 3; si llegan los dos, se guardan tal cual). Schemas `fuel-logs`.
+  - api: tabla `fuel_logs` (`0009_fuel_logs.sql`) y CRUD en `/api/vehicles/:id/fuel-logs`. Cada repostaje tiene una lectura de odómetro `source: 'fuel'` que se crea, edita y borra en la misma transacción. Los km son obligatorios; 409 si van hacia atrás, 400 si la fecha es futura y 404 para recursos ajenos. La unidad no se guarda: se deriva del vehículo.
+- **Tests:** shared 60, API 190, web 183. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED (`progress/review_fuel-logs-api.md`). Avisos no bloqueantes:
+  - Con entradas extremas el precio calculado puede redondearse a 0. Se ha añadido a #24 un criterio para que las estadísticas no dividan entre 0.
+  - Un PATCH vacío responde 200 y solo actualiza `updatedAt`, igual que el resto de módulos (aceptado por el humano).
+  - Si cambia el `fuelType` del vehículo, los repostajes antiguos se muestran con la otra unidad (aceptado por el humano).
+- **Gate 2:** merge aprobado por el humano.

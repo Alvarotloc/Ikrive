@@ -155,6 +155,33 @@ describe('vehicles', () => {
     expect((await add('2024-07-01', 14_000)).statusCode).toBe(201);
   });
 
+  it('refuses to delete readings owned by a record', async () => {
+    const { app } = await createTestApp();
+    const { cookie } = await signUp(app);
+    const vehicle = await createVehicle(app, cookie);
+    const base = `/api/vehicles/${vehicle.id}`;
+    const record = await app.inject({
+      method: 'POST',
+      url: `${base}/maintenance`,
+      headers: { cookie },
+      payload: { date: '2024-05-10', odometer: 45_000, category: 'oil_change', title: 'Aceite' },
+    });
+    expect(record.statusCode).toBe(201);
+    const readings = async () =>
+      (await app.inject({ method: 'GET', url: `${base}/odometer`, headers: { cookie } })).json();
+    const [reading] = await readings();
+    expect(reading).toMatchObject({ value: 45_000, source: 'maintenance' });
+
+    const removed = await app.inject({
+      method: 'DELETE',
+      url: `${base}/odometer/${reading.id}`,
+      headers: { cookie },
+    });
+    expect(removed.statusCode).toBe(409);
+    expect(removed.headers['content-type']).toContain('application/problem+json');
+    expect(await readings()).toEqual([reading]);
+  });
+
   it('stores the photo as WebP and removes the file with the vehicle', async () => {
     const { app, dataDir } = await createTestApp();
     const { cookie } = await signUp(app);
