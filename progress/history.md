@@ -239,3 +239,15 @@
   - Los errores de `FormField` no están enlazados a su campo: abierta la #26 `form-field-error-a11y` en el backlog.
 - El humano preguntó por los impuestos. El cálculo es aritmético (los precios del surtidor ya llevan IVA). Con descuentos en el ticket hay que escribir los tres valores.
 - **Gate 2:** merge aprobado por el humano.
+
+## 2026-10-29 — #24 vehicle-stats-api
+
+- **Rama:** `feat/vehicle-stats-api` (SDD, spec en `specs/vehicle-stats-api/`, 22 R / 11 T). `packages/shared` + `apps/api`, sin cambios de BD.
+- **Gate 1:** aprobado tras explicar al humano la distancia por mes: se reparte entre lecturas por interpolación lineal por días (la suma cuadra con la distancia recorrida), descartando atribuirla al mes de la lectura.
+- **Cambios:**
+  - shared: `domain/stats.ts` con funciones puras (distancia recorrida y por mes, tramos de consumo entre llenos, consumo medio ponderado, coste por distancia, coste total de propiedad, gasto por categoría y por mes, `roundMoney`, `computeVehicleStats`) y `schemas/stats.ts` (`vehicleStatsSchema`). `averageDistancePerMonth()` en `domain/odometer.ts`; `byDateThenValue` pasa a exportarse.
+  - api: módulo `stats` con `GET /api/vehicles/:id/stats` (sin repositorio propio, reutiliza los de vehículos, repostajes y mantenimiento). `maintenance.spending()` usa `roundMoney`, así que cuadra con `spending.maintenance`.
+- **Tests:** shared 75, API 194, web 234. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED (`progress/review_vehicle-stats-api.md`). Avisos no bloqueantes: `quantity` de cada tramo redondeada a 3 decimales en la salida; `byDateThenValue` público; `missedPrevious` en el lleno de apertura no invalida el tramo.
+- **Pendiente menor:** biome avisa (warning, no error) de una constante `DAY_MS` sin usar en `packages/shared/src/domain/stats.ts`. Quitarla en #25.
+- **Gate 2:** el humano preguntó por la «Media anual» de la ficha (60 833 km/año con 5 000 km en 30 días de datos de prueba); se mantiene el umbral de 30 días. Añadida la #27 `mobile-nav-menu` (menú de hamburguesa en móvil) después de #25. Merge aprobado por el humano.

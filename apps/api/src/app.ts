@@ -38,6 +38,8 @@ import { createSchedulesService } from './modules/schedules/service';
 import { createSettingsRepository } from './modules/settings/repository';
 import { settingsRoutes } from './modules/settings/routes';
 import { createSettingsService } from './modules/settings/service';
+import { statsRoutes } from './modules/stats/routes';
+import { createStatsService } from './modules/stats/service';
 import { createVehiclesRepository } from './modules/vehicles/repository';
 import { vehiclesRoutes } from './modules/vehicles/routes';
 import { createVehiclesService } from './modules/vehicles/service';
@@ -89,6 +91,7 @@ export async function buildApp({ config, db, fetch = globalThis.fetch, logStream
   const vehiclesRepo = createVehiclesRepository(db);
   const maintenanceRepo = createMaintenanceRepository(db);
   const schedulesRepo = createSchedulesRepository(db);
+  const fuelLogsRepo = createFuelLogsRepository(db);
   const vehiclesService = createVehiclesService({
     repo: vehiclesRepo,
     storage,
@@ -104,9 +107,14 @@ export async function buildApp({ config, db, fetch = globalThis.fetch, logStream
     schedules: schedulesRepo,
   });
   const fuelLogsService = createFuelLogsService({
-    repo: createFuelLogsRepository(db),
+    repo: fuelLogsRepo,
     vehicles: vehiclesRepo,
     settings: settingsService,
+  });
+  const statsService = createStatsService({
+    vehicles: vehiclesRepo,
+    fuelLogs: fuelLogsRepo,
+    maintenance: maintenanceRepo,
   });
   const schedulesService = createSchedulesService({
     repo: schedulesRepo,
@@ -145,6 +153,7 @@ export async function buildApp({ config, db, fetch = globalThis.fetch, logStream
       await api.register(vehiclesRoutes, { service: vehiclesService });
       await api.register(maintenanceRoutes, { service: maintenanceService });
       await api.register(fuelLogsRoutes, { service: fuelLogsService });
+      await api.register(statsRoutes, { service: statsService });
       await api.register(schedulesRoutes, { service: schedulesService });
       await api.register(attachmentsRoutes, { service: attachmentsService });
       await api.register(notificationsRoutes, { service: notificationsService });

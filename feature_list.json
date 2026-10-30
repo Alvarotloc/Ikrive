@@ -409,14 +409,14 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 25,
       "name": "vehicle-stats-web",
       "phase": "5",
       "title": "Estadísticas del vehículo (web)",
-      "description": "Sección de estadísticas del vehículo con cifras clave y gráficos con Recharts, siguiendo el diseño de la landing. Necesita vehicle-stats-api (#24).",
+      "description": "Sección de estadísticas del vehículo con cifras clave y gráficos con Recharts, siguiendo el diseño de la landing. Necesita vehicle-stats-api (#24). Al empezar, quitar la constante DAY_MS sin usar de packages/shared/src/domain/stats.ts (warning de biome detectado al cerrar #24).",
       "acceptance": [
         "El vehículo tiene una sección de estadísticas con las cifras clave: km/año, consumo medio, coste por km (combustible y mantenimiento) y coste total de propiedad",
         "Gráficos con Recharts: km por mes, consumo por tramo y gasto por mes y por categoría",
@@ -424,6 +424,24 @@
         "Unidades, moneda y formato de números y fechas siguen los ajustes y el idioma del usuario",
         "Todos los textos están en es.json y en.json",
         "Tests de componente cubren las cifras y los estados vacíos",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 27,
+      "name": "mobile-nav-menu",
+      "phase": "5",
+      "title": "Menú de hamburguesa en la cabecera móvil",
+      "description": "Por debajo de md (768 px) la cabecera de apps/web/src/routes/_app.tsx muestra los iconos de navegación sin texto, apretados junto a la campana, y cuesta saber qué es cada uno. Se sustituye por un botón ☰ que abre un panel con la navegación completa. La barra lateral de escritorio no cambia. Va justo después de vehicle-stats-web (#25). Detectada por el humano en Gate 2 de #24.",
+      "acceptance": [
+        "Por debajo de md la cabecera muestra solo la marca, la campana de notificaciones y un botón de menú con nombre accesible (p. ej. «Abrir menú») y aria-expanded",
+        "El botón abre un panel con Inicio, Vehículos, Odómetro, Ajustes y Cerrar sesión, cada uno con icono y texto, y la ruta activa resaltada",
+        "El panel se cierra al elegir una opción, al pulsar Escape, al pulsar fuera y al cambiar de ruta; el foco queda atrapado dentro mientras está abierto y vuelve al botón al cerrarse",
+        "Desde md en adelante la barra lateral se ve igual que ahora y el botón de menú no se renderiza ni es accesible",
+        "Todos los textos nuevos están en es.json y en.json",
+        "Tests de componente cubren abrir y cerrar el panel, navegar a una opción y cerrar sesión desde el menú",
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,

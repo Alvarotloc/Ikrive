@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { averageDistancePerYear, findOdometerConflict, latestOdometerReading } from './odometer';
+import {
+  averageDistancePerMonth,
+  averageDistancePerYear,
+  findOdometerConflict,
+  latestOdometerReading,
+} from './odometer';
 
 const readings = [
   { date: '2022-01-10', value: 10_000 },
@@ -51,5 +56,18 @@ describe('averageDistancePerYear', () => {
 
   it('extrapolates the distance to a year', () => {
     expect(averageDistancePerYear(readings)).toBe(10_000);
+  });
+});
+
+describe('averageDistancePerMonth', () => {
+  it('averages the distance per month', () => {
+    expect(averageDistancePerMonth(readings)).toBe(833);
+    expect(averageDistancePerMonth(readings.slice(0, 1))).toBeNull();
+    expect(
+      averageDistancePerMonth([
+        { date: '2022-01-01', value: 0 },
+        { date: '2022-01-15', value: 1_000 },
+      ]),
+    ).toBeNull();
   });
 });

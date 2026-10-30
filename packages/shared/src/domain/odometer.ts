@@ -3,7 +3,8 @@ export interface OdometerPoint {
   value: number;
 }
 
-const byDateThenValue = (a: OdometerPoint, b: OdometerPoint) =>
+/** Chronological order; readings on the same day by value. */
+export const byDateThenValue = (a: OdometerPoint, b: OdometerPoint) =>
   a.date.localeCompare(b.date) || a.value - b.value;
 
 /**
@@ -36,15 +37,30 @@ const DAY_MS = 86_400_000;
 const MIN_SPAN_DAYS = 30;
 
 /**
- * Average distance per year between the first and the last reading. Returns null when the readings
- * span less than a month, because extrapolating a few days to a year is meaningless.
+ * Distance per day between the first and the last reading, or null with fewer than two readings or
+ * when they span less than a month, because extrapolating a few days is meaningless.
  */
-export function averageDistancePerYear(readings: readonly OdometerPoint[]): number | null {
+function distancePerDay(readings: readonly OdometerPoint[]): number | null {
   if (readings.length < 2) return null;
   const sorted = [...readings].sort(byDateThenValue);
   const first = sorted[0] as OdometerPoint;
   const last = sorted[sorted.length - 1] as OdometerPoint;
   const days = (Date.parse(last.date) - Date.parse(first.date)) / DAY_MS;
   if (days < MIN_SPAN_DAYS) return null;
-  return Math.round(((last.value - first.value) / days) * 365);
+  return (last.value - first.value) / days;
+}
+
+/**
+ * Average distance per year between the first and the last reading. Returns null when the readings
+ * span less than a month, because extrapolating a few days to a year is meaningless.
+ */
+export function averageDistancePerYear(readings: readonly OdometerPoint[]): number | null {
+  const perDay = distancePerDay(readings);
+  return perDay === null ? null : Math.round(perDay * 365);
+}
+
+/** Average distance per month (a twelfth of a year), with the same one-month minimum span. */
+export function averageDistancePerMonth(readings: readonly OdometerPoint[]): number | null {
+  const perDay = distancePerDay(readings);
+  return perDay === null ? null : Math.round((perDay * 365) / 12);
 }

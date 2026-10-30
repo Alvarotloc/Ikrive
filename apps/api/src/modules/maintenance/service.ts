@@ -3,6 +3,7 @@ import {
   findOdometerConflict,
   type MaintenanceRecord,
   type MaintenanceSpending,
+  roundMoney,
   type UpdateMaintenanceRecord,
 } from '@ikrive/shared';
 import { todayIn } from '../../lib/dates';
@@ -99,7 +100,7 @@ export function createMaintenanceService({
     /** Rounded to cents so float sums (10.1 + 20.2) do not leak into the API. */
     spending(userId: string, vehicleId: string): MaintenanceSpending {
       requireVehicle(userId, vehicleId);
-      return { total: Math.round(repo.sumCost(vehicleId) * 100) / 100 };
+      return { total: roundMoney(repo.sumCost(vehicleId)) };
     },
 
     get(userId: string, vehicleId: string, recordId: string): MaintenanceRecord {
