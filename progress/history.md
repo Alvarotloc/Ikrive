@@ -266,3 +266,13 @@
   - Barras de mantenimiento con poco contraste en modo oscuro.
   - Recharts suma ~100 kB gzip a la página del vehículo.
 - **Gate 2:** el humano preguntó por qué no se testean los gráficos; se explicó la limitación de jsdom y que los E2E con Playwright (fase 7) son el sitio natural para cubrirlo. Merge aprobado por el humano.
+
+## 2026-10-31 — #26 form-field-error-a11y
+
+- **Rama:** `feat/form-field-error-a11y` (`sdd: false`, sin spec; guía: `acceptance`). Solo `apps/web`.
+- **Cambios:** `FormField` da un id estable (`useId`) a su error y publica un contexto (`form-field-context.ts`). `Input`, `Select` y `Textarea` lo leen con `useFormFieldControl`: si su `id` coincide con el del campo y hay error, añaden el id del error a su `aria-describedby` (conservando pistas previas) y ponen `aria-invalid`. Ningún formulario modificado.
+- **Tests:** web 251 (7 nuevos en `form-field.test.tsx` con `toHaveAccessibleDescription`). `pnpm harness --full` en verde.
+- **Revisión:** APPROVED (`progress/review_form-field-error-a11y.md`). Avisos no bloqueantes:
+  - El enlace depende de la convención «control `ui/` con el mismo `id` que el `FormField`»; si se rompe, falla en silencio.
+  - `odometer-form.tsx` no usa `FormField` y sus errores siguen sin enlazar.
+- **Gate 2:** merge aprobado por el humano sin cambios.
