@@ -69,3 +69,20 @@ export function mockApi(routes: MockRoutes) {
   vi.stubGlobal('fetch', fetchMock);
   return fetchMock;
 }
+
+/**
+ * Stubs `window.matchMedia` (jsdom lacks it) so every query reports `matches`, e.g. `true` for the
+ * desktop layout and `false` for the mobile one.
+ */
+export function mockMediaQuery(matches: boolean) {
+  vi.stubGlobal('matchMedia', (query: string) => ({
+    matches,
+    media: query,
+    onchange: null,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    addListener: () => {},
+    removeListener: () => {},
+    dispatchEvent: () => false,
+  }));
+}
