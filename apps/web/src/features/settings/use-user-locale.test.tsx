@@ -4,12 +4,19 @@ import { screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import i18n from '@/i18n';
 import { routeTree } from '@/routeTree.gen';
-import { createTestQueryClient, type MockRoutes, mockApi, renderWithProviders } from '@/test/render';
+import {
+  createTestQueryClient,
+  type MockRoutes,
+  mockApi,
+  mockMediaQuery,
+  renderWithProviders,
+} from '@/test/render';
 
 const me: Me = { id: 'u1', name: 'Ana', email: 'ana@example.com', role: 'user' };
 
 /** Renders the whole app at `path` with a signed-in user and the given API routes. */
 function renderApp(path: string, routes: MockRoutes) {
+  mockMediaQuery(true);
   mockApi({
     'GET /me': { body: me },
     'GET /vehicles': { body: [] },

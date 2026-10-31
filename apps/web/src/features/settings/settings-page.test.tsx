@@ -3,12 +3,13 @@ import { createMemoryHistory, createRouter, RouterProvider } from '@tanstack/rea
 import { screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { routeTree } from '@/routeTree.gen';
-import { createTestQueryClient, mockApi, renderWithProviders } from '@/test/render';
+import { createTestQueryClient, mockApi, mockMediaQuery, renderWithProviders } from '@/test/render';
 
 const me: Me = { id: 'u1', name: 'Ana', email: 'ana@example.com', role: 'user' };
 
 /** The whole app on the settings page, with a signed-in user. */
 function renderSettings() {
+  mockMediaQuery(true);
   let saved: Partial<UserSettings> | undefined;
   mockApi({
     'GET /me': { body: me },

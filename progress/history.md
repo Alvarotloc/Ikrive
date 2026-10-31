@@ -276,3 +276,12 @@
   - El enlace depende de la convención «control `ui/` con el mismo `id` que el `FormField`»; si se rompe, falla en silencio.
   - `odometer-form.tsx` no usa `FormField` y sus errores siguen sin enlazar.
 - **Gate 2:** merge aprobado por el humano sin cambios.
+
+## 2026-10-31 — #27 mobile-nav-menu
+
+- **Rama:** `feat/mobile-nav-menu` (SDD, spec en `specs/mobile-nav-menu/`, 14 R / 11 T). Solo `apps/web`.
+- **Gate 1:** aprobado sin cambios (panel lateral derecho, `Dialog` de Radix, viewport decidido en JS con `matchMedia`, botón X extra, `useLogout` extraído).
+- **Cambios:** `useMediaQuery` + `DESKTOP_QUERY` (48rem = `md`), `ui/sheet.tsx` sobre el `Dialog` de Radix (`overlayClassName` exportado), `useLogout()` y `navItems` extraídos de `_app.tsx`, `features/navigation/app-navigation.tsx` (`Sidebar` sin cambios visuales + `MobileHeader`/`MobileNavMenu` que se cierra al elegir, Escape, clic fuera y en `onBeforeNavigate`). Textos `nav.openMenu`, `nav.closeMenu`, `nav.menu` en es/en. Helper `mockMediaQuery` en `test/render.tsx`; dos tests de settings lo usan (montan el `routeTree` completo).
+- **Tests:** shared 75, API 194, web 260 (9 nuevos). Capturas de escritorio antes/después idénticas píxel a píxel (claro y oscuro) y de móvil 375 px con el panel cerrado y abierto. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED (`progress/review_mobile-nav-menu.md`). Avisos no bloqueantes: capturas en scratchpad efímero; `authClient` captura `fetch` al importarse y puede saltarse `mockApi` (un `sign-out` sin cookie llegó a `localhost:3000` durante la depuración, sin efecto); ruido de `scrollTo()` de jsdom; variantes sin `md:` inertes en `Sidebar`.
+- **Gate 2:** el humano pidió propuesta para los avisos 2 y 3; se añade la #28 `web-test-isolation` (`sdd: false`). Merge aprobado por el humano.

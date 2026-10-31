@@ -2,7 +2,7 @@ import { AlertDialog as AlertDialogPrimitive, Dialog as DialogPrimitive } from '
 import type * as React from 'react';
 import { cn } from '@/lib/utils';
 
-const overlayClassName =
+export const overlayClassName =
   'fixed inset-0 z-50 bg-deep/40 backdrop-blur-[2px]';
 const contentClassName =
   'fixed top-1/2 left-1/2 z-50 grid w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 gap-5 rounded-xl border bg-card p-7 text-card-foreground shadow-float focus:outline-none';

@@ -8,7 +8,10 @@
     "vehicles": "Vehicles",
     "settings": "Settings",
     "logout": "Log out",
-    "odometer": "Mileage"
+    "odometer": "Mileage",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "menu": "Menu"
   },
   "auth": {
     "login": "Log in",
