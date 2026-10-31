@@ -241,6 +241,8 @@ describe('MaintenanceFormDialog', () => {
   it('invalidates the vehicle queries after saving', async () => {
     const fetchMock = mockApi({
       'GET /settings': { body: DEFAULT_USER_SETTINGS },
+      'GET /config': { body: { maxUploadMb: 1 } },
+      'GET /vehicles/v1/schedules': { body: [] },
       'POST /vehicles/v1/maintenance': { status: 201, body: record },
     });
     const rendered = renderWithProviders(<Harness />);
