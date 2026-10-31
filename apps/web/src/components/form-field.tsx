@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react';
+import { type ReactNode, useId } from 'react';
 import { Label } from '@/components/ui/label';
+import { FormFieldContext } from './form-field-context';
 
 interface FormFieldProps {
   id: string;
@@ -10,7 +11,14 @@ interface FormFieldProps {
   children: ReactNode;
 }
 
+/**
+ * Label + control + error. The error is linked to the control whose `id` matches `id`
+ * (`Input`, `Select` and `Textarea` read it through `useFormFieldControl`).
+ */
 export function FormField({ id, label, error, labelAction, children }: FormFieldProps) {
+  const errorId = `${useId()}-error`;
+  const context = { controlId: id, errorId: error ? errorId : undefined };
+
   return (
     <div className="grid gap-2">
       {labelAction ? (
@@ -21,9 +29,9 @@ export function FormField({ id, label, error, labelAction, children }: FormField
       ) : (
         <Label htmlFor={id}>{label}</Label>
       )}
-      {children}
+      <FormFieldContext value={context}>{children}</FormFieldContext>
       {error && (
-        <p className="text-sm text-destructive" role="alert">
+        <p id={errorId} className="text-sm text-destructive" role="alert">
           {error}
         </p>
       )}
