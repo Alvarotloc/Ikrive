@@ -10,18 +10,9 @@ import {
 } from '@tanstack/react-router';
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { type MockRoutes, mockApi, mockMediaQuery, renderWithProviders } from '@/test/render';
 import { AppNavigation } from './app-navigation';
-
-// `createAuthClient` keeps the `fetch` it sees on import, so `mockApi` (stubbed per test) would never
-// see the sign-out request. Before any import, hand it one that defers to the current global `fetch`.
-vi.hoisted(() => {
-  const realFetch = globalThis.fetch;
-  const deferredFetch: typeof fetch = (...args) =>
-    (globalThis.fetch === deferredFetch ? realFetch : globalThis.fetch)(...args);
-  vi.stubGlobal('fetch', deferredFetch);
-});
 
 const noNotifications: NotificationList = { items: [], total: 0, unreadCount: 0 };
 
