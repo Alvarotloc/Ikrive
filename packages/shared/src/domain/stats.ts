@@ -34,8 +34,6 @@ export type DistanceByMonth = VehicleStats['series']['distanceByMonth'][number];
 export type SpendingByMonth = VehicleStats['series']['spendingByMonth'][number];
 export type SpendingByCategory = VehicleStats['spending']['byCategory'][number];
 
-const DAY_MS = 86_400_000;
-
 const round = (value: number, decimals: number) => {
   const factor = 10 ** decimals;
   return Math.round(value * factor) / factor;

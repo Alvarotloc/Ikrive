@@ -494,5 +494,41 @@
     "disableTitle": "Disable the feed?",
     "disableDescription": "The URL will stop working and your calendars will no longer receive your maintenance.",
     "disabled": "Feed disabled"
+  },
+  "stats": {
+    "title": "Statistics",
+    "description": "Over the vehicle's whole history",
+    "metrics": {
+      "perYear": "Distance per year",
+      "consumption": "Average consumption",
+      "fuelCostPerDistance": "Fuel per {{unit}}",
+      "maintenanceCostPerDistance": "Maintenance per {{unit}}",
+      "totalCost": "Total cost",
+      "totalCostHint": "Purchase {{purchase}} · fuel {{fuel}} · maintenance {{maintenance}}",
+      "totalCostHint_noPurchase": "Fuel {{fuel}} · maintenance {{maintenance}}"
+    },
+    "pending": {
+      "perYear": "Needs odometer readings at least 30 days apart",
+      "consumption": "Needs two full-tank refuels with no missed refuel between them",
+      "costPerDistance": "Needs at least two odometer readings with distance driven"
+    },
+    "charts": {
+      "distanceByMonth": "Distance per month",
+      "consumptionBySegment": "Consumption per segment",
+      "spendingByMonth": "Spending per month",
+      "spendingByCategory": "Spending per category"
+    },
+    "series": {
+      "distance": "Distance",
+      "consumption": "Consumption",
+      "fuel": "Fuel",
+      "maintenance": "Maintenance"
+    },
+    "empty": {
+      "distanceByMonth": "Needs at least two odometer readings to show the distance per month.",
+      "consumptionBySegment": "Needs two full-tank refuels with no missed refuel between them to show the consumption.",
+      "spendingByMonth": "Needs a refuel or a maintenance record with a cost to show the spending per month.",
+      "spendingByCategory": "Needs a maintenance record with a cost to show the spending per category."
+    }
   }
 }

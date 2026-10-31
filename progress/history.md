@@ -251,3 +251,18 @@
 - **Revisión:** APPROVED (`progress/review_vehicle-stats-api.md`). Avisos no bloqueantes: `quantity` de cada tramo redondeada a 3 decimales en la salida; `byDateThenValue` público; `missedPrevious` en el lleno de apertura no invalida el tramo.
 - **Pendiente menor:** biome avisa (warning, no error) de una constante `DAY_MS` sin usar en `packages/shared/src/domain/stats.ts`. Quitarla en #25.
 - **Gate 2:** el humano preguntó por la «Media anual» de la ficha (60 833 km/año con 5 000 km en 30 días de datos de prueba); se mantiene el umbral de 30 días. Añadida la #27 `mobile-nav-menu` (menú de hamburguesa en móvil) después de #25. Merge aprobado por el humano.
+
+## 2026-10-31 — #25 vehicle-stats-web
+
+- **Rama:** `feat/vehicle-stats-web` (SDD, spec en `specs/vehicle-stats-web/`, 18 R / 12 T). `apps/web` + limpieza en `packages/shared`. Exploración en `progress/explore_vehicle-stats-web_*.md`.
+- **Gate 1:** aprobado sin cambios (sección tras Mantenimientos, solo consumo por 100, categorías en barras horizontales).
+- **Cambios:**
+  - shared: borrada la constante `DAY_MS` sin usar de `domain/stats.ts` (warning de biome pendiente de #24).
+  - web: dependencias `recharts` 3.10 y `react-is` 19 (peer explícito). `features/stats/`: `statsQuery` (clave bajo `vehicles.all`, la refrescan las mutaciones existentes), `createStatsFormatters` + `useStatsFormat`, `ChartFigure` con cuatro gráficos (km por mes, consumo por tramo, gasto mensual apilado, gasto por categoría) y `VehicleStatsSection` con cinco cifras (km/año, consumo medio, coste por distancia de combustible y de mantenimiento, coste total con desglose). «—» y explicación cuando falta un dato; estado vacío por gráfico. Textos `stats.*` en es/en. Precarga en el loader de la ficha.
+- **Tests:** shared 75, API 194, web 244. Capturas en claro, oscuro, 1024 y 375 px. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED (`progress/review_vehicle-stats-web.md`). Avisos no bloqueantes:
+  - Punto en `endDate` y barras apiladas no se afirman en tests (jsdom no da layout); se cubren con código y capturas.
+  - `format.test.ts` solo detecta regresiones de zona horaria al oeste de UTC; valorar fijar `TZ` en el proyecto `unit`.
+  - Barras de mantenimiento con poco contraste en modo oscuro.
+  - Recharts suma ~100 kB gzip a la página del vehículo.
+- **Gate 2:** el humano preguntó por qué no se testean los gráficos; se explicó la limitación de jsdom y que los E2E con Playwright (fase 7) son el sitio natural para cubrirlo. Merge aprobado por el humano.

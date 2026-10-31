@@ -13,6 +13,8 @@ import { MaintenanceSection } from '@/features/maintenance/maintenance-timeline'
 import { maintenanceQuery, maintenanceSpendingQuery } from '@/features/maintenance/queries';
 import { schedulesQuery } from '@/features/schedules/queries';
 import { SchedulesSection } from '@/features/schedules/schedules-section';
+import { statsQuery } from '@/features/stats/queries';
+import { VehicleStatsSection } from '@/features/stats/vehicle-stats-section';
 import { vehicleFullName, vehicleTitle } from '@/features/vehicles/display';
 import { Metric, Plate, VehiclePhoto, VehicleStatusBadge } from '@/features/vehicles/dossier';
 import { OdometerForm } from '@/features/vehicles/odometer-form';
@@ -32,6 +34,7 @@ export const Route = createFileRoute('/_app/vehicles/$vehicleId/')({
         queryClient.ensureQueryData(maintenanceSpendingQuery(vehicleId)),
         queryClient.ensureQueryData(schedulesQuery(vehicleId)),
         queryClient.ensureQueryData(fuelLogsQuery(vehicleId)),
+        queryClient.ensureQueryData(statsQuery(vehicleId)),
       ]);
     } catch (error) {
       if (error instanceof ApiError && error.problem.status === 404) throw notFound();
@@ -167,6 +170,8 @@ function VehiclePage() {
       <SchedulesSection vehicle={vehicle} />
 
       <MaintenanceSection vehicle={vehicle} />
+
+      <VehicleStatsSection vehicle={vehicle} />
 
       <Card>
         <CardHeader>

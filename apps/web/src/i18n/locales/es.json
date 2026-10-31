@@ -494,5 +494,41 @@
     "disableTitle": "¿Desactivar el feed?",
     "disableDescription": "La URL dejará de funcionar y tus calendarios dejarán de recibir los mantenimientos.",
     "disabled": "Feed desactivado"
+  },
+  "stats": {
+    "title": "Estadísticas",
+    "description": "Con todo el histórico del vehículo",
+    "metrics": {
+      "perYear": "Distancia al año",
+      "consumption": "Consumo medio",
+      "fuelCostPerDistance": "Combustible por {{unit}}",
+      "maintenanceCostPerDistance": "Mantenimiento por {{unit}}",
+      "totalCost": "Coste total",
+      "totalCostHint": "Compra {{purchase}} · combustible {{fuel}} · mantenimiento {{maintenance}}",
+      "totalCostHint_noPurchase": "Combustible {{fuel}} · mantenimiento {{maintenance}}"
+    },
+    "pending": {
+      "perYear": "Hacen falta lecturas del odómetro separadas al menos 30 días",
+      "consumption": "Hacen falta dos repostajes de depósito lleno sin repostajes olvidados entre ellos",
+      "costPerDistance": "Hacen falta al menos dos lecturas del odómetro con distancia recorrida"
+    },
+    "charts": {
+      "distanceByMonth": "Distancia por mes",
+      "consumptionBySegment": "Consumo por tramo",
+      "spendingByMonth": "Gasto por mes",
+      "spendingByCategory": "Gasto por categoría"
+    },
+    "series": {
+      "distance": "Distancia",
+      "consumption": "Consumo",
+      "fuel": "Combustible",
+      "maintenance": "Mantenimiento"
+    },
+    "empty": {
+      "distanceByMonth": "Hacen falta al menos dos lecturas del odómetro para ver la distancia por mes.",
+      "consumptionBySegment": "Hacen falta dos repostajes de depósito lleno sin repostajes olvidados entre ellos para ver el consumo.",
+      "spendingByMonth": "Hace falta un repostaje o un mantenimiento con coste para ver el gasto por mes.",
+      "spendingByCategory": "Hace falta un mantenimiento con coste para ver el gasto por categoría."
+    }
   }
 }
