@@ -445,7 +445,7 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
-      "status": "in_progress"
+      "status": "done"
     },
     {
       "id": 26,
@@ -463,6 +463,22 @@
       ],
       "sdd": false,
       "status": "done"
+    },
+    {
+      "id": 28,
+      "name": "web-test-isolation",
+      "phase": "5",
+      "title": "Aislar los tests web de la red y limpiar el ruido de jsdom",
+      "description": "Avisos 2 y 3 de progress/review_mobile-nav-menu.md (#27). authClient (better-auth) captura el fetch global al importarse, así que en los tests se salta mockApi y puede llegar a la API real de localhost:3000; #27 lo resolvió con un vi.hoisted local en app-navigation.test.tsx. Además, jsdom llena la salida de pnpm test con «Not implemented: Window's scrollTo()». Ambos se arreglan en apps/web/src/test/setup.ts.",
+      "acceptance": [
+        "El shim de fetch diferido vive en apps/web/src/test/setup.ts y se instala antes de importar cualquier módulo de la app; app-navigation.test.tsx ya no necesita su vi.hoisted",
+        "Una petición sin respuesta en mockApi (o sin mockApi) hace fallar el test con un error claro que nombra método y URL, en vez de salir a la red",
+        "window.scrollTo está stubeado en el setup y pnpm test en web no imprime avisos «Not implemented: Window's scrollTo()»",
+        "Ningún test existente cambia lo que comprueba; si alguno dependía de la red real, se documenta y se arregla",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
+      "status": "pending"
     }
   ]
 }
