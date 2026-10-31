@@ -8,7 +8,10 @@
     "vehicles": "Vehículos",
     "settings": "Ajustes",
     "logout": "Cerrar sesión",
-    "odometer": "Kilómetros"
+    "odometer": "Kilómetros",
+    "openMenu": "Abrir menú",
+    "closeMenu": "Cerrar menú",
+    "menu": "Menú"
   },
   "auth": {
     "login": "Iniciar sesión",
