@@ -50,7 +50,13 @@ const date = (iso: string) =>
   );
 
 function setup(routes: MockRoutes, { status = 'active' }: { status?: VehicleStatus } = {}) {
-  const fetchMock = mockApi({ 'GET /settings': { body: DEFAULT_USER_SETTINGS }, ...routes });
+  const fetchMock = mockApi({
+    'GET /settings': { body: DEFAULT_USER_SETTINGS },
+    // The form dialog asks for these when it opens.
+    'GET /config': { body: { maxUploadMb: 1 } },
+    'GET /vehicles/v1/schedules': { body: [] },
+    ...routes,
+  });
   const rendered = renderWithProviders(
     <>
       <Toaster />

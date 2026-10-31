@@ -285,3 +285,11 @@
 - **Tests:** shared 75, API 194, web 260 (9 nuevos). Capturas de escritorio antes/después idénticas píxel a píxel (claro y oscuro) y de móvil 375 px con el panel cerrado y abierto. `pnpm harness --full` en verde.
 - **Revisión:** APPROVED (`progress/review_mobile-nav-menu.md`). Avisos no bloqueantes: capturas en scratchpad efímero; `authClient` captura `fetch` al importarse y puede saltarse `mockApi` (un `sign-out` sin cookie llegó a `localhost:3000` durante la depuración, sin efecto); ruido de `scrollTo()` de jsdom; variantes sin `md:` inertes en `Sidebar`.
 - **Gate 2:** el humano pidió propuesta para los avisos 2 y 3; se añade la #28 `web-test-isolation` (`sdd: false`). Merge aprobado por el humano.
+
+## 2026-10-31 — #28 web-test-isolation
+
+- **Rama:** `feat/web-test-isolation` (`sdd: false`, sin spec; guía: `acceptance` y avisos 2 y 3 de `progress/review_mobile-nav-menu.md`). Solo tests de `apps/web` + `CONTRIBUTING.md`.
+- **Cambios:** `src/test/setup.ts` instala por asignación directa (sobrevive a `vi.unstubAllGlobals()`) un `fetch` diferido antes de importar la app, que delega en el stub vigente o rechaza con `Unmocked request: <MÉTODO> <URL>`; el `afterEach` falla el test si hubo peticiones sin mock. `window.scrollTo` anulado (los 32 avisos venían de la scroll restoration de TanStack Router). `mockApi` ya no responde 404 a rutas no declaradas. Registro en `src/test/unmocked-requests.ts`. Quitado el `vi.hoisted` de `app-navigation.test.tsx`. Seis tests de mantenimiento y odómetro declaran sus peticiones incidentales (`GET /config`, `/schedules`, `/settings`) sin tocar asertos.
+- **Tests:** shared 75, API 194, web 263 (3 nuevos en `setup.test.tsx`). 0 avisos `scrollTo`. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED (`progress/review_web-test-isolation.md`). Avisos no bloqueantes: hay que declarar todas las peticiones en `mockApi`; una petición sin mock tras el último test de un fichero se bloquea pero no falla nada.
+- **Gate 2:** el humano preguntó si los avisos suponían un problema; se verificó en código que no (riesgo teórico adicional: una petición tardía de un test se atribuiría al siguiente). Merge aprobado por el humano.

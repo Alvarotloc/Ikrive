@@ -1,3 +1,4 @@
+import { DEFAULT_USER_SETTINGS } from '@ikrive/shared';
 import { act, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import i18n from '@/i18n';
@@ -13,6 +14,7 @@ describe('OdometerForm', () => {
 
   it('shows the backwards-odometer error on the field when the API answers 409', async () => {
     const fetchMock = mockApi({
+      'GET /settings': { body: DEFAULT_USER_SETTINGS },
       'POST /vehicles/v1/odometer': {
         status: 409,
         body: {
@@ -38,7 +40,7 @@ describe('OdometerForm', () => {
   });
 
   it('shows the empty-field error in the active language, also after switching it', async () => {
-    const fetchMock = mockApi({});
+    const fetchMock = mockApi({ 'GET /settings': { body: DEFAULT_USER_SETTINGS } });
     const { user } = renderWithProviders(<OdometerForm vehicle={vehicle} />);
 
     await user.click(screen.getByRole('button', { name: 'Guardar' }));

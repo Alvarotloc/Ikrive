@@ -5,6 +5,7 @@ import type { ReactElement, ReactNode } from 'react';
 import { I18nextProvider } from 'react-i18next';
 import { vi } from 'vitest';
 import i18n from '@/i18n';
+import { rejectUnmockedRequest } from './unmocked-requests';
 
 /** A fresh client per test: no retries (errors surface at once) and no cache shared between tests. */
 export function createTestQueryClient() {
@@ -49,7 +50,9 @@ export type MockRoutes = Record<
 
 /**
  * Replaces the global `fetch` with a stub that answers the given API routes without a server.
- * Errors are sent as `application/problem+json`, like the real API. Unknown routes answer 404.
+ * Errors are sent as `application/problem+json`, like the real API. A request to an undeclared route
+ * rejects and fails the test with its method and URL (see `setup.ts`): declare every request the
+ * component makes, even a 404 (`{ status: 404, body: problem }`).
  * Returns the `vi.fn()` so tests can assert on the requests made.
  */
 export function mockApi(routes: MockRoutes) {
@@ -57,10 +60,8 @@ export function mockApi(routes: MockRoutes) {
     const request = input instanceof Request ? input : new Request(new URL(input, location.origin), init);
     const path = new URL(request.url).pathname.replace(/^\/api/, '');
     const route = routes[`${request.method} ${path}`];
-    const { status = 200, body } =
-      typeof route === 'function'
-        ? await route(request)
-        : (route ?? { status: 404, body: { type: 'about:blank', title: 'Not Found', status: 404 } });
+    if (route === undefined) return rejectUnmockedRequest(request);
+    const { status = 200, body } = typeof route === 'function' ? await route(request) : route;
     const contentType = status >= 400 ? 'application/problem+json' : 'application/json';
     return body === undefined
       ? new Response(null, { status })
