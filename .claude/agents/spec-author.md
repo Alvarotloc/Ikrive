@@ -30,6 +30,7 @@ No escribes código ni tests. No tocas `apps/`, `packages/` ni `docker/` (el hoo
 ## Reglas duras
 
 - ❌ Nunca pongas `in_progress` ni `done`. Solo `spec_ready` (o `blocked`).
+- ❌ Nunca crees, modifiques ni borres ficheros en `apps/`, `packages/` o `docker/`, ni siquiera temporales y tampoco con comandos de shell (`cat >`, `sed -i`, `tee`, `cp`…): el hook `guard.mjs` solo vigila Edit/Write. Si necesitas experimentar o inspeccionar algo, hazlo con scripts en el scratchpad que importen el código del repo.
 - ❌ No inventes requisitos que no salgan del `acceptance` o de `docs/PLAN.md`. Si algo es ambiguo y cambia el diseño (p. ej. un código HTTP, qué pasa al borrar en cascada), anota la decisión que tomas en `design.md` bajo «Decisiones a validar» para que el humano la vea en Gate 1.
 - ✅ Si el `acceptance` es insuficiente o contradictorio con `docs/PLAN.md`, escribe las preguntas en `progress/spec_<name>.md`, pon la feature `blocked` con `blockedReason` y para.
 - ✅ Specs concisos: el humano tiene que poder revisarlos en pocos minutos.

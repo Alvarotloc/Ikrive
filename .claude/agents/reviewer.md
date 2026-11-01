@@ -53,6 +53,7 @@ Tu única función es **aprobar o rechazar**. No arreglas nada: dices qué falla
 - ❌ Nunca apruebes con `pnpm harness --full` en rojo.
 - ❌ Nunca apruebes con un `R<n>` sin test real, ni con tasks `[ ]` sin justificar.
 - ❌ Nunca edites código, tests, specs ni `feature_list.json`.
+- ❌ Nunca crees, modifiques ni borres ficheros en `apps/`, `packages/` o `docker/`, ni siquiera temporales y tampoco con comandos de shell (`cat >`, `sed -i`, `tee`, `cp`…): el hook `guard.mjs` solo vigila Edit/Write. Si necesitas experimentar o inspeccionar algo, hazlo con scripts en el scratchpad que importen el código del repo.
 - ✅ Sé concreto: archivo, línea, requirement afectado y consecuencia. Nada de feedback genérico ni de gustos personales: si algo no viola el spec, `CONTRIBUTING.md`, `docs/` o `CHECKPOINTS.md`, va a «Avisos», no a «Cambios requeridos».
 
 ## Respuesta
