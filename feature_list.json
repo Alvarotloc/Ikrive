@@ -499,7 +499,7 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
-      "status": "in_progress"
+      "status": "done"
     },
     {
       "id": 30,
@@ -524,15 +524,16 @@
       "name": "sale-report-web",
       "phase": "6",
       "title": "Generar el informe de venta desde la ficha (web)",
-      "description": "Botón «Informe de venta» en la ficha del vehículo que abre un diálogo con las opciones de #29 y #30 y descarga el PDF. Las facturas se anexan tal cual, así que si el usuario oculta algún dato y deja marcada «Incluir facturas», el diálogo le avisa de que las facturas pueden mostrar esos datos.",
+      "description": "Botón «Informe de venta» en la ficha del vehículo que abre un diálogo con las opciones de #29 y #30 y descarga el PDF. Las facturas se anexan tal cual, así que si el usuario oculta algún dato y deja marcada «Incluir facturas», el diálogo le avisa de que las facturas pueden mostrar esos datos. Aviso del reviewer de #29: las opciones de privacidad solo quitan campos estructurados, no el texto libre.",
       "acceptance": [
         "La ficha del vehículo muestra un botón «Informe de venta» que abre un diálogo accesible (título, foco atrapado, cierre con Escape)",
         "El diálogo tiene casillas para Ocultar precios, Ocultar matrícula, Ocultar VIN e Incluir facturas, y un botón Descargar que pide GET /api/vehicles/:id/report.pdf con esas opciones y descarga el fichero con el nombre que da la API",
         "Si se marca cualquier opción de ocultar y también Incluir facturas, se muestra un aviso de que las facturas se anexan tal cual y pueden mostrar esos datos",
+        "Si se marca cualquier opción de ocultar, el diálogo avisa de que solo se quitan los campos del vehículo y de los mantenimientos: si el alias, la versión o los títulos de los mantenimientos incluyen la matrícula, el VIN o importes, aparecerán en el informe",
         "Mientras se genera, el botón muestra estado de carga y queda deshabilitado; si la API falla se muestra un toast de error y el diálogo sigue abierto",
         "Ocultar matrícula u Ocultar VIN no aparecen si el vehículo no tiene ese dato",
         "Todos los textos nuevos están en es.json y en.json",
-        "Tests de componente cubren abrir el diálogo, que la URL pedida lleva las opciones marcadas, el aviso de facturas y el error de la API",
+        "Tests de componente cubren abrir el diálogo, que la URL pedida lleva las opciones marcadas, el aviso de facturas, el aviso de texto libre y el error de la API",
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
