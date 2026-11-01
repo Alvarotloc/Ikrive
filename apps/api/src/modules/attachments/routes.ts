@@ -8,6 +8,7 @@ import {
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { BadRequestError } from '../../lib/errors';
+import { contentDisposition } from '../../lib/http';
 import { currentUser } from '../../plugins/auth';
 import type { AttachmentsService } from './service';
 
@@ -15,22 +16,6 @@ const BASE = '/vehicles/:id/maintenance/:recordId/attachments';
 
 /** The contents behind an attachment id never change, so the browser may keep them for good. */
 const IMMUTABLE = 'private, max-age=31536000, immutable';
-
-/**
- * `Content-Disposition` (RFC 6266) to download (`attachment`) or show (`inline`) a file: an ASCII
- * fallback for old clients plus the UTF-8 name encoded as an RFC 5987 `filename*` parameter.
- */
-export function contentDisposition(
-  filename: string,
-  disposition: 'attachment' | 'inline' = 'attachment',
-): string {
-  const fallback = filename.replace(/[^\x20-\x7e]|["\\]/g, '_');
-  const encoded = encodeURIComponent(filename).replace(
-    /['()*]/g,
-    (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
-  );
-  return `${disposition}; filename="${fallback}"; filename*=UTF-8''${encoded}`;
-}
 
 /** Directives shared by every user file: nothing loads, nothing frames it, nothing submits from it. */
 const USER_CONTENT_BASE = [
