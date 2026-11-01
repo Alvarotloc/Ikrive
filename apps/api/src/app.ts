@@ -32,6 +32,8 @@ import { createNotificationChannelsService } from './modules/notification-channe
 import { createNotificationsRepository } from './modules/notifications/repository';
 import { notificationsRoutes } from './modules/notifications/routes';
 import { createNotificationsService } from './modules/notifications/service';
+import { reportsRoutes } from './modules/reports/routes';
+import { createReportsService } from './modules/reports/service';
 import { createSchedulesRepository } from './modules/schedules/repository';
 import { schedulesRoutes } from './modules/schedules/routes';
 import { createSchedulesService } from './modules/schedules/service';
@@ -116,6 +118,11 @@ export async function buildApp({ config, db, fetch = globalThis.fetch, logStream
     fuelLogs: fuelLogsRepo,
     maintenance: maintenanceRepo,
   });
+  const reportsService = createReportsService({
+    vehicles: vehiclesRepo,
+    maintenance: maintenanceRepo,
+    settings: settingsService,
+  });
   const schedulesService = createSchedulesService({
     repo: schedulesRepo,
     vehicles: vehiclesRepo,
@@ -154,6 +161,7 @@ export async function buildApp({ config, db, fetch = globalThis.fetch, logStream
       await api.register(maintenanceRoutes, { service: maintenanceService });
       await api.register(fuelLogsRoutes, { service: fuelLogsService });
       await api.register(statsRoutes, { service: statsService });
+      await api.register(reportsRoutes, { service: reportsService });
       await api.register(schedulesRoutes, { service: schedulesService });
       await api.register(attachmentsRoutes, { service: attachmentsService });
       await api.register(notificationsRoutes, { service: notificationsService });
