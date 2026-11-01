@@ -293,3 +293,12 @@
 - **Tests:** shared 75, API 194, web 263 (3 nuevos en `setup.test.tsx`). 0 avisos `scrollTo`. `pnpm harness --full` en verde.
 - **Revisión:** APPROVED (`progress/review_web-test-isolation.md`). Avisos no bloqueantes: hay que declarar todas las peticiones en `mockApi`; una petición sin mock tras el último test de un fichero se bloquea pero no falla nada.
 - **Gate 2:** el humano preguntó si los avisos suponían un problema; se verificó en código que no (riesgo teórico adicional: una petición tardía de un test se atribuiría al siguiente). Merge aprobado por el humano.
+
+## 2026-11-01 — #29 sale-report-pdf
+
+- **Rama:** `feat/sale-report-pdf` (SDD, spec en `specs/sale-report-pdf/`, 25 R / 14 T). Primera feature de la fase 6; antes se partió la fase en #29–#33 y se anotaron las decisiones en `docs/PLAN.md`. Exploración en `progress/explore_sale-report-pdf_{data,infra}.md`.
+- **Gate 1:** aprobado sin cambios (nº y gasto solo de mantenimientos incluidos, km y gráfico con todas las lecturas; tabla ascendente; portada como cabecera; gráfico de línea del odómetro; booleanos `true/false/1/0`; rate limit 10/min; nombre `ikrive-<slug>-<fecha>.pdf`).
+- **Cambios:** `buildSaleReport` + `SALE_REPORT_TEXTS` (es/en) + `saleReportFileName` en `packages/shared/src/domain/sale-report.ts` y `saleReportQuerySchema` (`z.stringbool`) en `schemas/reports.ts`. Módulo `apps/api/src/modules/reports/` con `generate(ownerId, vehicleId, options)` (frontera para #30 y #32), ruta `GET /api/vehicles/:id/report.pdf` y documento react-pdf con fuentes `.woff` de `@fontsource`. `contentDisposition` movido a `apps/api/src/lib/http.ts`. `jsx: react-jsx` en la API, sin lib DOM. Dockerfile sin cambios.
+- **Tests:** shared 92, API 203, web 263 (17 nuevos en shared, 9 de integración con `unpdf`). Capturas del PDF en es/en, con datos ocultos y vacío; build de Docker e informe descargado desde el contenedor. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED (`progress/review_sale-report-pdf.md`). Avisos no bloqueantes: el texto libre (alias, versión, títulos) puede contener datos ocultos; el eyebrow espaciado se extrae como `I N F O R M E …`; rate limit por IP saltable con `X-Forwarded-For` sin proxy (ya pasaba con el global); `/app/dist/dist` duplicado en la imagen (previo).
+- **Gate 2:** el humano aceptó avisar del texto libre en #31 (criterio añadido) y pidió prohibir a reviewer y spec-author escribir en `apps/`, `packages/` y `docker/` también por shell (el reviewer creó y borró un test temporal). Merge aprobado por el humano.
