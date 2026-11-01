@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildSaleReport,
   type SaleReport,
+  type SaleReportAttachment,
   type SaleReportInput,
   type SaleReportMaintenance,
   saleReportFileName,
@@ -21,7 +22,7 @@ const input = (overrides: Partial<SaleReportInput> = {}): SaleReportInput => ({
   readings: [],
   maintenance: [],
   settings: { locale: 'es', currency: 'EUR', distanceUnit: 'km' },
-  options: { hidePrices: false, hidePlate: false, hideVin: false },
+  options: { hidePrices: false, hidePlate: false, hideVin: false, includeInvoices: false },
   issuedOn: '2026-11-01',
   ...overrides,
 });
@@ -282,7 +283,7 @@ describe('buildSaleReport', () => {
     it('hides the plate', () => {
       expect(JSON.stringify(buildSaleReport(input()))).toContain('1234ABC');
       const report = buildSaleReport(
-        input({ options: { hidePrices: false, hidePlate: true, hideVin: false } }),
+        input({ options: { hidePrices: false, hidePlate: true, hideVin: false, includeInvoices: false } }),
       );
       expect(JSON.stringify(report)).not.toContain('1234ABC');
       expect(report.cover.rows.map((row) => row.label)).not.toContain('Matrícula');
@@ -292,7 +293,7 @@ describe('buildSaleReport', () => {
     it('hides the vin', () => {
       expect(JSON.stringify(buildSaleReport(input()))).toContain('VSSZZZ5FZKR000001');
       const report = buildSaleReport(
-        input({ options: { hidePrices: false, hidePlate: false, hideVin: true } }),
+        input({ options: { hidePrices: false, hidePlate: false, hideVin: true, includeInvoices: false } }),
       );
       expect(JSON.stringify(report)).not.toContain('VSSZZZ5FZKR000001');
       expect(report.cover.rows.map((row) => row.label)).not.toContain('Número de bastidor (VIN)');
@@ -359,6 +360,134 @@ describe('buildSaleReport', () => {
       expect(
         buildSaleReport(input({ vehicle: { ...input().vehicle, name: 'Coche de Ñuño' } })).fileName,
       ).toBe('ikrive-coche-de-nuno-2026-11-01.pdf');
+    });
+  });
+
+  describe('annexes', () => {
+    const withInvoices = (overrides: Partial<SaleReportInput> = {}) =>
+      input({ options: { ...input().options, includeInvoices: true }, ...overrides });
+    const attachment = (id: string, skipped: SaleReportAttachment['skipped'] = null) => ({
+      id,
+      name: `${id}.pdf`,
+      skipped,
+    });
+    const keys = (report: SaleReport) => report.maintenance.columns.map((column) => column.key);
+
+    it('numbers annexes in table order', () => {
+      const report = buildSaleReport(
+        withInvoices({
+          // Creation order differs from the table (date) order.
+          maintenance: [
+            record({ date: '2026-03-01', title: 'Frenos', attachments: [attachment('frenos')] }),
+            record({ date: '2025-06-15', title: 'Aceite', attachments: [attachment('a'), attachment('b')] }),
+            record({ date: '2026-05-01', title: 'ITV' }),
+          ],
+        }),
+      );
+
+      expect(keys(report)).toEqual(['date', 'odometer', 'category', 'title', 'cost', 'annexes']);
+      expect(report.maintenance.columns.at(-1)?.label).toBe('Anexos');
+      expect(report.maintenance.rows.map((row) => [row.title, row.annexes])).toEqual([
+        ['Aceite', 'A1, A2'],
+        ['Frenos', 'A3'],
+        ['ITV', '—'],
+      ]);
+      expect(report.annexes?.title).toBe('Facturas anexadas');
+      expect(report.annexes?.items).toEqual([
+        { id: 'a', ref: 'A1', label: 'A1 · 15 jun 2025 · Aceite · a.pdf', notice: null },
+        { id: 'b', ref: 'A2', label: 'A2 · 15 jun 2025 · Aceite · b.pdf', notice: null },
+        { id: 'frenos', ref: 'A3', label: 'A3 · 1 mar 2026 · Frenos · frenos.pdf', notice: null },
+      ]);
+    });
+
+    it('never annexes excluded maintenance', () => {
+      const report = buildSaleReport(
+        withInvoices({
+          maintenance: [
+            record({ attachments: [attachment('shown')] }),
+            record({ title: 'Privado', includeInReport: false, attachments: [attachment('secret-invoice')] }),
+          ],
+        }),
+      );
+      expect(report.annexes?.items.map((item) => item.ref)).toEqual(['A1']);
+      expect(JSON.stringify(report)).not.toContain('secret-invoice');
+
+      const onlyExcluded = buildSaleReport(
+        withInvoices({
+          maintenance: [record({ includeInReport: false, attachments: [attachment('secret-invoice')] })],
+        }),
+      );
+      expect(onlyExcluded.annexes).toBeNull();
+      expect(JSON.stringify(onlyExcluded)).not.toContain('secret-invoice');
+    });
+
+    it('marks annexes that could not be read', () => {
+      const report = buildSaleReport(
+        withInvoices({
+          maintenance: [record({ attachments: [attachment('broken', 'unreadable'), attachment('ok')] })],
+        }),
+      );
+      expect(report.maintenance.rows[0]?.annexes).toBe('A1, A2');
+      expect(report.annexes?.items).toEqual([
+        {
+          id: 'broken',
+          ref: 'A1',
+          label: 'A1 · 10 ene 2026 · Cambio de aceite · broken.pdf',
+          notice: 'No se pudo anexar este archivo.',
+        },
+        { id: 'ok', ref: 'A2', label: 'A2 · 10 ene 2026 · Cambio de aceite · ok.pdf', notice: null },
+      ]);
+    });
+
+    it('marks annexes skipped by the size limit', () => {
+      const data = {
+        maintenance: [
+          record({ attachments: [attachment('big', 'size_limit'), attachment('bad', 'unreadable')] }),
+        ],
+      };
+      const es = buildSaleReport(withInvoices(data));
+      const en = buildSaleReport(
+        withInvoices({ ...data, settings: { locale: 'en', currency: 'EUR', distanceUnit: 'km' } }),
+      );
+      expect(es.annexes?.items.map((item) => [item.ref, item.notice])).toEqual([
+        ['A1', 'No se anexó: se superó el tamaño máximo del informe.'],
+        ['A2', 'No se pudo anexar este archivo.'],
+      ]);
+      expect(en.annexes?.items.map((item) => [item.ref, item.notice])).toEqual([
+        ['A1', "Not attached: the report's maximum size was exceeded."],
+        ['A2', 'This file could not be attached.'],
+      ]);
+    });
+
+    it('keeps the #29 report without includeInvoices', () => {
+      const maintenance = [record({ attachments: [attachment('a')] }), record({ date: '2026-02-01' })];
+      const plainReport = buildSaleReport(
+        input({ maintenance: maintenance.map(({ attachments, ...rest }) => rest) }),
+      );
+      const withoutOption = buildSaleReport(input({ maintenance }));
+      const withoutAttachments = buildSaleReport(
+        withInvoices({ maintenance: maintenance.map((item) => ({ ...item, attachments: [] })) }),
+      );
+
+      for (const report of [withoutOption, withoutAttachments]) {
+        expect(report.annexes).toBeNull();
+        expect(keys(report)).toEqual(['date', 'odometer', 'category', 'title', 'cost']);
+        expect(report).toEqual(plainReport);
+      }
+    });
+
+    it('translates the annex texts', () => {
+      const data = { maintenance: [record({ attachments: [attachment('a')] })] };
+      const es = buildSaleReport(withInvoices(data));
+      const en = buildSaleReport(
+        withInvoices({ ...data, settings: { locale: 'en', currency: 'EUR', distanceUnit: 'km' } }),
+      );
+      expect([es.maintenance.columns.at(-1)?.label, en.maintenance.columns.at(-1)?.label]).toEqual([
+        'Anexos',
+        'Annexes',
+      ]);
+      expect([es.annexes?.title, en.annexes?.title]).toEqual(['Facturas anexadas', 'Attached invoices']);
+      expect(en.annexes?.items[0]?.label).toBe('A1 · Jan 10, 2026 · Cambio de aceite · a.pdf');
     });
   });
 });
