@@ -184,6 +184,13 @@ Los enums ya están definidos en `packages/shared/src/enums.ts`.
   - Facturas anexadas: los PDF se fusionan y las imágenes se incrustan.
 - Opciones para ocultar precios, matrícula o VIN.
 - Enlace público de solo lectura con token y caducidad.
+- **Reparto en features:** `sale-report-pdf` (#29), `sale-report-invoices` (#30), `sale-report-web` (#31), `report-shares-api` (#32) y `report-shares-web` (#33).
+- **Decisiones:**
+  - El enlace público sirve directamente el PDF (`GET /api/public/reports/:token`), generado al vuelo con las opciones guardadas en el enlace; no hay página pública en la SPA. El token sigue el patrón del feed iCal (selector + SHA-256 del verificador).
+  - Las facturas se anexan tal cual y no se pueden tachar, así que van detrás de una opción propia «Incluir facturas», independiente de las de ocultar. La web avisa si se combinan.
+  - El informe usa el idioma, la moneda y las unidades del propietario, y omite los adornos de marketing del mockup (estrellas, «blockchain»).
+  - El enlace se construye con `BASE_URL` y solo funciona si el servidor es accesible desde internet; si no, se descarga el PDF y se envía. La web avisa si `BASE_URL` es local.
+  - react-pdf no lee woff2: las fuentes del PDF salen de los paquetes `@fontsource` (`.woff`), sin binarios en el repo.
 
 ### Fase 7: pulido
 - Exportar e importar (zip con un JSON de los datos y los adjuntos).

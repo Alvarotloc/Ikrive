@@ -479,6 +479,104 @@
       ],
       "sdd": false,
       "status": "done"
+    },
+    {
+      "id": 29,
+      "name": "sale-report-pdf",
+      "phase": "6",
+      "title": "Informe de venta en PDF (API)",
+      "description": "Primer paso de la fase 6. Genera el PDF del informe de venta con @react-pdf/renderer, basado en el mockup «Informe Profesional Ikrive» de la landing (~/dev/personal/Ikrive-landing/src/components/sections/SaleReport.astro). El contenido sale de una función pura en packages/shared que construye el modelo del informe a partir del vehículo, las lecturas de km, los mantenimientos con includeInReport y las estadísticas de la fase 5, aplicando las opciones de privacidad. Idioma, moneda y unidades salen de user_settings del propietario. Nada de adornos de marketing del mockup (estrellas de confianza, «blockchain»). Ojo: react-pdf no lee woff2 (solo TTF o WOFF) y la web solo tiene las fuentes en woff2. Preferencia: usar los paquetes @fontsource/outfit y @fontsource/plus-jakarta-sans, que traen .woff, en vez de copiar binarios al repo; si no fuera viable, TTF de Google Fonts (OFL) en apps/api.",
+      "acceptance": [
+        "GET /api/vehicles/:id/report.pdf (autenticado) responde 200 con Content-Type application/pdf y Content-Disposition attachment con un nombre de fichero legible (alias o marca-modelo y fecha)",
+        "Un vehículo de otro usuario o inexistente responde 404 (problem+json), igual que el resto de recursos",
+        "El PDF contiene: portada con los datos del vehículo y la fecha de emisión; resumen (km actuales, media anual, número de mantenimientos y gasto en mantenimiento); gráfico del histórico de km dibujado con primitivas SVG de react-pdf; y tabla de mantenimientos (fecha, km, categoría, título y coste)",
+        "Solo aparecen los mantenimientos con includeInReport = true, ordenados por fecha",
+        "Los query params hidePrices, hidePlate y hideVin (booleanos, por defecto false) quitan del PDF los importes y el gasto, la matrícula y el VIN respectivamente; se validan con un esquema zod de packages/shared",
+        "Los textos del PDF salen de un diccionario es/en según user_settings.locale, y fechas, importes y distancias se formatean con la moneda y la unidad del usuario",
+        "La función pura que construye el modelo del informe vive en packages/shared y tiene tests unitarios, incluidas las tres opciones de privacidad y un vehículo sin mantenimientos ni lecturas",
+        "Tests de integración con app.inject() cubren 200 con cabecera %PDF, 404 por propiedad y que con hideVin/hidePlate el texto extraído del PDF no contiene el VIN ni la matrícula",
+        "El PDF usa Outfit para títulos y Plus Jakarta Sans para texto, cargadas desde los paquetes @fontsource (ficheros .woff) como dependencia de la API, sin binarios de fuentes en el repo salvo justificación en el design",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 30,
+      "name": "sale-report-invoices",
+      "phase": "6",
+      "title": "Facturas anexadas al informe de venta (API)",
+      "description": "Amplía #29 (sale-report-pdf) para anexar al final del informe las facturas de los mantenimientos incluidos, con pdf-lib: las facturas PDF se fusionan página a página y las imágenes se incrustan una por página. Las facturas se anexan tal cual, así que no se puede ocultar nada dentro de ellas; por eso van detrás de una opción propia includeInvoices, independiente de hidePrices/hidePlate/hideVin (decisión de fase 6).",
+      "acceptance": [
+        "GET /api/vehicles/:id/report.pdf acepta includeInvoices (booleano, por defecto false), validado en el mismo esquema zod de packages/shared",
+        "Con includeInvoices=true, tras la tabla de mantenimientos se añade una sección de anexos: cada factura PDF de un mantenimiento con includeInReport se fusiona completa y cada imagen se incrusta en su propia página, ajustada sin deformar",
+        "Los anexos siguen el orden de la tabla de mantenimientos y cada uno lleva una referencia al mantenimiento al que pertenece (en la tabla o en una página separadora)",
+        "Los adjuntos de mantenimientos con includeInReport = false nunca se anexan",
+        "Un PDF de factura corrupto o cifrado que pdf-lib no puede leer no rompe el informe: se omite, se registra un warning y el informe indica que esa factura no se pudo anexar",
+        "Tests de integración: con includeInvoices=true el número de páginas es el del informe más las páginas de las facturas PDF más una por imagen; con false o sin el parámetro no cambia respecto a #29",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 31,
+      "name": "sale-report-web",
+      "phase": "6",
+      "title": "Generar el informe de venta desde la ficha (web)",
+      "description": "Botón «Informe de venta» en la ficha del vehículo que abre un diálogo con las opciones de #29 y #30 y descarga el PDF. Las facturas se anexan tal cual, así que si el usuario oculta algún dato y deja marcada «Incluir facturas», el diálogo le avisa de que las facturas pueden mostrar esos datos.",
+      "acceptance": [
+        "La ficha del vehículo muestra un botón «Informe de venta» que abre un diálogo accesible (título, foco atrapado, cierre con Escape)",
+        "El diálogo tiene casillas para Ocultar precios, Ocultar matrícula, Ocultar VIN e Incluir facturas, y un botón Descargar que pide GET /api/vehicles/:id/report.pdf con esas opciones y descarga el fichero con el nombre que da la API",
+        "Si se marca cualquier opción de ocultar y también Incluir facturas, se muestra un aviso de que las facturas se anexan tal cual y pueden mostrar esos datos",
+        "Mientras se genera, el botón muestra estado de carga y queda deshabilitado; si la API falla se muestra un toast de error y el diálogo sigue abierto",
+        "Ocultar matrícula u Ocultar VIN no aparecen si el vehículo no tiene ese dato",
+        "Todos los textos nuevos están en es.json y en.json",
+        "Tests de componente cubren abrir el diálogo, que la URL pedida lleva las opciones marcadas, el aviso de facturas y el error de la API",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 32,
+      "name": "report-shares-api",
+      "phase": "6",
+      "title": "Enlaces públicos del informe de venta (API)",
+      "description": "Tabla report_shares y endpoints para compartir el informe con un comprador mediante un enlace público de solo lectura, con caducidad y revocable. El enlace sirve directamente el PDF (decisión de fase 6), generado al vuelo con las opciones guardadas en el enlace, de modo que refleja los datos actuales. El token sigue el patrón del feed iCal (calendar_feeds): selector para buscar y SHA-256 del verificador, comparado en tiempo constante; el token completo solo se devuelve al crearlo.",
+      "acceptance": [
+        "Nueva tabla report_shares (id, vehicle_id con borrado en cascada, selector único, hash del verificador, opciones hidePrices/hidePlate/hideVin/includeInvoices, expires_at, revoked_at, created_at) con su migración generada por drizzle-kit",
+        "POST /api/vehicles/:id/report-shares (autenticado) crea un enlace con las opciones y una caducidad de 1 a 90 días (por defecto 30) y devuelve 201 con la URL pública completa; el token en claro no se puede volver a obtener después",
+        "GET /api/vehicles/:id/report-shares lista los enlaces del vehículo (sin token) con sus opciones, caducidad y estado (activo, caducado, revocado); DELETE /api/vehicles/:id/report-shares/:shareId lo revoca (204)",
+        "Las rutas autenticadas responden 404 si el vehículo o el enlace son de otro usuario",
+        "GET /api/public/reports/:token (sin sesión) responde 200 application/pdf con Content-Disposition inline y el informe generado con las opciones del enlace; responde 404 si el token no existe, no coincide, está caducado o revocado, sin distinguir el motivo",
+        "La ruta pública lleva Cache-Control: no-store, X-Robots-Tag: noindex y un rate limit propio",
+        "Tests de integración cubren crear, listar, revocar, acceso público válido, token caducado, revocado, manipulado y aislamiento entre usuarios",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 33,
+      "name": "report-shares-web",
+      "phase": "6",
+      "title": "Compartir el informe de venta con un enlace (web)",
+      "description": "Desde el diálogo del informe de venta (#31), el usuario puede crear un enlace público con las mismas opciones y una caducidad, copiarlo, ver los enlaces del vehículo y revocarlos. Cierra la fase 6. En self-hosted el enlace se construye con BASE_URL y solo lo puede abrir el comprador si el servidor es accesible desde internet (dominio con proxy inverso, Cloudflare Tunnel, Tailscale Funnel…); si no, la alternativa es descargar el PDF y enviarlo.",
+      "acceptance": [
+        "El diálogo del informe ofrece «Crear enlace» con las opciones actuales y un selector de caducidad (7, 30 o 90 días)",
+        "Al crearlo se muestra la URL con un botón Copiar (portapapeles y toast de confirmación) y se avisa de que no se podrá volver a ver",
+        "El diálogo explica que el enlace solo funciona si el servidor es accesible desde internet y sugiere descargar el PDF en caso contrario",
+        "Si BASE_URL apunta a localhost, 127.0.0.1 o una IP privada, el diálogo muestra un aviso destacado de que el enlace no será accesible desde fuera (la web obtiene BASE_URL o un indicador equivalente de GET /api/config)",
+        "Una lista muestra los enlaces del vehículo con sus opciones, fecha de caducidad y estado, y permite revocar los activos con confirmación",
+        "Tras crear o revocar, la lista se refresca (invalidación de la query)",
+        "Todos los textos nuevos están en es.json y en.json",
+        "Tests de componente cubren crear y copiar un enlace, el listado con los tres estados y revocar",
+        "docs/PLAN.md marca la fase 6 como hecha",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
     }
   ]
 }
