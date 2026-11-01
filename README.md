@@ -33,6 +33,7 @@ Todos los datos (la base de datos SQLite y los ficheros subidos) se guardan en e
 | `DISABLE_SIGNUP` | `false` | Bloquea nuevos registros tras el primero |
 | `REMINDERS_ENABLED` | `true` | Programa los jobs horarios de recordatorios de mantenimiento (`reminders`) y de aviso de kilometraje (`odometer-nudge`) (`true`, `false`, `1`, `0`). No afecta a su lanzamiento manual |
 | `MAX_UPLOAD_MB` | `20` | Tamaño máximo de los adjuntos |
+| `REPORT_MAX_ANNEX_MB` | `100` | Tope total, en MB, de las facturas anexadas a un informe de venta (`includeInvoices`). Las que no caben se omiten con un aviso en el informe |
 | `PORT` | `3000` | Puerto HTTP |
 | `DATA_DIR` | `/data` | Carpeta de datos |
 | `LOG_LEVEL` | `info` | Nivel de log |
