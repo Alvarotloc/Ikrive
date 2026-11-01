@@ -18,6 +18,8 @@ const envSchema = z
     /** Schedules the hourly reminders job in `server.ts`. */
     REMINDERS_ENABLED: booleanString.default(true),
     MAX_UPLOAD_MB: z.coerce.number().int().positive().default(20),
+    /** Total size, in MB of stored files, of the invoices appended to one sale report. */
+    REPORT_MAX_ANNEX_MB: z.coerce.number().int().positive().default(100),
     LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
     /** Directory with the built SPA. When set, the API also serves the frontend. */
     WEB_DIST_DIR: z.string().optional(),
