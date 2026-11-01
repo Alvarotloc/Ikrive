@@ -1,6 +1,14 @@
+import { rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { eq } from 'drizzle-orm';
+import { PageSizes, PDFDocument } from 'pdf-lib';
+import sharp from 'sharp';
 import { extractText } from 'unpdf';
 import { describe, expect, it } from 'vitest';
+import { loadConfig } from '../src/config';
+import { attachments } from '../src/db/schema';
 import { todayIn } from '../src/lib/dates';
+import { fitImage } from '../src/modules/reports/pdf/annexes';
 import { createTestApp, signUp } from './helpers';
 
 type TestApp = Awaited<ReturnType<typeof createTestApp>>['app'];
@@ -248,5 +256,376 @@ describe('sale report', () => {
     }
     const limited = await app.inject({ method: 'GET', url: reportUrl(vehicle.id), headers: { cookie } });
     expect(limited.statusCode).toBe(429);
+  });
+});
+
+/** PDF with one page per size, generated on the fly (no binary fixtures in the repo). */
+async function makePdf(sizes: [number, number][], options: { useObjectStreams?: boolean } = {}) {
+  const doc = await PDFDocument.create();
+  for (const size of sizes) doc.addPage(size);
+  return Buffer.from(await doc.save(options));
+}
+
+/** Valid PDF padded with an unreferenced stream until it stores about `bytes` bytes. */
+async function paddedPdf(size: [number, number], bytes: number) {
+  const doc = await PDFDocument.create();
+  doc.addPage(size);
+  doc.context.register(doc.context.stream(new Uint8Array(bytes)));
+  return Buffer.from(await doc.save());
+}
+
+/** Valid PDF whose trailer declares an encryption dictionary: pdf-lib refuses to load it. */
+async function encryptedPdf() {
+  const raw = (await makePdf([[300, 300]], { useObjectStreams: false })).toString('latin1');
+  return Buffer.from(
+    raw.replace(/trailer\s*<</, 'trailer\n<<\n/Encrypt << /Filter /Standard >>\n'),
+    'latin1',
+  );
+}
+
+/** Passes the upload type detection (it only checks the signature) but is not a PDF. */
+const corruptPdf = (bytes = 64) => Buffer.concat([Buffer.from('%PDF-1.7\n'), Buffer.alloc(bytes)]);
+
+/** Valid PDF without a single page (pdf-lib adds a blank one unless told not to). */
+const emptyPdf = async () => Buffer.from(await (await PDFDocument.create()).save({ addDefaultPage: false }));
+
+/** PNG signature followed by garbage: sharp cannot decode it. */
+const brokenPng = () =>
+  Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(256, 0x5a)]);
+
+const image = (format: 'png' | 'webp', width: number, height: number) => {
+  const base = sharp({ create: { width, height, channels: 3, background: '#c5e8e0' } });
+  return (format === 'png' ? base.png() : base.webp()).toBuffer();
+};
+
+function multipart(data: Buffer, filename: string) {
+  const boundary = '----ikrive-report-boundary';
+  const payload = Buffer.concat([
+    Buffer.from(
+      `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${filename}"\r\n` +
+        'Content-Type: application/octet-stream\r\n\r\n',
+    ),
+    data,
+    Buffer.from(`\r\n--${boundary}--\r\n`),
+  ]);
+  return { payload, headers: { 'content-type': `multipart/form-data; boundary=${boundary}` } };
+}
+
+/** Helpers bound to one vehicle of the signed-in user. */
+function vehicleApi(app: TestApp, cookie: string, vehicleId: string) {
+  return {
+    async addMaintenance(payload: Record<string, unknown>) {
+      const response = await app.inject({
+        method: 'POST',
+        url: `/api/vehicles/${vehicleId}/maintenance`,
+        headers: { cookie },
+        payload: { category: 'repair', ...payload },
+      });
+      expect(response.statusCode).toBe(201);
+      return (response.json() as { id: string }).id;
+    },
+    async attach(recordId: string, data: Buffer, filename: string) {
+      const { payload, headers } = multipart(data, filename);
+      const response = await app.inject({
+        method: 'POST',
+        url: `/api/vehicles/${vehicleId}/maintenance/${recordId}/attachments`,
+        headers: { cookie, ...headers },
+        payload,
+      });
+      expect(response.statusCode, filename).toBe(201);
+      return (response.json() as { id: string }).id;
+    },
+    async report(query = '') {
+      const response = await app.inject({
+        method: 'GET',
+        url: reportUrl(vehicleId, query),
+        headers: { cookie },
+      });
+      expect(response.statusCode, query).toBe(200);
+      expect(response.headers['content-type']).toBe('application/pdf');
+      return response.rawPayload;
+    },
+  };
+}
+
+const pageSizes = async (pdf: Buffer) =>
+  (await PDFDocument.load(pdf)).getPages().map((page) => {
+    const { width, height } = page.getSize();
+    return [Math.round(width), Math.round(height)];
+  });
+
+const pageCount = async (pdf: Buffer) => (await PDFDocument.load(pdf)).getPageCount();
+
+const occurrences = (text: string, search: string) => text.split(search).length - 1;
+
+/** App whose log lines are kept, to look for the warnings of skipped annexes. */
+async function setupWithLogs(env: Record<string, string> = {}) {
+  const lines: string[] = [];
+  const { app, db, dataDir } = await createTestApp(env, { logStream: { write: (line) => lines.push(line) } });
+  const { cookie } = await signUp(app);
+  const warnings = () =>
+    lines
+      .map((line) => JSON.parse(line) as { level: number; vehicleId?: string; attachmentId?: string })
+      .filter((entry) => entry.level === 40);
+  return { app, db, dataDir, cookie, warnings };
+}
+
+const A4: [number, number] = [Math.round(PageSizes.A4[0]), Math.round(PageSizes.A4[1])];
+const A4_LANDSCAPE: [number, number] = [A4[1], A4[0]];
+const UNREADABLE = 'No se pudo anexar este archivo.';
+const SIZE_LIMIT = 'No se anexó: se superó el tamaño máximo del informe.';
+
+describe('sale report invoices', () => {
+  it('fits annex images without distortion', () => {
+    const box = { width: 500, height: 800 };
+    // Taller than the box: scaled to its height, centred horizontally.
+    expect(fitImage({ width: 1000, height: 2000 }, box)).toEqual({ x: 50, y: 0, width: 400, height: 800 });
+    // Wider than the box: scaled to its width, centred vertically.
+    expect(fitImage({ width: 2000, height: 1000 }, box)).toEqual({ x: 0, y: 275, width: 500, height: 250 });
+    // Smaller than the box: never enlarged, just centred.
+    expect(fitImage({ width: 100, height: 50 }, box)).toEqual({ x: 200, y: 375, width: 100, height: 50 });
+  });
+
+  it('appends invoices in table order', async () => {
+    const { app, cookie } = await setup();
+    const vehicle = await createVehicle(app, cookie);
+    const api = vehicleApi(app, cookie, vehicle.id);
+    // Created first but newer: it goes second in the table.
+    const newer = await api.addMaintenance({ date: '2026-03-01', title: 'Frenos' });
+    const older = await api.addMaintenance({ date: '2025-06-15', title: 'Cambio de aceite' });
+    await api.attach(
+      newer,
+      await makePdf([
+        [300, 400],
+        [300, 400],
+      ]),
+      'frenos.pdf',
+    );
+    await api.attach(older, await makePdf([[500, 500]]), 'aceite.pdf');
+    await api.attach(older, await image('png', 800, 400), 'ticket.png');
+    await api.attach(older, await image('webp', 300, 600), 'recibo.webp');
+
+    const base = await pageSizes(await api.report('?includeInvoices=false'));
+    const sizes = await pageSizes(await api.report('?includeInvoices=true'));
+
+    expect(sizes).toHaveLength(base.length + 3 + 2);
+    expect(sizes.slice(0, base.length)).toEqual(base);
+    expect(sizes.slice(base.length)).toEqual([[500, 500], A4_LANDSCAPE, A4, [300, 400], [300, 400]]);
+  });
+
+  it('does not change the report without includeInvoices', async () => {
+    const { app, cookie } = await setup();
+    const reference = await seed(app, cookie);
+    const vehicle = await seed(app, cookie);
+    const api = vehicleApi(app, cookie, vehicle.id);
+    const record = await api.addMaintenance({ date: '2025-07-01', title: 'Neumáticos' });
+    await api.attach(record, await makePdf([[300, 400]]), 'neumaticos.pdf');
+    const referencePages = await pageCount(await vehicleApi(app, cookie, reference.id).report());
+
+    for (const query of ['', '?includeInvoices=false', '?includeInvoices=0']) {
+      const pdf = await api.report(query);
+      expect(await pageCount(pdf), query).toBe(referencePages);
+      const text = await pdfText(pdf);
+      expect(text).toContain('Neumáticos');
+      for (const absent of ['Facturas anexadas', 'Anexos', 'neumaticos.pdf'])
+        expect(text).not.toContain(absent);
+    }
+  });
+
+  it('never annexes excluded maintenance', async () => {
+    const { app, db, dataDir, cookie, warnings } = await setupWithLogs();
+    const vehicle = await seed(app, cookie);
+    const api = vehicleApi(app, cookie, vehicle.id);
+    const excluded = await api.addMaintenance({
+      date: '2025-08-01',
+      title: 'Privado',
+      includeInReport: false,
+    });
+    const privateInvoice = await api.attach(excluded, await makePdf([[300, 400]]), 'factura-privada.pdf');
+    // Deleted from disk: reading it would log a warning.
+    const row = db.select().from(attachments).where(eq(attachments.id, privateInvoice)).get();
+    rmSync(join(dataDir, 'uploads', row?.storageKey ?? 'missing'));
+
+    const without = await api.report();
+    const withInvoices = await api.report('?includeInvoices=true');
+    expect(await pageCount(withInvoices)).toBe(await pageCount(without));
+    const text = await pdfText(withInvoices);
+    expect(text).not.toContain('factura-privada.pdf');
+    expect(text).not.toContain('Facturas anexadas');
+    expect(warnings().filter((entry) => entry.vehicleId === vehicle.id)).toEqual([]);
+  });
+
+  it('references each annex', async () => {
+    const { app, cookie } = await setup();
+    const vehicle = await createVehicle(app, cookie);
+    const api = vehicleApi(app, cookie, vehicle.id);
+    const record = await api.addMaintenance({ date: '2025-06-15', title: 'Cambio de aceite' });
+    await api.attach(record, await makePdf([[300, 400]]), 'factura-taller.pdf');
+
+    const text = await pdfText(await api.report('?includeInvoices=1'));
+    for (const expected of ['Anexos', 'Facturas anexadas', 'A1', 'Cambio de aceite', 'factura-taller.pdf']) {
+      expect(text).toContain(expected);
+    }
+    expect(text).toContain('A1 · 15 jun 2025 · Cambio de aceite · factura-taller.pdf');
+  });
+
+  it('rejects invalid includeInvoices', async () => {
+    const { app, cookie } = await setup();
+    const vehicle = await createVehicle(app, cookie);
+
+    for (const query of ['?includeInvoices=yes', '?includeInvoices=', '?includeInvoices=2']) {
+      const response = await app.inject({
+        method: 'GET',
+        url: reportUrl(vehicle.id, query),
+        headers: { cookie },
+      });
+      expect(response.statusCode, query).toBe(400);
+      expect(response.headers['content-type']).toContain('application/problem+json');
+    }
+  });
+
+  it('skips unreadable invoices', async () => {
+    const { app, db, dataDir, cookie, warnings } = await setupWithLogs();
+    const vehicle = await createVehicle(app, cookie);
+    const api = vehicleApi(app, cookie, vehicle.id);
+    const record = await api.addMaintenance({ date: '2025-06-15', title: 'Cambio de aceite' });
+    const encrypted = await api.attach(record, await encryptedPdf(), 'cifrada.pdf');
+    const corrupt = await api.attach(record, corruptPdf(), 'corrupta.pdf');
+    await api.attach(record, await makePdf([[300, 400]]), 'buena.pdf');
+    const missing = await api.attach(record, await makePdf([[500, 500]]), 'borrada.pdf');
+    const row = db.select().from(attachments).where(eq(attachments.id, missing)).get();
+    rmSync(join(dataDir, 'uploads', row?.storageKey ?? 'missing'));
+
+    const base = await pageSizes(await api.report());
+    const pdf = await api.report('?includeInvoices=true');
+    const sizes = await pageSizes(pdf);
+    expect(sizes).toHaveLength(base.length + 1);
+    expect(sizes.at(-1)).toEqual([300, 400]);
+
+    const text = await pdfText(pdf);
+    expect(occurrences(text, UNREADABLE)).toBe(3);
+    for (const name of ['cifrada.pdf', 'corrupta.pdf', 'buena.pdf', 'borrada.pdf'])
+      expect(text).toContain(name);
+
+    const warned = warnings().filter((entry) => entry.vehicleId === vehicle.id);
+    expect(warned.map((entry) => entry.attachmentId).sort()).toEqual([encrypted, corrupt, missing].sort());
+  });
+
+  it('skips pdfs without pages and images that do not decode', async () => {
+    const { app, db, dataDir, cookie, warnings } = await setupWithLogs();
+    const vehicle = await createVehicle(app, cookie);
+    const api = vehicleApi(app, cookie, vehicle.id);
+    const record = await api.addMaintenance({ date: '2025-06-15', title: 'Cambio de aceite' });
+    const empty = await api.attach(record, await emptyPdf(), 'vacia.pdf');
+    // Uploads reject images that do not decode, so a valid one is broken on disk afterwards.
+    const broken = await api.attach(record, await image('png', 200, 100), 'rota.png');
+    const row = db.select().from(attachments).where(eq(attachments.id, broken)).get();
+    writeFileSync(join(dataDir, 'uploads', row?.storageKey ?? 'missing'), brokenPng());
+    await api.attach(record, await makePdf([[300, 400]]), 'buena.pdf');
+
+    const base = await pageSizes(await api.report());
+    const pdf = await api.report('?includeInvoices=true');
+    const sizes = await pageSizes(pdf);
+    expect(sizes).toHaveLength(base.length + 1);
+    expect(sizes.at(-1)).toEqual([300, 400]);
+
+    const text = await pdfText(pdf);
+    expect(occurrences(text, UNREADABLE)).toBe(2);
+    for (const name of ['vacia.pdf', 'rota.png', 'buena.pdf']) expect(text).toContain(name);
+
+    const warned = warnings().filter((entry) => entry.vehicleId === vehicle.id);
+    expect(warned.map((entry) => entry.attachmentId).sort()).toEqual([empty, broken].sort());
+  });
+
+  it('reads REPORT_MAX_ANNEX_MB', () => {
+    expect(loadConfig({}).REPORT_MAX_ANNEX_MB).toBe(100);
+    expect(loadConfig({ REPORT_MAX_ANNEX_MB: '5' }).REPORT_MAX_ANNEX_MB).toBe(5);
+    for (const value of ['0', '-1', '1.5']) {
+      expect(() => loadConfig({ REPORT_MAX_ANNEX_MB: value }), value).toThrow(/REPORT_MAX_ANNEX_MB/);
+    }
+  });
+
+  it('skips annexes over the size limit and keeps going', async () => {
+    const { app, cookie, warnings } = await setupWithLogs({ REPORT_MAX_ANNEX_MB: '1' });
+    const vehicle = await createVehicle(app, cookie);
+    const api = vehicleApi(app, cookie, vehicle.id);
+    const record = await api.addMaintenance({ date: '2025-06-15', title: 'Cambio de aceite' });
+    await api.attach(record, await makePdf([[300, 400]]), 'primera.pdf');
+    // Unreadable if it were read: its size-limit notice proves the size is checked before loading it.
+    const big = await api.attach(record, corruptPdf(1.1 * 1024 * 1024), 'enorme.pdf');
+    await api.attach(record, await makePdf([[500, 500]]), 'tercera.pdf');
+
+    const base = await pageSizes(await api.report());
+    const sizes = await pageSizes(await api.report('?includeInvoices=true'));
+    expect(sizes).toHaveLength(base.length + 2);
+    expect(sizes.slice(base.length)).toEqual([
+      [300, 400],
+      [500, 500],
+    ]);
+
+    const text = await pdfText(await api.report('?includeInvoices=true'));
+    expect(occurrences(text, SIZE_LIMIT)).toBe(1);
+    expect(text).not.toContain(UNREADABLE);
+    expect(text).toContain('A2 · 15 jun 2025 · Cambio de aceite · enorme.pdf');
+
+    const warned = warnings().filter((entry) => entry.vehicleId === vehicle.id);
+    expect(warned.map((entry) => entry.attachmentId)).toContain(big);
+  });
+
+  it('counts the size limit over all the annexes of the report', async () => {
+    const { app, cookie, warnings } = await setupWithLogs({ REPORT_MAX_ANNEX_MB: '1' });
+    const vehicle = await createVehicle(app, cookie);
+    const api = vehicleApi(app, cookie, vehicle.id);
+    const record = await api.addMaintenance({ date: '2025-06-15', title: 'Cambio de aceite' });
+    // Each one fits in 1 MB on its own; the third one no longer fits after the first two.
+    const chunk = 0.4 * 1024 * 1024;
+    await api.attach(record, await paddedPdf([300, 400], chunk), 'primera.pdf');
+    await api.attach(record, await paddedPdf([400, 300], chunk), 'segunda.pdf');
+    const third = await api.attach(record, await paddedPdf([500, 500], chunk), 'tercera.pdf');
+    // Still fits in what is left of the budget.
+    await api.attach(record, await makePdf([[200, 200]]), 'pequena.pdf');
+
+    const base = await pageSizes(await api.report());
+    const pdf = await api.report('?includeInvoices=true');
+    const sizes = await pageSizes(pdf);
+    expect(sizes.slice(0, base.length)).toEqual(base);
+    expect(sizes.slice(base.length)).toEqual([
+      [300, 400],
+      [400, 300],
+      [200, 200],
+    ]);
+
+    const text = await pdfText(pdf);
+    expect(occurrences(text, SIZE_LIMIT)).toBe(1);
+    expect(text).not.toContain(UNREADABLE);
+
+    const warned = warnings().filter((entry) => entry.vehicleId === vehicle.id);
+    expect(warned.map((entry) => entry.attachmentId)).toEqual([third]);
+  });
+
+  it('does not count unreadable annexes against the size limit', async () => {
+    const { app, cookie, warnings } = await setupWithLogs({ REPORT_MAX_ANNEX_MB: '1' });
+    const vehicle = await createVehicle(app, cookie);
+    const api = vehicleApi(app, cookie, vehicle.id);
+    const record = await api.addMaintenance({ date: '2025-06-15', title: 'Cambio de aceite' });
+    // Fits in 1 MB but cannot be read; the two valid ones after it only fit if it used up nothing.
+    const corrupt = await api.attach(record, corruptPdf(0.6 * 1024 * 1024), 'corrupta.pdf');
+    const chunk = 0.4 * 1024 * 1024;
+    await api.attach(record, await paddedPdf([300, 400], chunk), 'primera.pdf');
+    await api.attach(record, await paddedPdf([400, 300], chunk), 'segunda.pdf');
+
+    const base = await pageSizes(await api.report());
+    const pdf = await api.report('?includeInvoices=true');
+    expect((await pageSizes(pdf)).slice(base.length)).toEqual([
+      [300, 400],
+      [400, 300],
+    ]);
+
+    const text = await pdfText(pdf);
+    expect(occurrences(text, UNREADABLE)).toBe(1);
+    expect(text).not.toContain(SIZE_LIMIT);
+
+    const warned = warnings().filter((entry) => entry.vehicleId === vehicle.id);
+    expect(warned.map((entry) => entry.attachmentId)).toEqual([corrupt]);
   });
 });

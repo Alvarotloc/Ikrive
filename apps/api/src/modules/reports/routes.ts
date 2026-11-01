@@ -19,6 +19,7 @@ export const reportsRoutes: FastifyPluginAsyncZod<{ service: ReportsService }> =
         currentUser(request).id,
         request.params.id,
         request.query,
+        request.log,
       );
       return (
         reply

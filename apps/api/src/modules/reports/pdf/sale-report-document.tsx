@@ -12,6 +12,8 @@ const COLORS = {
   border: 'rgba(45,58,58,0.1)',
   stripe: '#f9fafb',
   white: '#ffffff',
+  /** `--destructive` of the light theme. */
+  error: '#c2410c',
 };
 
 const CHART = { width: 420, height: 140, inset: 4 };
@@ -23,6 +25,7 @@ const COLUMN_WIDTHS: Record<SaleReportColumn, string | undefined> = {
   category: '16%',
   title: undefined,
   cost: '15%',
+  annexes: '11%',
 };
 
 const styles = StyleSheet.create({
@@ -70,6 +73,8 @@ const styles = StyleSheet.create({
   stripe: { backgroundColor: COLORS.stripe },
   cell: { paddingVertical: 5, paddingHorizontal: 6 },
   right: { textAlign: 'right' },
+  annex: { paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  annexNotice: { marginTop: 2, color: COLORS.error, fontWeight: 600 },
   footer: {
     position: 'absolute',
     bottom: 24,
@@ -163,9 +168,23 @@ function MaintenanceTable({ maintenance }: { maintenance: SaleReport['maintenanc
   );
 }
 
+function AnnexList({ annexes }: { annexes: NonNullable<SaleReport['annexes']> }) {
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>{annexes.title}</Text>
+      {annexes.items.map((item) => (
+        <View key={item.id} style={styles.annex} wrap={false}>
+          <Text>{item.label}</Text>
+          {item.notice !== null && <Text style={styles.annexNotice}>{item.notice}</Text>}
+        </View>
+      ))}
+    </View>
+  );
+}
+
 /** Lays out an already built report: it neither translates nor formats anything. */
 export function SaleReportDocument({ report }: { report: SaleReport }) {
-  const { cover, summary, chart, maintenance } = report;
+  const { cover, summary, chart, maintenance, annexes } = report;
   return (
     <Document
       title={`${cover.eyebrow} · ${cover.title}`}
@@ -201,6 +220,8 @@ export function SaleReportDocument({ report }: { report: SaleReport }) {
           <Text style={styles.sectionTitle}>{maintenance.title}</Text>
           <MaintenanceTable maintenance={maintenance} />
         </View>
+
+        {annexes !== null && <AnnexList annexes={annexes} />}
 
         <View style={styles.footer} fixed>
           <Text>{report.footer}</Text>

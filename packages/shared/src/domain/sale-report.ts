@@ -5,6 +5,17 @@ import type { Vehicle } from '../schemas/vehicles';
 import { averageDistancePerYear, latestOdometerReading, type OdometerPoint } from './odometer';
 import { roundMoney } from './stats';
 
+/** Why an attachment was not appended: it could not be read, or it did not fit in the size limit. */
+export type SaleReportAnnexSkip = 'unreadable' | 'size_limit';
+
+export interface SaleReportAttachment {
+  id: string;
+  /** Original file name. */
+  name: string;
+  /** Why it was not appended; null when it was. */
+  skipped: SaleReportAnnexSkip | null;
+}
+
 export interface SaleReportMaintenance {
   date: string;
   odometer: number | null;
@@ -12,6 +23,8 @@ export interface SaleReportMaintenance {
   title: string;
   cost: number | null;
   includeInReport: boolean;
+  /** Attachments in upload order; only used with `includeInvoices`. Defaults to none. */
+  attachments?: readonly SaleReportAttachment[];
 }
 
 export interface SaleReportInput {
@@ -26,7 +39,18 @@ export interface SaleReportInput {
   issuedOn: string;
 }
 
-export type SaleReportColumn = 'date' | 'odometer' | 'category' | 'title' | 'cost';
+export type SaleReportColumn = 'date' | 'odometer' | 'category' | 'title' | 'cost' | 'annexes';
+
+export interface SaleReportAnnex {
+  /** Attachment id. */
+  id: string;
+  /** `A1`, `A2`…, in table order and then upload order. */
+  ref: string;
+  /** Reference, maintenance date and title, and file name. */
+  label: string;
+  /** Why it is missing from the PDF; null when it was appended. */
+  notice: string | null;
+}
 
 export interface SaleReportRow {
   label: string;
@@ -57,11 +81,13 @@ export interface SaleReport {
     title: string;
     /** Text shown instead of the table when no record is included; null otherwise. */
     empty: string | null;
-    /** Without `cost` when prices are hidden. */
+    /** Without `cost` when prices are hidden; with `annexes` (last) only when there are annexes. */
     columns: { key: SaleReportColumn; label: string }[];
     /** Without the `cost` key when prices are hidden. */
     rows: Partial<Record<SaleReportColumn, string>>[];
   };
+  /** Annexes in the order they are appended; null without `includeInvoices` or without annexes. */
+  annexes: { title: string; items: SaleReportAnnex[] } | null;
   footer: string;
 }
 
@@ -86,6 +112,7 @@ export interface SaleReportTexts {
   };
   chart: { title: string; empty: string };
   maintenance: { title: string; empty: string; columns: Record<SaleReportColumn, string> };
+  annexes: { title: string; skipped: { unreadable: string; sizeLimit: string } };
   categories: Record<MaintenanceCategory, string>;
   fuels: Record<FuelType, string>;
   footer: string;
@@ -125,6 +152,14 @@ export const SALE_REPORT_TEXTS: Record<Locale, SaleReportTexts> = {
         category: 'Categoría',
         title: 'Título',
         cost: 'Coste',
+        annexes: 'Anexos',
+      },
+    },
+    annexes: {
+      title: 'Facturas anexadas',
+      skipped: {
+        unreadable: 'No se pudo anexar este archivo.',
+        sizeLimit: 'No se anexó: se superó el tamaño máximo del informe.',
       },
     },
     categories: {
@@ -175,7 +210,21 @@ export const SALE_REPORT_TEXTS: Record<Locale, SaleReportTexts> = {
     maintenance: {
       title: 'Maintenance history',
       empty: 'No maintenance records included in the report.',
-      columns: { date: 'Date', odometer: 'Mileage', category: 'Category', title: 'Title', cost: 'Cost' },
+      columns: {
+        date: 'Date',
+        odometer: 'Mileage',
+        category: 'Category',
+        title: 'Title',
+        cost: 'Cost',
+        annexes: 'Annexes',
+      },
+    },
+    annexes: {
+      title: 'Attached invoices',
+      skipped: {
+        unreadable: 'This file could not be attached.',
+        sizeLimit: "Not attached: the report's maximum size was exceeded.",
+      },
     },
     categories: {
       oil_change: 'Oil',
@@ -202,6 +251,10 @@ export const SALE_REPORT_TEXTS: Record<Locale, SaleReportTexts> = {
 };
 
 const NONE = '—';
+const SKIP_TEXT = { unreadable: 'unreadable', size_limit: 'sizeLimit' } as const satisfies Record<
+  SaleReportAnnexSkip,
+  keyof SaleReportTexts['annexes']['skipped']
+>;
 const DAY_MS = 86_400_000;
 const MAX_SLUG_LENGTH = 60;
 
@@ -307,8 +360,26 @@ export function buildSaleReport(input: SaleReportInput): SaleReport {
     options.hidePrices ? null : { label: texts.summary.maintenanceSpending, value: format.money(spending) },
   ];
 
+  // References follow the table order (`included` is already sorted) and then the upload order.
+  const annexItems: SaleReportAnnex[] = [];
+  const refsByRecord = included.map((record) => {
+    if (!options.includeInvoices) return [];
+    return (record.attachments ?? []).map((attachment) => {
+      const ref = `A${annexItems.length + 1}`;
+      annexItems.push({
+        id: attachment.id,
+        ref,
+        label: [ref, format.date(record.date), record.title, attachment.name].join(' · '),
+        notice: attachment.skipped === null ? null : texts.annexes.skipped[SKIP_TEXT[attachment.skipped]],
+      });
+      return ref;
+    });
+  });
+  const hasAnnexes = annexItems.length > 0;
+
   const columnKeys: SaleReportColumn[] = ['date', 'odometer', 'category', 'title'];
   if (!options.hidePrices) columnKeys.push('cost');
+  if (hasAnnexes) columnKeys.push('annexes');
 
   return {
     locale: settings.locale,
@@ -326,7 +397,7 @@ export function buildSaleReport(input: SaleReportInput): SaleReport {
       title: texts.maintenance.title,
       empty: included.length === 0 ? texts.maintenance.empty : null,
       columns: columnKeys.map((key) => ({ key, label: texts.maintenance.columns[key] })),
-      rows: included.map((record) => {
+      rows: included.map((record, index) => {
         const row: Partial<Record<SaleReportColumn, string>> = {
           date: format.date(record.date),
           odometer: record.odometer === null ? NONE : format.distance(record.odometer),
@@ -334,9 +405,11 @@ export function buildSaleReport(input: SaleReportInput): SaleReport {
           title: record.title,
         };
         if (!options.hidePrices) row.cost = record.cost === null ? NONE : format.money(record.cost);
+        if (hasAnnexes) row.annexes = refsByRecord[index]?.join(', ') || NONE;
         return row;
       }),
     },
+    annexes: hasAnnexes ? { title: texts.annexes.title, items: annexItems } : null,
     footer: texts.footer,
   };
 }

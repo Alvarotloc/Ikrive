@@ -33,3 +33,28 @@ export function toWebpThumbnail(input: Buffer, size = 320): Promise<Buffer> {
     .webp({ quality: 70 })
     .toBuffer();
 }
+
+export interface AnnexImage {
+  data: Buffer;
+  format: 'jpeg' | 'png';
+  width: number;
+  height: number;
+}
+
+/**
+ * Image ready to be embedded in a PDF page: oriented, at most `maxSize` px on its longest side (never
+ * enlarged) and re-encoded as JPEG (from JPEG) or PNG (anything else), the only formats pdf-lib embeds.
+ * Rejects when the buffer does not decode as an image.
+ */
+export async function toAnnexImage(input: Buffer, maxSize = 2000): Promise<AnnexImage> {
+  const image = sharp(input, { failOn: 'error' });
+  const { format } = await image.metadata();
+  const resized = image
+    .rotate()
+    .resize({ width: maxSize, height: maxSize, fit: 'inside', withoutEnlargement: true });
+  const output = format === 'jpeg' ? 'jpeg' : 'png';
+  const { data, info } = await (output === 'jpeg' ? resized.jpeg({ quality: 85 }) : resized.png()).toBuffer({
+    resolveWithObject: true,
+  });
+  return { data, format: output, width: info.width, height: info.height };
+}

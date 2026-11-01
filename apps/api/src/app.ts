@@ -122,6 +122,9 @@ export async function buildApp({ config, db, fetch = globalThis.fetch, logStream
     vehicles: vehiclesRepo,
     maintenance: maintenanceRepo,
     settings: settingsService,
+    attachments: attachmentsRepo,
+    storage,
+    maxAnnexBytes: config.REPORT_MAX_ANNEX_MB * 1024 * 1024,
   });
   const schedulesService = createSchedulesService({
     repo: schedulesRepo,
