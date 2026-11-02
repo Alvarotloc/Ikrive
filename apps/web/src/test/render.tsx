@@ -35,8 +35,10 @@ export function renderWithProviders(
 
 export interface MockResponse {
   status?: number;
-  /** JSON body; omit it for an empty response (e.g. 204). */
+  /** JSON body, or a `Blob` sent as it is (e.g. a PDF); omit it for an empty response (e.g. 204). */
   body?: unknown;
+  /** Extra response headers, e.g. `content-disposition`. */
+  headers?: Record<string, string>;
 }
 
 /**
@@ -53,6 +55,8 @@ export type MockRoutes = Record<
  * Errors are sent as `application/problem+json`, like the real API. A request to an undeclared route
  * rejects and fails the test with its method and URL (see `setup.ts`): declare every request the
  * component makes, even a 404 (`{ status: 404, body: problem }`).
+ * A `Blob` body is sent as it is, with its `type` as `content-type` unless `headers` gives another one,
+ * e.g. `{ body: new Blob(['%PDF-1.7'], { type: 'application/pdf' }), headers: { 'content-disposition': … } }`.
  * Returns the `vi.fn()` so tests can assert on the requests made.
  */
 export function mockApi(routes: MockRoutes) {
@@ -61,11 +65,18 @@ export function mockApi(routes: MockRoutes) {
     const path = new URL(request.url).pathname.replace(/^\/api/, '');
     const route = routes[`${request.method} ${path}`];
     if (route === undefined) return rejectUnmockedRequest(request);
-    const { status = 200, body } = typeof route === 'function' ? await route(request) : route;
+    const { status = 200, body, headers } = typeof route === 'function' ? await route(request) : route;
+    if (body === undefined) return new Response(null, { status, headers });
+    if (body instanceof Blob) {
+      // jsdom's Blob is not the one `Response` (undici) knows, which would stringify it: send its bytes.
+      const bytes = await body.arrayBuffer();
+      return new Response(bytes, { status, headers: { 'content-type': body.type, ...headers } });
+    }
     const contentType = status >= 400 ? 'application/problem+json' : 'application/json';
-    return body === undefined
-      ? new Response(null, { status })
-      : new Response(JSON.stringify(body), { status, headers: { 'content-type': contentType } });
+    return new Response(JSON.stringify(body), {
+      status,
+      headers: { 'content-type': contentType, ...headers },
+    });
   });
   vi.stubGlobal('fetch', fetchMock);
   return fetchMock;
