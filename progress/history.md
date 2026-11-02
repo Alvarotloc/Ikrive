@@ -338,3 +338,12 @@
 - **Tests:** shared 105, API 238, web 289. Capturas en claro/oscuro/móvil. `pnpm harness --full` en verde.
 - **Revisión:** APPROVED (`progress/review_report-shares-web.md`). Avisos no bloqueantes: Enter en el campo de la URL descarga el PDF (envío implícito, inocuo); tras un segundo intento fallido sigue la URL del primero; `::` no se trata como local; capturas en scratchpad efímero.
 - **Gate 2:** el humano pidió mover «Descargar»/«Cancelar» al final del diálogo, tras la sección de enlaces. Re-revisión APPROVED. Resto de avisos aceptados. Merge aprobado por el humano.
+
+## 2026-11-02 — #34 data-export-api
+
+- **Rama:** `feat/data-export-api` (SDD, spec en `specs/data-export-api/`, 19 R / 13 T). `apps/api` y `packages/shared`. Primera feature de la fase 7, que se repartió en #34–#42 (export, import y web; usuarios para el admin API y web; PWA; imagen Docker; E2E; docs y release v0.1.0).
+- **Gate 1:** aprobado sin cambios (export por usuario; se incluyen las fotos de los vehículos; canales sin token con `hasToken`; un fichero perdido en disco se omite con `warn`; sin perfil, notificaciones in-app, enlaces públicos ni feed iCal; `yazl` frente a `archiver`/`fflate`).
+- **Cambios:** shared: `dataExportSchema` versionado (`DATA_EXPORT_FORMAT_VERSION = 1`) con `superRefine` de integridad (ids únicos, referencias en el mismo vehículo, rutas de fichero generadas) y helpers `attachmentExportPath`/`photoExportPath`. API: `storage.exists`, módulo `modules/data-export/` (repositorio por `ownerId`, servicio que construye el documento anidado por vehículo y un zip en streaming con `yazl` abriendo un fichero a la vez) y `GET /api/me/export` (`attachment`, `no-store`). Dependencias: `yazl`, y `yauzl` solo para los tests.
+- **Tests:** shared 111, API 251, web 289. `pnpm harness --full` en verde y `docker build` OK.
+- **Revisión:** CHANGES_REQUESTED (un error de lectura de un fichero a mitad del zip tumbaba el proceso por `'error'` sin manejar) → APPROVED (`progress/review_data-export-api.md`), verificado contra el servidor real con ficheros ilegibles y descargas abortadas. Avisos no bloqueantes: el esquema no limita la longitud de las cadenas, así que el import (#35) debe acotar el tamaño del zip y de `data.json`.
+- **Gate 2:** merge aprobado por el humano sin cambios.
