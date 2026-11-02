@@ -7,7 +7,7 @@
 | shared | `packages/shared/src/schemas/data-export.ts` | **Nuevo.** `DATA_EXPORT_FORMAT_VERSION`, `dataExportSchema` y sub-esquemas, tipos `DataExport*`. |
 | shared | `packages/shared/src/domain/data-export.ts` | **Nuevo.** `attachmentExportPath(id, mimeType)`, `photoExportPath(vehicleId)`, `ATTACHMENT_EXTENSIONS`. |
 | shared | `packages/shared/src/index.ts` | Re-exporta ambos. |
-| api | `apps/api/src/modules/data-export/repository.ts` | **Nuevo.** Lecturas por `ownerId` (6 consultas, sin N+1). |
+| api | `apps/api/src/modules/data-export/repository.ts` | **Nuevo.** Lecturas por `ownerId` (7 consultas, sin N+1). |
 | api | `apps/api/src/modules/data-export/service.ts` | **Nuevo.** Construye el documento y el zip. |
 | api | `apps/api/src/modules/data-export/routes.ts` | **Nuevo.** `GET /me/export`. |
 | api | `apps/api/src/lib/storage.ts` | Añade `exists(key): Promise<boolean>`. |
