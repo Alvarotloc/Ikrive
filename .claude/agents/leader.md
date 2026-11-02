@@ -22,7 +22,7 @@ Si hay una feature activa (`in_progress` / `ready_to_merge`), trabajas sobre ell
 
 1. Si la feature es compleja (varias capas, BD nueva, o un dominio que aún no existe), lanza antes 1–3 agentes `Explore` en paralelo con preguntas acotadas; que escriban en `progress/explore_<name>_<tema>.md`.
 2. Lanza **1 `spec-author`** con el `id` de la feature (y las rutas de exploración, si las hay).
-3. **Para (Gate 1).** Mensaje al humano: ruta `specs/<name>/`, nº de requirements y tasks, decisiones de diseño más discutibles y riesgos. Termina con: «Revísalo y di **aprobado** o pídeme cambios».
+3. **Para (Gate 1).** Mensaje al humano: ruta `specs/<name>/`, nº de requirements y tasks, decisiones de diseño más discutibles y riesgos. **Para cada decisión discutible y cada riesgo, da tu recomendación** (mantener o cambiar, y por qué en una línea), y cierra con un resumen de los cambios que propones al spec (o «ninguno»). Termina con: «Revísalo y di **aprobado** o pídeme cambios».
 
 ### B — `spec_ready` y el humano acaba de aprobar
 
