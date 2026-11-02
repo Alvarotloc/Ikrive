@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { access, mkdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, relative, resolve } from 'node:path';
 
 /**
@@ -26,6 +26,15 @@ export function createFileStorage(rootDir: string) {
     },
     read(key: string) {
       return createReadStream(pathOf(key));
+    },
+    /** Whether the file of `key` is on disk (it may have been deleted by hand from the volume). */
+    async exists(key: string): Promise<boolean> {
+      try {
+        await access(pathOf(key));
+        return true;
+      } catch {
+        return false;
+      }
     },
     async remove(key: string) {
       await rm(pathOf(key), { force: true });
