@@ -1,6 +1,7 @@
 export * from './domain/calendar';
 export * from './domain/fuel';
 export * from './domain/odometer';
+export * from './domain/report-shares';
 export * from './domain/sale-report';
 export * from './domain/schedules';
 export * from './domain/stats';
@@ -13,6 +14,7 @@ export * from './schemas/fuel-logs';
 export * from './schemas/maintenance';
 export * from './schemas/notification-channels';
 export * from './schemas/notifications';
+export * from './schemas/report-shares';
 export * from './schemas/reports';
 export * from './schemas/schedules';
 export * from './schemas/settings';

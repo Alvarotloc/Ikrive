@@ -69,3 +69,7 @@ export type AttachmentMimeType = (typeof ATTACHMENT_MIME_TYPES)[number];
 /** Entities that can own attachments (`attachments.entity_type`). */
 export const ATTACHMENT_ENTITY_TYPES = ['maintenance'] as const;
 export type AttachmentEntityType = (typeof ATTACHMENT_ENTITY_TYPES)[number];
+
+/** Computed on read from a report share's `revokedAt`/`expiresAt`: revoked wins over expired. */
+export const REPORT_SHARE_STATUSES = ['active', 'expired', 'revoked'] as const;
+export type ReportShareStatus = (typeof REPORT_SHARE_STATUSES)[number];
