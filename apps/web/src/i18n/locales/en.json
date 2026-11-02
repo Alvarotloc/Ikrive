@@ -533,5 +533,20 @@
       "spendingByMonth": "Needs a refuel or a maintenance record with a cost to show the spending per month.",
       "spendingByCategory": "Needs a maintenance record with a cost to show the spending per category."
     }
+  },
+  "saleReport": {
+    "button": "Sale report",
+    "title": "Sale report",
+    "description": "Generate a PDF with the vehicle history for the buyer. Choose which details to remove.",
+    "hidePrices": "Hide prices",
+    "hidePlate": "Hide plate",
+    "hideVin": "Hide VIN",
+    "includeInvoices": "Include invoices",
+    "includeInvoicesHint": "The invoices of the maintenance records in the report are appended at the end.",
+    "freeTextWarning": "Only the vehicle and maintenance fields are removed. If the alias, the version or the maintenance titles include the plate, the VIN or amounts, they will appear in the report.",
+    "invoicesWarning": "Invoices are appended as they are and may show those details.",
+    "download": "Download",
+    "generating": "Generating…",
+    "error": "The report could not be generated. Try again in a few seconds."
   }
 }

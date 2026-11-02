@@ -311,3 +311,12 @@
 - **Tests:** shared 98, API 215, web 263. `pnpm harness --full` en verde.
 - **Revisión:** CHANGES_REQUESTED (R18 sin test que distinguiera tope total de tope por fichero) → APPROVED (`progress/review_sale-report-invoices.md`). Avisos no bloqueantes: R16 «no leer» sin comprobación vía `warn`; orden interno de páginas de un mismo PDF no discriminado; `toAnnexImage` sin test unitario; el orden de anexado no tiene test discriminante (con el repo real ambos órdenes coinciden).
 - **Gate 2:** el humano pidió cubrir avisos: anexar por `report.annexes.items` (Map por id), tests de PDF sin páginas / imagen que no decodifica y de ilegible que no consume tope. Re-revisión APPROVED. Merge aprobado por el humano.
+
+## 2026-11-02 — #31 sale-report-web
+
+- **Rama:** `feat/sale-report-web` (SDD, spec en `specs/sale-report-web/`, 18 R / 15 T). Solo `apps/web`.
+- **Gate 1:** aprobado sin cambios (botón junto a «Editar» en cualquier estado; `fetch` + blob para tener carga y errores; solo se envían las opciones marcadas; sin toast de éxito; un único toast de error, incluido 429; casillas desmarcadas en cada apertura; nombre de respaldo con `saleReportFileName`).
+- **Cambios:** `api.download` + `toApiError` en `lib/api-client.ts`; `downloadBlob` en `lib/download.ts` (también lo usa `downloadIcs`); `features/reports/` con `saleReportPath`, `fileNameFromContentDisposition`, `hidesAnything`, `useDownloadSaleReport` y `SaleReportDialog` (casillas de matrícula/VIN condicionales, avisos de texto libre y de facturas en región `aria-live`, «Generando…», toast de error). Botón en la ficha del vehículo; textos `saleReport.*` en es/en. `mockApi` admite `headers` y cuerpo `Blob`.
+- **Tests:** shared 98, API 215, web 277. Capturas en claro/oscuro/móvil. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED (`progress/review_sale-report-web.md`). Avisos no bloqueantes: `lib/api-client.ts` importa de `features/reports` (sin ciclo, ya había precedente); R1 sin test de ruta; capturas en scratchpad efímero.
+- **Gate 2:** el humano pidió aplicar los avisos 1 (quitar `empty:hidden` de la región `aria-live`, ahora `not-empty:mt-5`) y 2 (`onError` en el `useMutation` para que el toast salga aunque se cierre el diálogo). Re-revisión APPROVED. Merge aprobado por el humano.
