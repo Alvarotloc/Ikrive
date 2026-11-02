@@ -329,3 +329,12 @@
 - **Tests:** shared 105, API 234, web 277. `pnpm harness --full` en verde.
 - **Revisión:** APPROVED (`progress/review_report-shares-api.md`). Avisos no bloqueantes: `hidePrices` sin test sobre el PDF público; el rate limit cuenta los 404 (decisión de Gate 1).
 - **Gate 2:** el humano pidió añadir el test de `hidePrices` (`hides the prices`, pasó sin cambiar código de producción) y mantener el rate limit. Se explicó cómo probarlo en red local con `BASE_URL` = IP del PC. Re-revisión APPROVED. Merge aprobado por el humano.
+
+## 2026-11-02 — #33 report-shares-web
+
+- **Rama:** `feat/report-shares-web` (SDD, spec en `specs/report-shares-web/`, 22 R / 15 T). `apps/web`, con un cambio pequeño en `apps/api` y `packages/shared`. Cierra la fase 6.
+- **Gate 1:** el humano pidió ampliar la detección de hosts locales (además de loopback, privadas, link-local y ULA: `100.64.0.0/10`, `.local`, `.lan`, `.home.arpa`, `.internal` y nombres sin punto; `*.ts.net` sigue siendo público) y que el leader dé siempre recomendaciones sobre decisiones discutibles y riesgos en Gate 1 (añadido a `leader.md`). Resto aprobado (indicador `localBaseUrl` en vez de la URL; se puede crear con `BASE_URL` local; URL visible solo hasta cerrar el diálogo; sin toasts de éxito; caducados y revocados siguen en la lista).
+- **Cambios:** shared: `localBaseUrl` en `clientConfigSchema`. API: `lib/base-url.ts` (`isLocalHost`, `isLocalBaseUrl`) y `GET /api/config` lo devuelve, calculado al arrancar. Web: `components/copy-url-field.tsx` extraído del feed iCal (`calendarFeed.copy` → `common.copy`), queries y mutaciones de report shares, `ReportSharesSection` (caducidad 7/30/90, crear, copiar, aviso local, listado con estados, revocar con `AlertDialog`) en el diálogo del informe, `features/reports/warning.tsx`, textos `reportShares.*` en es/en. `docs/PLAN.md`: fase 6 ✅.
+- **Tests:** shared 105, API 238, web 289. Capturas en claro/oscuro/móvil. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED (`progress/review_report-shares-web.md`). Avisos no bloqueantes: Enter en el campo de la URL descarga el PDF (envío implícito, inocuo); tras un segundo intento fallido sigue la URL del primero; `::` no se trata como local; capturas en scratchpad efímero.
+- **Gate 2:** el humano pidió mover «Descargar»/«Cancelar» al final del diálogo, tras la sección de enlaces. Re-revisión APPROVED. Resto de avisos aceptados. Merge aprobado por el humano.
