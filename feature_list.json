@@ -578,6 +578,159 @@
       ],
       "sdd": true,
       "status": "done"
+    },
+    {
+      "id": 34,
+      "name": "data-export-api",
+      "phase": "7",
+      "title": "Exportar los datos del usuario (API)",
+      "description": "Endpoint autenticado que descarga un zip con todos los datos del usuario: un data.json versionado (vehículos, odómetro, mantenimientos, adjuntos como metadatos, programaciones, repostajes, ajustes y canales de notificación sin secretos) y la carpeta de adjuntos. Es la base del import (#35) y del futuro paso del modo local del móvil a un servidor. Decisión: export por usuario; el export de un solo vehículo queda para después de v0.1.0.",
+      "acceptance": [
+        "GET /api/me/export (autenticado) responde 200 application/zip con Content-Disposition attachment y un nombre de fichero con la fecha",
+        "El zip contiene data.json con un campo formatVersion y la versión de Ikrive, y una carpeta attachments/ con los ficheros referenciados desde data.json",
+        "data.json incluye solo los datos del usuario autenticado; nunca datos de otros usuarios, hashes de contraseña, sesiones, tokens de enlaces públicos o del feed iCal, ni secretos de canales de notificación",
+        "El esquema de data.json se define con zod en packages/shared para que el import lo reutilice",
+        "El zip se genera en streaming, sin cargar todos los adjuntos en memoria",
+        "Tests de integración cubren el contenido del zip, el aislamiento entre usuarios y la ausencia de secretos",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "in_progress"
+    },
+    {
+      "id": 35,
+      "name": "data-import-api",
+      "phase": "7",
+      "title": "Importar datos desde un export (API)",
+      "description": "Endpoint autenticado que recibe un zip generado por el export (#34) y añade su contenido a la cuenta del usuario. Decisión: el import añade (no sobrescribe): los vehículos entran como nuevos con ids nuevos y las referencias internas se remapean. Todo ocurre en una transacción.",
+      "acceptance": [
+        "POST /api/me/import (autenticado, multipart) acepta el zip del export y responde 201 con un resumen de lo importado (nº de vehículos, mantenimientos, repostajes, adjuntos…)",
+        "data.json se valida con el esquema zod compartido; si no es válido o formatVersion no está soportada, responde 400 con un error claro y no importa nada",
+        "Los registros se crean con ids nuevos y se remapean todas las referencias internas; los adjuntos se guardan con nombres aleatorios nuevos y se valida su tipo como en la subida normal",
+        "El import es atómico: si algo falla, no queda ningún dato ni fichero a medias",
+        "Hay límites de tamaño del zip y protección contra zip bombs y rutas con ../",
+        "Un test de ida y vuelta (exportar, importar en otro usuario, volver a exportar) da los mismos datos salvo ids",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 36,
+      "name": "data-portability-web",
+      "phase": "7",
+      "title": "Exportar e importar desde Ajustes (web)",
+      "description": "Sección en Ajustes para descargar el export (#34) e importar un zip (#35) con confirmación previa.",
+      "acceptance": [
+        "Ajustes tiene una sección «Tus datos» con un botón para descargar el export",
+        "Importar permite elegir un zip, explica que los datos se añaden a la cuenta sin borrar nada y pide confirmación antes de enviarlo",
+        "Tras importar se muestra el resumen devuelto por la API y se invalidan las queries afectadas; los errores de la API se muestran en un toast",
+        "Todos los textos nuevos están en es.json y en.json",
+        "Tests de componente cubren exportar, importar con éxito y un import rechazado",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 37,
+      "name": "admin-users-api",
+      "phase": "7",
+      "title": "Gestión de usuarios para el admin (API)",
+      "description": "Endpoints solo para admin para gestionar las cuentas de la instancia. El spec debe valorar el plugin admin de Better Auth frente a endpoints propios (role ya es un campo propio) y justificar la elección en el design. El registro sigue controlándose con DISABLE_SIGNUP, sin interruptor en la UI.",
+      "acceptance": [
+        "El admin puede listar los usuarios (nombre, email, rol, estado, fecha de alta y nº de vehículos)",
+        "El admin puede cambiar el rol de un usuario, desactivarlo (no puede iniciar sesión y se cierran sus sesiones), reactivarlo y borrarlo con todos sus datos y adjuntos",
+        "No se puede quitar el rol, desactivar ni borrar al último admin, ni el admin puede desactivarse o borrarse a sí mismo",
+        "Los no admin reciben 403 en todas estas rutas",
+        "Tests de integración cubren cada acción, la protección del último admin y el 403",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 38,
+      "name": "admin-users-web",
+      "phase": "7",
+      "title": "Gestión de usuarios para el admin (web)",
+      "description": "Pantalla de administración de usuarios sobre la API de #37, visible solo para el admin.",
+      "acceptance": [
+        "El admin ve una entrada «Usuarios» en la navegación; los demás usuarios no la ven y la ruta les redirige",
+        "La pantalla lista los usuarios con su rol, estado y fecha de alta, y permite cambiar el rol, desactivar, reactivar y borrar (este último con confirmación explícita)",
+        "Las acciones no permitidas (último admin, uno mismo) aparecen deshabilitadas con una explicación",
+        "Todos los textos nuevos están en es.json y en.json",
+        "Tests de componente cubren el listado, cambiar el rol, desactivar y borrar",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 39,
+      "name": "pwa",
+      "phase": "7",
+      "title": "Instalar la app como PWA",
+      "description": "vite-plugin-pwa con manifest, iconos (ya existen en apps/web/public/icons) y service worker. La app se abre sin conexión (app shell) y avisa de las versiones nuevas. Las respuestas de /api no se cachean.",
+      "acceptance": [
+        "El build genera un manifest con nombre, colores de la marca e iconos de 192 y 512 px (incluido maskable) y la app es instalable",
+        "El service worker precachea el app shell y los assets; las peticiones a /api, incluidos los PDF públicos, nunca se sirven de la caché",
+        "Si hay una versión nueva, la web muestra un aviso para recargar",
+        "Sin conexión, la app carga y muestra un estado de «sin conexión» en lugar de pantallas rotas",
+        "Todos los textos nuevos están en es.json y en.json",
+        "Tests cubren el registro del service worker y el aviso de actualización (con mocks)",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 40,
+      "name": "docker-image-slim",
+      "phase": "7",
+      "title": "Reducir el tamaño de la imagen Docker",
+      "description": "Empaquetar la API con tsup (o similar) dejando fuera solo los módulos nativos (better-sqlite3, sharp…), para que la imagen no arrastre las dependencias transitivas de better-auth. Objetivo: de unos 670 MB a menos de 250 MB.",
+      "acceptance": [
+        "La API se empaqueta en un bundle y la imagen final solo instala los módulos nativos y lo que no se pueda empaquetar",
+        "La imagen pesa menos de 250 MB (comprobado en CI) y el tamaño queda anotado en docs/PLAN.md",
+        "El contenedor arranca, aplica las migraciones, sirve la SPA, genera un informe PDF y procesa la subida de una imagen (smoke test en CI)",
+        "El build multi-arch de release.yml sigue funcionando",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 41,
+      "name": "e2e-playwright",
+      "phase": "7",
+      "title": "Tests E2E con Playwright",
+      "description": "Playwright contra el build de producción (API sirviendo la SPA) con una BD temporal, cubriendo los flujos principales, y su job en CI.",
+      "acceptance": [
+        "Hay configuración de Playwright y un script pnpm test:e2e que levanta el servidor con un DATA_DIR temporal",
+        "Flujos cubiertos: registro del primer usuario (admin), crear un vehículo, añadir un mantenimiento con adjunto, añadir un repostaje y ver estadísticas, descargar el informe de venta, y exportar e importar",
+        "Los tests son independientes entre sí y estables (sin sleeps fijos)",
+        "Un job de CI ejecuta los E2E y guarda trazas y capturas si fallan",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 42,
+      "name": "release-v0-1-0",
+      "phase": "7",
+      "title": "Documentación y release v0.1.0",
+      "description": "README con capturas reales (generadas con Playwright), guía de instalación con Docker, variables de entorno, copias de seguridad y exposición a internet; CHANGELOG y preparación del tag v0.1.0. El tag y la publicación solo se hacen con el «merge» explícito del humano.",
+      "acceptance": [
+        "El README tiene capturas de las pantallas principales generadas por un script de Playwright reproducible",
+        "Hay documentación de instalación con docker compose, todas las variables de entorno, copias de seguridad (volumen /data y export) y exposición a internet para los enlaces públicos",
+        "CHANGELOG.md recoge la v0.1.0",
+        "La versión de los package.json es 0.1.0 y docs/PLAN.md marca la fase 7 como hecha",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
     }
   ]
 }
