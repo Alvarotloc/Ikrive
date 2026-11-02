@@ -11,6 +11,7 @@ import { fuelLogsQuery } from '@/features/fuel/queries';
 import { MaintenanceSpendingMetric } from '@/features/maintenance/maintenance-spending';
 import { MaintenanceSection } from '@/features/maintenance/maintenance-timeline';
 import { maintenanceQuery, maintenanceSpendingQuery } from '@/features/maintenance/queries';
+import { SaleReportDialog } from '@/features/reports/sale-report-dialog';
 import { schedulesQuery } from '@/features/schedules/queries';
 import { SchedulesSection } from '@/features/schedules/schedules-section';
 import { statsQuery } from '@/features/stats/queries';
@@ -60,19 +61,22 @@ function VehiclePage() {
 
   return (
     <div className="reveal grid gap-6">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <Button asChild variant="ghost" size="sm">
           <Link to="/vehicles">
             <ArrowLeft aria-hidden />
             {t('vehicles.title')}
           </Link>
         </Button>
-        <Button asChild variant="outline" size="sm">
-          <Link to="/vehicles/$vehicleId/edit" params={{ vehicleId }}>
-            <Pencil aria-hidden />
-            {t('common.edit')}
-          </Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <SaleReportDialog vehicle={vehicle} />
+          <Button asChild variant="outline" size="sm">
+            <Link to="/vehicles/$vehicleId/edit" params={{ vehicleId }}>
+              <Pencil aria-hidden />
+              {t('common.edit')}
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <section className="dossier-paper grid gap-6 rounded-xl border p-5 shadow-soft sm:p-7">

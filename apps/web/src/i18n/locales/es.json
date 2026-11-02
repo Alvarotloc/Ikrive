@@ -533,5 +533,20 @@
       "spendingByMonth": "Hace falta un repostaje o un mantenimiento con coste para ver el gasto por mes.",
       "spendingByCategory": "Hace falta un mantenimiento con coste para ver el gasto por categoría."
     }
+  },
+  "saleReport": {
+    "button": "Informe de venta",
+    "title": "Informe de venta",
+    "description": "Genera un PDF con el historial del vehículo para el comprador. Elige qué datos quieres quitar.",
+    "hidePrices": "Ocultar precios",
+    "hidePlate": "Ocultar matrícula",
+    "hideVin": "Ocultar VIN",
+    "includeInvoices": "Incluir facturas",
+    "includeInvoicesHint": "Se añaden al final las facturas de los mantenimientos incluidos en el informe.",
+    "freeTextWarning": "Solo se quitan los campos del vehículo y de los mantenimientos. Si el alias, la versión o los títulos de los mantenimientos incluyen la matrícula, el VIN o importes, aparecerán en el informe.",
+    "invoicesWarning": "Las facturas se anexan tal cual y pueden mostrar esos datos.",
+    "download": "Descargar",
+    "generating": "Generando…",
+    "error": "No se ha podido generar el informe. Inténtalo de nuevo en unos segundos."
   }
 }
