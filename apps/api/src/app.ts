@@ -32,6 +32,9 @@ import { createNotificationChannelsService } from './modules/notification-channe
 import { createNotificationsRepository } from './modules/notifications/repository';
 import { notificationsRoutes } from './modules/notifications/routes';
 import { createNotificationsService } from './modules/notifications/service';
+import { createReportSharesRepository } from './modules/report-shares/repository';
+import { publicReportRoutes, reportSharesRoutes } from './modules/report-shares/routes';
+import { createReportSharesService } from './modules/report-shares/service';
 import { reportsRoutes } from './modules/reports/routes';
 import { createReportsService } from './modules/reports/service';
 import { createSchedulesRepository } from './modules/schedules/repository';
@@ -126,6 +129,12 @@ export async function buildApp({ config, db, fetch = globalThis.fetch, logStream
     storage,
     maxAnnexBytes: config.REPORT_MAX_ANNEX_MB * 1024 * 1024,
   });
+  const reportSharesService = createReportSharesService({
+    repo: createReportSharesRepository(db),
+    vehicles: vehiclesRepo,
+    reports: reportsService,
+    baseUrl: config.BASE_URL,
+  });
   const schedulesService = createSchedulesService({
     repo: schedulesRepo,
     vehicles: vehiclesRepo,
@@ -165,6 +174,8 @@ export async function buildApp({ config, db, fetch = globalThis.fetch, logStream
       await api.register(fuelLogsRoutes, { service: fuelLogsService });
       await api.register(statsRoutes, { service: statsService });
       await api.register(reportsRoutes, { service: reportsService });
+      await api.register(reportSharesRoutes, { service: reportSharesService });
+      await api.register(publicReportRoutes, { service: reportSharesService });
       await api.register(schedulesRoutes, { service: schedulesService });
       await api.register(attachmentsRoutes, { service: attachmentsService });
       await api.register(notificationsRoutes, { service: notificationsService });

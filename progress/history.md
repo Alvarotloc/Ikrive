@@ -320,3 +320,12 @@
 - **Tests:** shared 98, API 215, web 277. Capturas en claro/oscuro/móvil. `pnpm harness --full` en verde.
 - **Revisión:** APPROVED (`progress/review_sale-report-web.md`). Avisos no bloqueantes: `lib/api-client.ts` importa de `features/reports` (sin ciclo, ya había precedente); R1 sin test de ruta; capturas en scratchpad efímero.
 - **Gate 2:** el humano pidió aplicar los avisos 1 (quitar `empty:hidden` de la región `aria-live`, ahora `not-empty:mt-5`) y 2 (`onError` en el `useMutation` para que el toast salga aunque se cierre el diálogo). Re-revisión APPROVED. Merge aprobado por el humano.
+
+## 2026-11-02 — #32 report-shares-api
+
+- **Rama:** `feat/report-shares-api` (SDD, spec en `specs/report-shares-api/`, 21 R / 11 T). Solo `apps/api` y `packages/shared`. Exploración en `progress/explore_report-shares-api_patterns.md`.
+- **Gate 1:** aprobado sin cambios (enlaces de vehículos archivados/vendidos siguen sirviendo y se pueden crear; cuerpo con booleanos JSON y `expiresInDays` 1–90, 30 por defecto; ruta pública `GET /api/public/reports/:token` con rate limit propio de 10/min por IP que cuenta los 404; estado derivado revoked > expired > active, caducidad = ahora + días × 24 h; revocar idempotente conservando la primera fecha; sin límite ni purga de enlaces; R21 extra: el token no aparece en logs, ya cubierto por `redactUrl`).
+- **Cambios:** shared: `REPORT_SHARE_STATUSES`, `schemas/report-shares.ts` y `reportShareStatus` en `domain/report-shares.ts`. API: tabla `report_shares` (selector único + hash SHA-256 del verificador, opciones, `expires_at`, `revoked_at`, cascada con el vehículo) con migración `0010_report_shares.sql`; módulo `modules/report-shares/` reutilizando `lib/tokens.ts` y `reports.generate`; rutas autenticadas `POST/GET/DELETE /api/vehicles/:id/report-shares` y pública con `inline`, `private, no-store`, `noindex`, `nosniff`.
+- **Tests:** shared 105, API 234, web 277. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED (`progress/review_report-shares-api.md`). Avisos no bloqueantes: `hidePrices` sin test sobre el PDF público; el rate limit cuenta los 404 (decisión de Gate 1).
+- **Gate 2:** el humano pidió añadir el test de `hidePrices` (`hides the prices`, pasó sin cambiar código de producción) y mantener el rate limit. Se explicó cómo probarlo en red local con `BASE_URL` = IP del PC. Re-revisión APPROVED. Merge aprobado por el humano.

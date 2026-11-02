@@ -5,5 +5,6 @@ export * from './fuel';
 export * from './maintenance';
 export * from './notification-channels';
 export * from './notifications';
+export * from './report-shares';
 export * from './settings';
 export * from './vehicles';
