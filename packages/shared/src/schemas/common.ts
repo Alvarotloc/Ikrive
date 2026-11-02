@@ -47,5 +47,7 @@ export type Me = z.infer<typeof meSchema>;
 export const clientConfigSchema = z.object({
   /** Largest file the API accepts in an upload, in MB (`MAX_UPLOAD_MB`). */
   maxUploadMb: z.number().int().positive(),
+  /** `BASE_URL` points to a host only reachable from the local network (public links will not work outside). */
+  localBaseUrl: z.boolean(),
 });
 export type ClientConfig = z.infer<typeof clientConfigSchema>;

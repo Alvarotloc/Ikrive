@@ -36,7 +36,12 @@ const freeTextWarning = /Solo se quitan los campos del vehículo y de los manten
 const invoicesWarning = /Las facturas se anexan tal cual/;
 
 function setup(routes: MockRoutes = {}, vehicle: Partial<ReportVehicle> = {}) {
-  const fetchMock = mockApi(routes);
+  // The public links section of the dialog asks for the server config and the vehicle's links.
+  const fetchMock = mockApi({
+    'GET /config': { body: { maxUploadMb: 1, localBaseUrl: false } },
+    'GET /vehicles/v1/report-shares': { body: [] },
+    ...routes,
+  });
   const rendered = renderWithProviders(
     <>
       <Toaster />
@@ -91,7 +96,9 @@ describe('SaleReportDialog', () => {
     );
     for (const box of boxes) expect(box).not.toBeChecked();
 
-    // Focus is trapped: Tab from the last element wraps to the first one and Shift+Tab back.
+    // Focus is trapped: Tab from the last element («Descargar», below the public links) wraps to the
+    // first one and Shift+Tab back.
+    await screen.findByText('Todavía no has creado ningún enlace para este vehículo.');
     const download = screen.getByRole('button', { name: 'Descargar' });
     download.focus();
     await user.tab();

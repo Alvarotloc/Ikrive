@@ -29,6 +29,8 @@ export const queryKeys = {
      * whole tree, so the statistics refresh with them.
      */
     stats: (id: string) => ['vehicles', 'detail', id, 'stats'] as const,
+    /** Public links to the sale report; creating or revoking one refreshes it. */
+    reportShares: (id: string) => ['vehicles', 'detail', id, 'report-shares'] as const,
     /** Under `maintenance(id)`: creating or deleting a record already invalidates them. */
     attachments: (id: string, recordId: string) =>
       ['vehicles', 'detail', id, 'maintenance', recordId, 'attachments'] as const,

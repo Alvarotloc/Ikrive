@@ -113,7 +113,8 @@
     "error": "Something went wrong",
     "cancel": "Cancel",
     "delete": "Delete",
-    "edit": "Edit"
+    "edit": "Edit",
+    "copy": "Copy"
   },
   "validation": {
     "required": "This field is required.",
@@ -487,7 +488,6 @@
     "activeSince": "Active since {{date}}",
     "urlLabel": "Feed URL",
     "urlHint": "Copy it now: for security it is only shown once. If you lose it, regenerate the feed.",
-    "copy": "Copy",
     "copied": "URL copied",
     "regenerate": "Regenerate",
     "regenerateTitle": "Regenerate the feed URL?",
@@ -548,5 +548,38 @@
     "download": "Download",
     "generating": "Generating…",
     "error": "The report could not be generated. Try again in a few seconds."
+  },
+  "reportShares": {
+    "title": "Share with a link",
+    "description": "Create a public link to the report with the checked options. It only works if this server is reachable from the internet; if it is not, download the PDF and send it.",
+    "localWarning": "This server is configured with a local address (BASE_URL): the link cannot be opened from outside your network. Download the PDF and send it.",
+    "expiry": "Expires in",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days",
+    "create": "Create link",
+    "creating": "Creating…",
+    "createError": "The link could not be created. Please try again.",
+    "urlLabel": "Public link",
+    "urlHint": "Copy it now: for security it cannot be shown again once you close this dialog.",
+    "copied": "Link copied",
+    "empty": "You have not created any links for this vehicle yet.",
+    "loadError": "The links could not be loaded.",
+    "expiresOn": "Expires on {{date}}",
+    "status": {
+      "active": "Active",
+      "expired": "Expired",
+      "revoked": "Revoked"
+    },
+    "options": {
+      "hidePrices": "No prices",
+      "hidePlate": "No plate",
+      "hideVin": "No VIN",
+      "includeInvoices": "With invoices",
+      "full": "Full report"
+    },
+    "revoke": "Revoke",
+    "revokeTitle": "Revoke this link?",
+    "revokeDescription": "Whoever has it will no longer be able to open the report. This cannot be undone.",
+    "revokeError": "The link could not be revoked. Please try again."
   }
 }

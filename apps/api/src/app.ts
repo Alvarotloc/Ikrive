@@ -7,6 +7,7 @@ import { serializerCompiler, validatorCompiler, type ZodTypeProvider } from 'fas
 import { createAuth } from './auth';
 import type { Config } from './config';
 import type { Db } from './db/client';
+import { isLocalBaseUrl } from './lib/base-url';
 import { type LogStream, loggerOptions } from './lib/logging';
 import { createFileStorage } from './lib/storage';
 import { adminRoutes } from './modules/admin/routes';
@@ -164,7 +165,10 @@ export async function buildApp({ config, db, fetch = globalThis.fetch, logStream
   await app.register(
     async (api) => {
       await api.register(healthRoutes);
-      await api.register(clientConfigRoutes, { maxUploadMb: config.MAX_UPLOAD_MB });
+      await api.register(clientConfigRoutes, {
+        maxUploadMb: config.MAX_UPLOAD_MB,
+        localBaseUrl: isLocalBaseUrl(config.BASE_URL),
+      });
       await api.register(meRoutes);
       await api.register(settingsRoutes, { service: settingsService });
       await api.register(calendarFeedSettingsRoutes, { service: calendarService });
