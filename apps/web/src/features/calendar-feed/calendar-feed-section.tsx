@@ -1,8 +1,9 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
-import { CalendarClock, Copy, RefreshCw } from 'lucide-react';
-import { type ReactNode, useId, useState } from 'react';
+import { CalendarClock, RefreshCw } from 'lucide-react';
+import { type ReactNode, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { CopyUrlField } from '@/components/copy-url-field';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -15,8 +16,6 @@ import {
   AlertDialogTrigger,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useFormat } from '@/lib/format';
 import { calendarFeedQuery, useDisableCalendarFeed, useEnableCalendarFeed } from './queries';
 
@@ -76,7 +75,14 @@ export function CalendarFeedSection() {
                 {t('calendarFeed.activeSince', { date: format.dateTime(feed.createdAt) })}
               </p>
             )}
-            {url && <FeedUrl url={url} />}
+            {url && (
+              <CopyUrlField
+                url={url}
+                label={t('calendarFeed.urlLabel')}
+                hint={t('calendarFeed.urlHint')}
+                copiedMessage={t('calendarFeed.copied')}
+              />
+            )}
             <div className="flex flex-wrap gap-2">
               <ConfirmDialog
                 trigger={
@@ -111,48 +117,6 @@ export function CalendarFeedSection() {
         )}
       </CardContent>
     </Card>
-  );
-}
-
-/** Read-only URL (selected on focus) with a copy button when the clipboard is available. */
-function FeedUrl({ url }: { url: string }) {
-  const { t } = useTranslation();
-  const id = useId();
-  // Only in secure contexts (https or localhost): on a plain-http LAN install the field stays selectable.
-  const canCopy = typeof navigator !== 'undefined' && Boolean(navigator.clipboard);
-
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(url);
-      toast.success(t('calendarFeed.copied'));
-    } catch {
-      toast.error(t('common.error'));
-    }
-  };
-
-  return (
-    <div className="grid gap-2">
-      <Label htmlFor={id}>{t('calendarFeed.urlLabel')}</Label>
-      <div className="flex flex-wrap gap-2">
-        <Input
-          id={id}
-          readOnly
-          value={url}
-          aria-describedby={`${id}-hint`}
-          onFocus={(event) => event.currentTarget.select()}
-          className="min-w-0 flex-1 basis-64 font-mono text-sm"
-        />
-        {canCopy && (
-          <Button variant="default" onClick={copy}>
-            <Copy aria-hidden />
-            {t('calendarFeed.copy')}
-          </Button>
-        )}
-      </div>
-      <p id={`${id}-hint`} className="text-sm text-muted-foreground">
-        {t('calendarFeed.urlHint')}
-      </p>
-    </div>
   );
 }
 

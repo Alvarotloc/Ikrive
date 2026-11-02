@@ -113,7 +113,8 @@
     "error": "Algo ha ido mal",
     "cancel": "Cancelar",
     "delete": "Eliminar",
-    "edit": "Editar"
+    "edit": "Editar",
+    "copy": "Copiar"
   },
   "validation": {
     "required": "Este campo es obligatorio.",
@@ -487,7 +488,6 @@
     "activeSince": "Activo desde {{date}}",
     "urlLabel": "URL del feed",
     "urlHint": "Cópiala ahora: por seguridad solo se muestra una vez. Si la pierdes, regenera el feed.",
-    "copy": "Copiar",
     "copied": "URL copiada",
     "regenerate": "Regenerar",
     "regenerateTitle": "¿Regenerar la URL del feed?",
@@ -548,5 +548,38 @@
     "download": "Descargar",
     "generating": "Generando…",
     "error": "No se ha podido generar el informe. Inténtalo de nuevo en unos segundos."
+  },
+  "reportShares": {
+    "title": "Compartir con un enlace",
+    "description": "Crea un enlace público al informe con las opciones marcadas. Solo funciona si este servidor es accesible desde internet; si no lo es, descarga el PDF y envíalo.",
+    "localWarning": "Este servidor está configurado con una dirección local (BASE_URL): el enlace no se podrá abrir desde fuera de tu red. Descarga el PDF y envíalo.",
+    "expiry": "Caducidad",
+    "days_one": "{{count}} día",
+    "days_other": "{{count}} días",
+    "create": "Crear enlace",
+    "creating": "Creando…",
+    "createError": "No se ha podido crear el enlace. Inténtalo de nuevo.",
+    "urlLabel": "Enlace público",
+    "urlHint": "Cópialo ahora: por seguridad no se podrá volver a ver cuando cierres este diálogo.",
+    "copied": "Enlace copiado",
+    "empty": "Todavía no has creado ningún enlace para este vehículo.",
+    "loadError": "No se han podido cargar los enlaces.",
+    "expiresOn": "Caduca el {{date}}",
+    "status": {
+      "active": "Activo",
+      "expired": "Caducado",
+      "revoked": "Revocado"
+    },
+    "options": {
+      "hidePrices": "Sin precios",
+      "hidePlate": "Sin matrícula",
+      "hideVin": "Sin VIN",
+      "includeInvoices": "Con facturas",
+      "full": "Informe completo"
+    },
+    "revoke": "Revocar",
+    "revokeTitle": "¿Revocar este enlace?",
+    "revokeDescription": "Quien lo tenga dejará de poder abrir el informe. No se puede deshacer.",
+    "revokeError": "No se ha podido revocar el enlace. Inténtalo de nuevo."
   }
 }

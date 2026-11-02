@@ -1,6 +1,6 @@
 import type { SaleReportOptions, Vehicle } from '@ikrive/shared';
-import { Download, FileText, Loader2, TriangleAlert } from 'lucide-react';
-import { type ReactNode, useState } from 'react';
+import { Download, FileText, Loader2 } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,9 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { useDownloadSaleReport } from './queries';
+import { ReportSharesSection } from './report-shares-section';
 import { hidesAnything } from './sale-report';
+import { Warning } from './warning';
 
 type ReportVehicle = Pick<Vehicle, 'id' | 'name' | 'make' | 'model' | 'plate' | 'vin'>;
 
@@ -25,7 +27,7 @@ const NO_OPTIONS: SaleReportOptions = {
   includeInvoices: false,
 };
 
-/** «Sale report» button and the dialog with its privacy options and the PDF download. */
+/** «Sale report» button and the dialog with its privacy options, the PDF download and the public links. */
 export function SaleReportDialog({ vehicle }: { vehicle: ReportVehicle }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -91,7 +93,11 @@ function SaleReportForm({ vehicle, onDownloaded }: { vehicle: ReportVehicle; onD
           {hiding && options.includeInvoices && <Warning>{t('saleReport.invoicesWarning')}</Warning>}
         </div>
       </div>
-      <DialogFooter>
+      <hr />
+      {/* Inside the form so the link uses the same checked options; its buttons are `type="button"`. */}
+      <ReportSharesSection vehicleId={vehicle.id} options={options} />
+      {/* Last, below the links, so the dialog ends with its actions; it still submits the download form. */}
+      <DialogFooter className="border-t pt-5">
         <DialogClose asChild>
           <Button type="button" variant="ghost">
             {t('common.cancel')}
@@ -103,14 +109,5 @@ function SaleReportForm({ vehicle, onDownloaded }: { vehicle: ReportVehicle; onD
         </Button>
       </DialogFooter>
     </form>
-  );
-}
-
-function Warning({ children }: { children: ReactNode }) {
-  return (
-    <p className="flex gap-2.5 rounded-lg bg-warning/15 p-3 text-sm text-foreground">
-      <TriangleAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-warning" />
-      <span>{children}</span>
-    </p>
   );
 }
