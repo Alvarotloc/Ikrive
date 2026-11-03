@@ -21,6 +21,9 @@ import { clientConfigRoutes } from './modules/client-config/routes';
 import { createDataExportRepository } from './modules/data-export/repository';
 import { dataExportRoutes } from './modules/data-export/routes';
 import { createDataExportService } from './modules/data-export/service';
+import { createDataImportRepository } from './modules/data-import/repository';
+import { dataImportRoutes } from './modules/data-import/routes';
+import { createDataImportService } from './modules/data-import/service';
 import { createFuelLogsRepository } from './modules/fuel-logs/repository';
 import { fuelLogsRoutes } from './modules/fuel-logs/routes';
 import { createFuelLogsService } from './modules/fuel-logs/service';
@@ -164,6 +167,21 @@ export async function buildApp({ config, db, fetch = globalThis.fetch, logStream
     storage,
     log: app.log,
   });
+  const importMaxBytes = config.IMPORT_MAX_MB * MIB;
+  const dataImportService = createDataImportService({
+    repo: createDataImportRepository(db),
+    settings: settingsService,
+    storage,
+    tmpDir: tmpPath(config),
+    limits: {
+      zipBytes: importMaxBytes,
+      totalBytes: importMaxBytes,
+      fileBytes: config.MAX_UPLOAD_MB * MIB,
+      dataJsonBytes: 32 * MIB,
+      entries: 50_000,
+    },
+    log: app.log,
+  });
   const attachmentsService = createAttachmentsService({
     repo: attachmentsRepo,
     maintenance: maintenanceRepo,
@@ -180,6 +198,7 @@ export async function buildApp({ config, db, fetch = globalThis.fetch, logStream
       });
       await api.register(meRoutes);
       await api.register(dataExportRoutes, { service: dataExportService });
+      await api.register(dataImportRoutes, { service: dataImportService });
       await api.register(settingsRoutes, { service: settingsService });
       await api.register(calendarFeedSettingsRoutes, { service: calendarService });
       await api.register(calendarFeedRoutes, { service: calendarService });
@@ -216,6 +235,9 @@ export async function buildApp({ config, db, fetch = globalThis.fetch, logStream
 }
 
 const isApiRequest = (url: string) => url.startsWith('/api/');
+const MIB = 1024 * 1024;
 
 export const databasePath = (config: Config) => join(config.DATA_DIR, 'ikrive.db');
 export const uploadsPath = (config: Config) => join(config.DATA_DIR, 'uploads');
+/** Temporary files of a request (an uploaded import zip), on the same volume as the uploads. */
+export const tmpPath = (config: Config) => join(config.DATA_DIR, 'tmp');
