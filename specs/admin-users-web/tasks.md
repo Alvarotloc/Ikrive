@@ -1,0 +1,33 @@
+# Tasks — admin-users-web
+
+- [ ] T1 — Textos `nav.users`, `auth.accountDisabled` y namespace `adminUsers` (incluidos `vehicles_one`/`_other`, `demoteSelfTitle`/`demoteSelfDescription`/`demoteSelfConfirm`, `locks.self`, `locks.last_admin`, `errors.conflict`) en `apps/web/src/i18n/locales/es.json` y `en.json`. Cubre: R18, R23.
+- [ ] T2 — `apps/web/src/features/auth/sign-in-error.ts` (`signInErrorKey`) y usarlo en `apps/web/src/routes/login.tsx`. Cubre: R21, R22.
+- [ ] T3 — Test unitario `maps a 403 to the disabled account message and the rest to invalid credentials` en `apps/web/src/features/auth/sign-in-error.test.ts` (403, 401, 500). Cubre: R21, R22.
+- [ ] T4 — Tests de componente en `apps/web/src/features/auth/login-page.test.tsx` (`routeTree` en `/login`, `GET /me` 401):
+  - `shows a disabled account message when sign-in returns 403` (`POST /auth/sign-in/email` 403 `{ message: 'This account is disabled' }` → `role="alert"` con «Esta cuenta está desactivada…» y sin «Email o contraseña incorrectos»). Cubre: R21.
+  - `shows invalid credentials when sign-in returns 401`. Cubre: R22.
+- [ ] T5 — `navItemsFor(role)` y entrada `adminOnly` «Usuarios» en `apps/web/src/features/navigation/nav-items.ts`; `AppNavigation` la usa con `useQuery(meQuery)` en barra lateral y menú móvil. Cubre: R1, R2.
+- [ ] T6 — Test unitario `includes the users entry only for admins` en `apps/web/src/features/navigation/nav-items.test.ts`. Cubre: R1, R2.
+- [ ] T7 — `apps/web/src/features/navigation/app-navigation.test.tsx`: `GET /me` (`role: 'user'`) en los mocks por defecto, página `/admin/users` en el router de prueba y tests `shows the users entry to an admin in the sidebar and the menu` y `hides the users entry from a regular user`. Cubre: R1, R2.
+- [ ] T8 — `queryKeys.adminUsers` en `apps/web/src/lib/query-keys.ts` y `apps/web/src/features/admin-users/queries.ts` (`adminUsersQuery` y las cuatro mutaciones con `onSettled` que invalida `queryKeys.adminUsers`). Cubre: R7, R8, R10, R11, R13, R19.
+- [ ] T9 — `apps/web/src/features/admin-users/errors.ts` (`adminUserErrorKey`) y test unitario `maps a 409 to the conflict message and the rest to the generic error` en `errors.test.ts`. Cubre: R19, R20.
+- [ ] T10 — `apps/web/src/features/admin-users/user-row.tsx` (datos, selector de rol, desactivar/reactivar, `DeleteUserDialog`, `DemoteSelfDialog` con `Select` controlado, párrafos de motivo con `aria-describedby`, toasts, auto-degradación → `fetchQuery(meQuery)` + `navigate('/')`) y `users-page.tsx` (`AdminUsersPage` con carga y error). Cubre: R4, R5, R6, R7, R9, R10, R11, R12, R13, R14, R15, R16, R17, R18, R19, R20, R24, R25.
+- [ ] T11 — Ruta `apps/web/src/routes/_app/admin/users.tsx` con la guarda `beforeLoad` (no admin → `redirect({ to: '/' })`). Cubre: R3.
+- [ ] T12 — Test `redirects a regular user to the dashboard` en `apps/web/src/features/admin-users/admin-route.test.tsx` (`routeTree` en `/admin/users` con `role: 'user'` → ruta final `/` y ninguna llamada a `GET /admin/users`). Cubre: R3.
+- [ ] T13 — Tests de componente en `apps/web/src/features/admin-users/users-page.test.tsx` (router en memoria mínimo con `/admin/users` y `/`, `mockApi` con `GET /settings`, `<Toaster />`, factoría `adminUser(overrides)`):
+  - `lists the users with role, status, sign-up date and vehicles` (dos filas en orden con nombre, email, «Administrador»/«Usuario», «Activa»/«Desactivada», fecha y «2 vehículos»). Cubre: R4.
+  - `shows the loading text and then the users` (respuesta retenida → «Cargando…»). Cubre: R5.
+  - `shows an error when the list fails` (500 → `role="alert"` con `adminUsers.loadError`). Cubre: R6.
+  - `changes a user's role` (`selectOptions` → `PUT /admin/users/u2/role` con `{ role: 'admin' }`, toast de éxito y segunda llamada a `GET /admin/users`). Cubre: R7, R8.
+  - `asks for confirmation before demoting yourself and keeps the role when cancelled` (fila `isSelf` → `user` → `alertdialog` con el aviso de pérdida inmediata y de que solo otro admin puede devolverlo, sin `PUT`; «Cancelar» → sin `PUT` y el selector con valor `admin`). Cubre: R24, R25.
+  - `refreshes the session and leaves after demoting yourself` (fila `isSelf` → `user` → confirmar el `alertdialog` → `PUT /admin/users/u1/role` con `{ role: 'user' }`, nueva petición `GET /me` y página `/`). Cubre: R7, R9, R24.
+  - `demotes another admin without confirmation` (fila admin no `isSelf` → `user` → `PUT` directo, sin `alertdialog`). Cubre: R7.
+  - `disables an active user` y `re-enables a disabled user` (petición enviada, toast y relectura del listado). Cubre: R8, R10, R11.
+  - `asks for confirmation before deleting and sends nothing when cancelled` (`alertdialog` con nombre, email y aviso; «Cancelar» → sin `DELETE`). Cubre: R12, R14.
+  - `deletes a user after confirming` (`DELETE /admin/users/u2` 204, toast y relectura). Cubre: R8, R13.
+  - `disables the actions locked for yourself` (fila `isSelf` con `disable`/`delete: 'self'` → botones deshabilitados con `toHaveAccessibleDescription` del texto `self`). Cubre: R16, R17, R18.
+  - `disables demoting the last admin` (`demote: 'last_admin'` → selector deshabilitado con la descripción `last_admin`). Cubre: R15, R18.
+  - `shows a conflict and refreshes the list when an action returns 409` (disable → 409 → toast de conflicto y nueva `GET /admin/users`). Cubre: R19.
+  - `shows the generic error when an action fails` (500 → toast «Algo ha ido mal»). Cubre: R20.
+- [ ] T14 — Revisión visual de `/admin/users` (claro, oscuro y móvil, con una fila bloqueada y el diálogo de borrado abierto) y del login con el mensaje de cuenta desactivada; rutas de las capturas en `progress/impl_admin-users-web.md`. Cubre: R4, R15, R21.
+- [ ] T15 — Ejecutar `pnpm harness --full` (incluye `es and en define the same keys` de `i18n/locales.test.ts`) y documentar trazabilidad en `progress/impl_admin-users-web.md`. Cubre: R23.
