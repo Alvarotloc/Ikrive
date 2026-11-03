@@ -647,7 +647,7 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
-      "status": "in_progress"
+      "status": "done"
     },
     {
       "id": 38,
@@ -760,6 +760,22 @@
         "Si un vehículo del export tiene la misma matrícula o VIN que un vehículo existente de la cuenta, el import se completa y la respuesta lo indica para que la web lo avise",
         "La web muestra un mensaje traducido para el 409 de import repetido y el aviso de vehículos coincidentes (es.json y en.json)",
         "Tests de integración cubren el import repetido, el de otra cuenta y la coincidencia por matrícula/VIN; tests de componente cubren los mensajes",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 45,
+      "name": "disabled-user-public-access",
+      "phase": "7",
+      "title": "Cortar el acceso por token de las cuentas desactivadas",
+      "description": "Desactivar una cuenta (#37) borra sus sesiones e impide el login, pero lo que funciona por token sigue activo: el feed iCal del calendario, los enlaces públicos de informe de venta y cualquier otro acceso por token del usuario. Mientras la cuenta esté desactivada, esos accesos deben dejar de servir datos; al reactivarla vuelven a funcionar sin regenerar tokens. Surgió en la revisión de #37.",
+      "acceptance": [
+        "Mientras el dueño está desactivado, el feed iCal y los enlaces públicos de informe responden 404 (igual que un token inexistente, sin revelar el motivo)",
+        "Al reactivar la cuenta, el feed y los enlaces que no estuvieran revocados ni caducados vuelven a funcionar con el mismo token",
+        "Se revisa si existe algún otro acceso por token o tarea en segundo plano (recordatorios, notificaciones push) que deba omitir a los usuarios desactivados y se aplica el mismo criterio",
+        "Tests de integración cubren feed y enlaces con el dueño desactivado y reactivado",
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
