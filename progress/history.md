@@ -356,3 +356,12 @@
 - **Tests:** shared 111, API 277, web 289. `pnpm harness --full` en verde.
 - **Revisión:** 3 vueltas (la tercera autorizada por el humano). V1: multipart sin boundary de cierre colgaba la petición y dejaba el zip temporal abierto; faltaban tests de R18 y R25. V2: cuelgue resuelto, pero en varios chunks daba 500. V3: errores del origen → 400, de escritura → 500. APPROVED (`progress/review_data-import-api.md`), verificado contra el servidor real. Avisos: la subida de adjuntos/foto responde 500 a un multipart incompleto (→ #43); flake puntual en `use-user-locale.test.tsx`; el test del 500 por escritura no vale como root.
 - **Gate 2:** el humano pidió añadir #43 `truncated-upload-400` (`sdd: false`) al backlog. Merge aprobado.
+
+## 2026-11-03 — #36 data-portability-web
+
+- **Rama:** `feat/data-portability-web` (SDD, spec en `specs/data-portability-web/`, 11 R / 9 T). Solo `apps/web`; sin cambios en API, shared ni BD.
+- **Gate 1:** aprobado sin cambios (export como enlace nativo `<a download>` sin toast si falla; error traducido por estado con el `detail` de la API como descripción; el diálogo avisa de que moneda y unidades deben coincidir; sin límite de tamaño en el cliente; sección al final de Ajustes).
+- **Cambios:** `features/data-portability/` (`import.ts` con `IMPORT_ACCEPT` e `importErrorKey`, `queries.ts` con `EXPORT_URL` y `useImportData` que invalida `vehicles.all` y `notificationChannels.all`, `DataPortabilitySection` con enlace de export, input oculto, `AlertDialog` de confirmación, «Importando…», resumen de 8 contadores y aviso de canales omitidos), montada en `routes/_app/settings.tsx`; textos `dataPortability.*` en es/en.
+- **Tests:** shared 111, API 277, web 299. Capturas claro/oscuro/móvil con un import real. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED a la primera (`progress/review_data-portability-web.md`). Avisos no bloqueantes: `mutateAsync` + `try/catch` para que el toast salga aunque se salga de Ajustes; el toast de éxito espera al refetch; el test de R5 inspecciona el `FormData` (limitación de jsdom); capturas en scratchpad efímero.
+- **Gate 2:** el humano preguntó por los duplicados al importar dos veces el mismo zip; se añadió #44 `import-dedupe` (`sdd: true`) al backlog. Merge aprobado.

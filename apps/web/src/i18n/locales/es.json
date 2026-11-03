@@ -581,5 +581,37 @@
     "revokeTitle": "¿Revocar este enlace?",
     "revokeDescription": "Quien lo tenga dejará de poder abrir el informe. No se puede deshacer.",
     "revokeError": "No se ha podido revocar el enlace. Inténtalo de nuevo."
+  },
+  "dataPortability": {
+    "title": "Tus datos",
+    "description": "Descarga una copia de todo lo que guardas en Ikrive o importa un export de otra cuenta o instancia.",
+    "export": "Descargar mis datos",
+    "exportHint": "Un zip con tus vehículos, su historial, facturas, fotos y ajustes.",
+    "import": "Importar datos",
+    "importing": "Importando…",
+    "fileInput": "Fichero de export de Ikrive (.zip)",
+    "confirmTitle": "¿Importar este export?",
+    "confirmDescription": "Los datos de «{{name}}» se añadirán a tu cuenta: no se borra ni se modifica nada de lo que ya tienes. La moneda y las unidades del export deben coincidir con las de tus ajustes.",
+    "confirm": "Importar",
+    "imported": "Datos importados",
+    "summaryTitle": "Último import",
+    "summary": {
+      "vehicles": "Vehículos",
+      "odometerReadings": "Lecturas de odómetro",
+      "maintenanceSchedules": "Programaciones",
+      "maintenanceRecords": "Mantenimientos",
+      "fuelLogs": "Repostajes",
+      "attachments": "Adjuntos",
+      "photos": "Fotos",
+      "notificationChannels": "Canales de notificación"
+    },
+    "skippedChannels_one": "{{count}} canal de notificación no se ha importado porque necesita un token: vuelve a crearlo en «Canales de notificación».",
+    "skippedChannels_other": "{{count}} canales de notificación no se han importado porque necesitan un token: vuelve a crearlos en «Canales de notificación».",
+    "errors": {
+      "invalid": "El fichero no es un export de Ikrive válido",
+      "settings": "La moneda o las unidades del export no coinciden con tus ajustes",
+      "tooLarge": "El fichero es demasiado grande",
+      "fileType": "Tipo de fichero no admitido: elige un .zip"
+    }
   }
 }

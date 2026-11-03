@@ -101,4 +101,14 @@ describe('settings page', () => {
     expect(popover).toHaveTextContent('7 días o más sin lectura de kilómetros');
     expect(popover).toHaveTextContent('«No avisar»');
   });
+
+  it('shows the data section', async () => {
+    renderSettings();
+
+    expect(await screen.findByRole('heading', { name: 'Tus datos' })).toBeInTheDocument();
+    const link = screen.getByRole('link', { name: 'Descargar mis datos' });
+    expect(link).toHaveAttribute('href', '/api/me/export');
+    expect(link).toHaveAttribute('download');
+    expect(screen.getByRole('button', { name: 'Importar datos' })).toBeInTheDocument();
+  });
 });

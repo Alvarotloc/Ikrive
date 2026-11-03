@@ -22,6 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { CalendarFeedSection } from '@/features/calendar-feed/calendar-feed-section';
 import { calendarFeedQuery } from '@/features/calendar-feed/queries';
+import { DataPortabilitySection } from '@/features/data-portability/data-section';
 import { NotificationChannelsSection } from '@/features/notification-channels/channels-section';
 import { notificationChannelsQuery } from '@/features/notification-channels/queries';
 import { settingsQuery, useUpdateSettings } from '@/features/settings/queries';
@@ -190,6 +191,7 @@ function SettingsPage() {
           </FormField>
         </CardContent>
       </Card>
+      <DataPortabilitySection />
     </div>
   );
 }

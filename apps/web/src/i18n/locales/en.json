@@ -581,5 +581,37 @@
     "revokeTitle": "Revoke this link?",
     "revokeDescription": "Whoever has it will no longer be able to open the report. This cannot be undone.",
     "revokeError": "The link could not be revoked. Please try again."
+  },
+  "dataPortability": {
+    "title": "Your data",
+    "description": "Download a copy of everything you keep in Ikrive or import an export from another account or instance.",
+    "export": "Download my data",
+    "exportHint": "A zip with your vehicles, their history, invoices, photos and settings.",
+    "import": "Import data",
+    "importing": "Importing…",
+    "fileInput": "Ikrive export file (.zip)",
+    "confirmTitle": "Import this export?",
+    "confirmDescription": "The data in “{{name}}” will be added to your account: nothing you already have is deleted or changed. The export currency and units must match your settings.",
+    "confirm": "Import",
+    "imported": "Data imported",
+    "summaryTitle": "Last import",
+    "summary": {
+      "vehicles": "Vehicles",
+      "odometerReadings": "Odometer readings",
+      "maintenanceSchedules": "Schedules",
+      "maintenanceRecords": "Maintenance records",
+      "fuelLogs": "Refuels",
+      "attachments": "Attachments",
+      "photos": "Photos",
+      "notificationChannels": "Notification channels"
+    },
+    "skippedChannels_one": "{{count}} notification channel was not imported because it needs a token: create it again in “Notification channels”.",
+    "skippedChannels_other": "{{count}} notification channels were not imported because they need a token: create them again in “Notification channels”.",
+    "errors": {
+      "invalid": "The file is not a valid Ikrive export",
+      "settings": "The export currency or units do not match your settings",
+      "tooLarge": "The file is too large",
+      "fileType": "Unsupported file type: choose a .zip"
+    }
   }
 }
