@@ -780,6 +780,21 @@
       ],
       "sdd": true,
       "status": "pending"
+    },
+    {
+      "id": 46,
+      "name": "settings-test-flake",
+      "phase": "7",
+      "title": "Test intermitente de la página de Ajustes",
+      "description": "settings-page.test.tsx › «saves the reminder hour» falla de forma intermitente (1 de 5 ejecuciones de pnpm harness --full): findByLabelText(\"Hora de los recordatorios\") agota su timeout con el body vacío porque la página, montada con RouterProvider y su loader, aún no ha renderizado. Es el primer test del fichero y la página es más pesada desde #36 (sección «Tus datos»). Detectado en Gate 2 de #37.",
+      "acceptance": [
+        "Se identifica la causa (carga del loader, coste del primer render, timeout por defecto de findBy*) y se corrige sin limitarse a subir timeouts a ciegas",
+        "Si la causa afecta a otros tests de página con RouterProvider, el arreglo se aplica en el helper común en lugar de test a test",
+        "settings-page.test.tsx pasa en 20 ejecuciones seguidas de la suite web (por ejemplo, vitest run --repeat o un bucle) y el informe lo documenta",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
+      "status": "pending"
     }
   ]
 }
