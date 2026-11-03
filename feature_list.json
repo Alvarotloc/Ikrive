@@ -630,7 +630,7 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
-      "status": "in_progress"
+      "status": "done"
     },
     {
       "id": 37,
@@ -745,6 +745,23 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": false,
+      "status": "pending"
+    },
+    {
+      "id": 44,
+      "name": "import-dedupe",
+      "phase": "7",
+      "title": "Evitar importar dos veces el mismo export",
+      "description": "POST /api/me/import (#35) siempre añade con ids nuevos, así que importar dos veces el mismo zip duplica vehículos, mantenimientos, repostajes y adjuntos. Guardar una huella (sha256 de data.json) de cada import por usuario y rechazar uno repetido; avisar sin bloquear de vehículos con la misma matrícula o VIN que uno existente. Surgió en Gate 2 de #36.",
+      "acceptance": [
+        "Importar en una cuenta un zip cuyo data.json ya se importó en esa cuenta responde 409 problem+json y no crea nada",
+        "El mismo zip se puede importar en otra cuenta distinta",
+        "Si un vehículo del export tiene la misma matrícula o VIN que un vehículo existente de la cuenta, el import se completa y la respuesta lo indica para que la web lo avise",
+        "La web muestra un mensaje traducido para el 409 de import repetido y el aviso de vehículos coincidentes (es.json y en.json)",
+        "Tests de integración cubren el import repetido, el de otra cuenta y la coincidencia por matrícula/VIN; tests de componente cubren los mensajes",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
       "status": "pending"
     }
   ]
