@@ -613,7 +613,7 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
-      "status": "in_progress"
+      "status": "done"
     },
     {
       "id": 36,
@@ -730,6 +730,21 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 43,
+      "name": "truncated-upload-400",
+      "phase": "7",
+      "title": "Subidas multipart incompletas responden 400",
+      "description": "Las rutas de subida de adjuntos (POST /api/vehicles/:id/maintenance/:recordId/attachments) y de foto del vehículo (PUT /api/vehicles/:id/photo) usan file.toBuffer(); si el multipart llega sin boundary de cierre o se corta, responden 500. Debe responder 400 como hace POST /api/me/import desde #35. Arreglo menor detectado en la revisión de #35.",
+      "acceptance": [
+        "Un multipart sin boundary de cierre o cortado a mitad (en uno o varios chunks) en la subida de adjuntos y en la de foto del vehículo responde 400 problem+json, no 500",
+        "La lógica de traducción del error de la subida se comparte con la ruta de import si es razonable",
+        "Tests de integración cubren ambos casos en las dos rutas",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
       "status": "pending"
     }
   ]

@@ -347,3 +347,12 @@
 - **Tests:** shared 111, API 251, web 289. `pnpm harness --full` en verde y `docker build` OK.
 - **Revisión:** CHANGES_REQUESTED (un error de lectura de un fichero a mitad del zip tumbaba el proceso por `'error'` sin manejar) → APPROVED (`progress/review_data-export-api.md`), verificado contra el servidor real con ficheros ilegibles y descargas abortadas. Avisos no bloqueantes: el esquema no limita la longitud de las cadenas, así que el import (#35) debe acotar el tamaño del zip y de `data.json`.
 - **Gate 2:** merge aprobado por el humano sin cambios.
+
+## 2026-11-03 — #35 data-import-api
+
+- **Rama:** `feat/data-import-api` (SDD, spec en `specs/data-import-api/`, 27 R / 16 T). `apps/api` y `packages/shared`.
+- **Gate 1:** aprobado sin cambios (añade, no sobrescribe; 409 si `currency`/`distanceUnit`/`volumeUnit` no coinciden y el resto de ajustes se ignoran; canales con token omitidos y contados en `skipped`, los demás revalidados con el esquema estricto; fotos guardadas tal cual si son WebP decodificable; `IMPORT_MAX_MB` = 1024, `data.json` ≤ 32 MiB, ≤ 50 000 entradas; 413 tamaños, 415 tipos, 400 el resto; sin revalidar reglas de negocio; el import no crea notificaciones).
+- **Cambios:** shared: `dataImportSummarySchema`. API: `IMPORT_MAX_MB`, `PayloadTooLargeError` y `errors[]` en `AppError`/problem; `lib/zip-reader.ts` sobre `yauzl` (límites declarados, `validateEntrySizes`, entradas cifradas/duplicadas/inseguras → 400); módulo `modules/data-import/` (zip a `DATA_DIR/tmp`, validación de tipo real con `detectAttachmentType`/`assertDecodableImage`, ficheros primero y una sola transacción con ids nuevos y remapeo, borrado compensatorio) y `POST /api/me/import`. `yauzl` pasa a dependencia. README y `.env.example`.
+- **Tests:** shared 111, API 277, web 289. `pnpm harness --full` en verde.
+- **Revisión:** 3 vueltas (la tercera autorizada por el humano). V1: multipart sin boundary de cierre colgaba la petición y dejaba el zip temporal abierto; faltaban tests de R18 y R25. V2: cuelgue resuelto, pero en varios chunks daba 500. V3: errores del origen → 400, de escritura → 500. APPROVED (`progress/review_data-import-api.md`), verificado contra el servidor real. Avisos: la subida de adjuntos/foto responde 500 a un multipart incompleto (→ #43); flake puntual en `use-user-locale.test.tsx`; el test del 500 por escritura no vale como root.
+- **Gate 2:** el humano pidió añadir #43 `truncated-upload-400` (`sdd: false`) al backlog. Merge aprobado.
