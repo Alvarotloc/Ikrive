@@ -11,6 +11,9 @@ import { isLocalBaseUrl } from './lib/base-url';
 import { type LogStream, loggerOptions } from './lib/logging';
 import { createFileStorage } from './lib/storage';
 import { adminRoutes } from './modules/admin/routes';
+import { createAdminUsersRepository } from './modules/admin-users/repository';
+import { adminUsersRoutes } from './modules/admin-users/routes';
+import { createAdminUsersService } from './modules/admin-users/service';
 import { createAttachmentsRepository } from './modules/attachments/repository';
 import { attachmentsRoutes } from './modules/attachments/routes';
 import { createAttachmentsService } from './modules/attachments/service';
@@ -188,6 +191,11 @@ export async function buildApp({ config, db, fetch = globalThis.fetch, logStream
     vehicles: vehiclesRepo,
     storage,
   });
+  const adminUsersService = createAdminUsersService({
+    repo: createAdminUsersRepository(db),
+    storage,
+    log: app.log,
+  });
 
   await app.register(
     async (api) => {
@@ -214,6 +222,7 @@ export async function buildApp({ config, db, fetch = globalThis.fetch, logStream
       await api.register(notificationsRoutes, { service: notificationsService });
       await api.register(notificationChannelsRoutes, { service: notificationChannelsService });
       await api.register(adminRoutes, { db, dispatcher });
+      await api.register(adminUsersRoutes, { service: adminUsersService });
     },
     { prefix: '/api' },
   );

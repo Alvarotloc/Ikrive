@@ -1,3 +1,4 @@
+export * from './domain/admin-users';
 export * from './domain/calendar';
 export * from './domain/data-export';
 export * from './domain/fuel';

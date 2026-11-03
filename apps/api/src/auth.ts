@@ -1,6 +1,6 @@
 import { APIError, betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { count } from 'drizzle-orm';
+import { count, eq } from 'drizzle-orm';
 import type { Config } from './config';
 import type { Db } from './db/client';
 import * as schema from './db/schema';
@@ -41,6 +41,19 @@ export function createAuth(db: Db, config: Config) {
           },
           after: async (created) => {
             db.insert(schema.userSettings).values({ userId: created.id }).onConflictDoNothing().run();
+          },
+        },
+      },
+      session: {
+        create: {
+          // A disabled account cannot sign in. Its sessions were deleted when it was disabled.
+          before: async (session) => {
+            const owner = db
+              .select({ disabledAt: schema.user.disabledAt })
+              .from(schema.user)
+              .where(eq(schema.user.id, session.userId))
+              .get();
+            if (owner?.disabledAt) throw new APIError('FORBIDDEN', { message: 'This account is disabled' });
           },
         },
       },

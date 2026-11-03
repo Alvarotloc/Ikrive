@@ -73,3 +73,11 @@ export type AttachmentEntityType = (typeof ATTACHMENT_ENTITY_TYPES)[number];
 /** Computed on read from a report share's `revokedAt`/`expiresAt`: revoked wins over expired. */
 export const REPORT_SHARE_STATUSES = ['active', 'expired', 'revoked'] as const;
 export type ReportShareStatus = (typeof REPORT_SHARE_STATUSES)[number];
+
+/** Derived from a user's `disabledAt`: a disabled account cannot sign in. */
+export const USER_STATUSES = ['active', 'disabled'] as const;
+export type UserStatus = (typeof USER_STATUSES)[number];
+
+/** Why an admin action on an account is not allowed: it is the actor's own, or the last active admin. */
+export const ADMIN_USER_LOCK_REASONS = ['self', 'last_admin'] as const;
+export type AdminUserLockReason = (typeof ADMIN_USER_LOCK_REASONS)[number];
