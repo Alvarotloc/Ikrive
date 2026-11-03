@@ -12,6 +12,7 @@ export * from './schemas/attachments';
 export * from './schemas/calendar';
 export * from './schemas/common';
 export * from './schemas/data-export';
+export * from './schemas/data-import';
 export * from './schemas/fuel-logs';
 export * from './schemas/maintenance';
 export * from './schemas/notification-channels';

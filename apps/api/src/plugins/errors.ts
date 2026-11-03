@@ -28,7 +28,12 @@ export default fp(async (app: FastifyInstance) => {
       return reply
         .status(error.status)
         .type('application/problem+json')
-        .send(problem(error.status, error.title, { detail: error.message }));
+        .send(
+          problem(error.status, error.title, {
+            detail: error.message,
+            ...(error.errors ? { errors: error.errors } : {}),
+          }),
+        );
     }
     const status = typeof error.statusCode === 'number' && error.statusCode < 500 ? error.statusCode : 500;
     if (status >= 500) request.log.error(error);

@@ -20,6 +20,8 @@ const envSchema = z
     MAX_UPLOAD_MB: z.coerce.number().int().positive().default(20),
     /** Total size, in MB of stored files, of the invoices appended to one sale report. */
     REPORT_MAX_ANNEX_MB: z.coerce.number().int().positive().default(100),
+    /** Size, in MB, of an uploaded export zip and of the uncompressed files the import reads from it. */
+    IMPORT_MAX_MB: z.coerce.number().int().positive().default(1024),
     LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
     /** Directory with the built SPA. When set, the API also serves the frontend. */
     WEB_DIST_DIR: z.string().optional(),
