@@ -647,7 +647,7 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
-      "status": "pending"
+      "status": "in_progress"
     },
     {
       "id": 38,
@@ -659,6 +659,7 @@
         "El admin ve una entrada «Usuarios» en la navegación; los demás usuarios no la ven y la ruta les redirige",
         "La pantalla lista los usuarios con su rol, estado y fecha de alta, y permite cambiar el rol, desactivar, reactivar y borrar (este último con confirmación explícita)",
         "Las acciones no permitidas (último admin, uno mismo) aparecen deshabilitadas con una explicación",
+        "Si un usuario desactivado intenta iniciar sesión, la pantalla de login muestra un mensaje específico de cuenta desactivada en lugar del error genérico",
         "Todos los textos nuevos están en es.json y en.json",
         "Tests de componente cubren el listado, cambiar el rol, desactivar y borrar",
         "pnpm harness --full pasa en verde"
