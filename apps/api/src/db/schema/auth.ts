@@ -20,6 +20,8 @@ export const user = sqliteTable('user', {
   emailVerified: integer({ mode: 'boolean' }).notNull().default(false),
   image: text(),
   role: text({ enum: USER_ROLES }).notNull().default('user'),
+  /** Set by an admin: the account cannot sign in. Not a Better Auth field (not in `additionalFields`). */
+  disabledAt: integer({ mode: 'timestamp_ms' }),
   ...timestamps,
 });
 
