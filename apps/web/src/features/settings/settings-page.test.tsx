@@ -1,14 +1,13 @@
 import { DEFAULT_USER_SETTINGS, type Me, type UserSettings } from '@ikrive/shared';
-import { createMemoryHistory, createRouter, RouterProvider } from '@tanstack/react-router';
 import { screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { routeTree } from '@/routeTree.gen';
-import { createTestQueryClient, mockApi, mockMediaQuery, renderWithProviders } from '@/test/render';
+import { mockApi, mockMediaQuery } from '@/test/render';
+import { renderApp } from '@/test/render-app';
 
 const me: Me = { id: 'u1', name: 'Ana', email: 'ana@example.com', role: 'user' };
 
 /** The whole app on the settings page, with a signed-in user. */
-function renderSettings() {
+async function renderSettings() {
   mockMediaQuery(true);
   let saved: Partial<UserSettings> | undefined;
   mockApi({
@@ -22,19 +21,13 @@ function renderSettings() {
       return { body: { ...DEFAULT_USER_SETTINGS, ...saved } };
     },
   });
-  const queryClient = createTestQueryClient();
-  const router = createRouter({
-    routeTree,
-    context: { queryClient },
-    history: createMemoryHistory({ initialEntries: ['/settings'] }),
-  });
-  const rendered = renderWithProviders(<RouterProvider router={router} />, { queryClient });
+  const rendered = await renderApp('/settings');
   return { ...rendered, saved: () => saved };
 }
 
 describe('settings page', () => {
   it('saves the reminder hour', async () => {
-    const { user, saved } = renderSettings();
+    const { user, saved } = await renderSettings();
 
     const select = await screen.findByLabelText('Hora de los recordatorios');
     const options = within(select).getAllByRole('option');
@@ -53,7 +46,7 @@ describe('settings page', () => {
   });
 
   it('saves no odometer reminder day', async () => {
-    const { user, saved } = renderSettings();
+    const { user, saved } = await renderSettings();
 
     const select = await screen.findByLabelText('Día del recordatorio de kilometraje');
     const options = within(select).getAllByRole('option');
@@ -69,7 +62,7 @@ describe('settings page', () => {
   });
 
   it('saves an odometer reminder day as a number', async () => {
-    const { user, saved } = renderSettings();
+    const { user, saved } = await renderSettings();
 
     const select = await screen.findByLabelText('Día del recordatorio de kilometraje');
     await user.selectOptions(select, 'Miércoles');
@@ -79,7 +72,7 @@ describe('settings page', () => {
     await waitFor(() => expect(saved()).toMatchObject({ odometerReminderWeekday: 3 }));
   });
   it('explains the reminder hour', async () => {
-    const { user } = renderSettings();
+    const { user } = await renderSettings();
 
     await user.click(
       await screen.findByRole('button', { name: 'Más información sobre la hora de los recordatorios' }),
@@ -91,7 +84,7 @@ describe('settings page', () => {
   });
 
   it('explains the odometer reminder day', async () => {
-    const { user } = renderSettings();
+    const { user } = await renderSettings();
 
     await user.click(
       await screen.findByRole('button', { name: 'Más información sobre el recordatorio de kilometraje' }),
@@ -103,7 +96,7 @@ describe('settings page', () => {
   });
 
   it('shows the data section', async () => {
-    renderSettings();
+    await renderSettings();
 
     expect(await screen.findByRole('heading', { name: 'Tus datos' })).toBeInTheDocument();
     const link = screen.getByRole('link', { name: 'Descargar mis datos' });
