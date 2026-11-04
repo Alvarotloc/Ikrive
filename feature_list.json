@@ -665,7 +665,7 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
-      "status": "in_progress"
+      "status": "done"
     },
     {
       "id": 39,
@@ -786,7 +786,7 @@
       "name": "settings-test-flake",
       "phase": "7",
       "title": "Test intermitente de la página de Ajustes",
-      "description": "settings-page.test.tsx › «saves the reminder hour» falla de forma intermitente (1 de 5 ejecuciones de pnpm harness --full): findByLabelText(\"Hora de los recordatorios\") agota su timeout con el body vacío porque la página, montada con RouterProvider y su loader, aún no ha renderizado. Es el primer test del fichero y la página es más pesada desde #36 (sección «Tus datos»). Detectado en Gate 2 de #37.",
+      "description": "settings-page.test.tsx › «saves the reminder hour» falla de forma intermitente (1 de 5 ejecuciones de pnpm harness --full): findByLabelText(\"Hora de los recordatorios\") agota su timeout con el body vacío porque la página, montada con RouterProvider y su loader, aún no ha renderizado. Es el primer test del fichero y la página es más pesada desde #36 (sección «Tus datos»). Detectado en Gate 2 de #37. En la revisión de #38 también falló use-user-locale.test.tsx › «shows the authenticated app…»; además login-page.test.tsx usa findByLabelText tras cargar el chunk perezoso de /login, y su import estático de @/lib/auth-client (para que un módulo code-split no se quede con el fetch del primer test) probablemente deba moverse a src/test/setup.ts.",
       "acceptance": [
         "Se identifica la causa (carga del loader, coste del primer render, timeout por defecto de findBy*) y se corrige sin limitarse a subir timeouts a ciegas",
         "Si la causa afecta a otros tests de página con RouterProvider, el arreglo se aplica en el helper común en lugar de test a test",
