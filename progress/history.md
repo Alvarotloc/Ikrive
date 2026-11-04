@@ -383,3 +383,13 @@
 - **Tests:** shared 117, API 293, web 322. Capturas claro/oscuro/móvil (scratchpad efímero).
 - **Revisión:** APPROVED a la primera (`progress/review_admin-users-web.md`). Avisos: `login-page.test.tsx` usa `findBy*` tras cargar el chunk perezoso de `/login` y un import estático de `@/lib/auth-client` que debería ir a `src/test/setup.ts` (ambos anotados en #46); `meQuery` en caché 5 min tras ser degradado por otro admin (aceptado en el spec).
 - **Gate 2:** `pnpm harness --full` intermitente por el flake de #46 (`settings-page.test.tsx`, también `use-user-locale.test.tsx`), ajeno a esta feature y sin agravarlo según las mediciones del reviewer; el humano decidió no bloquear #38 y abordar #46 a continuación. Pasada final en verde. Merge aprobado.
+
+## 2026-11-04 — #46 settings-test-flake
+
+- **Rama:** `feat/settings-test-flake` (`sdd: false`, sin spec ni Gate 1). Solo tests de `apps/web` y una línea de `CONTRIBUTING.md`.
+- **Orden:** el humano pidió hacer #46 antes que #39 `pwa`. El spec de `pwa` (ya en `spec_ready`) se guardó en `git stash` mientras tanto.
+- **Causa:** `autoCodeSplitting` hace que el primer test de cada fichero importe en frío el chunk de la ruta (0,85–1,8 s con la suite cargada), dentro del 1 s del primer `findBy*`.
+- **Cambios:** nuevo helper `src/test/render-app.tsx` › `renderApp(path)`, que precarga los chunks de todas las rutas antes de renderizar; `setup.ts` importa `@/lib/auth-client` tras el shim de `fetch`. Migrados `settings-page`, `use-user-locale`, `login-page` y `admin-route`. No se ha subido ningún timeout.
+- **Tests:** shared 117, API 293, web 322. 20/20 ejecuciones seguidas de la suite web con los tests de la API en paralelo (y 6/6 más del reviewer). `pnpm harness --full` en verde.
+- **Revisión:** APPROVED a la primera (`progress/review_settings-test-flake.md`). Avisos: un `vi.mock('@/lib/auth-client')` futuro podría no aplicarse porque `setup.ts` ya lo importa; la precarga del primer test de cada fichero crece con el árbol de rutas.
+- **Gate 2:** merge aprobado.
