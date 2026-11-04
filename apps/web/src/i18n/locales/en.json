@@ -651,5 +651,18 @@
     "errors": {
       "conflict": "That action is no longer allowed; the list has been refreshed."
     }
+  },
+  "pwa": {
+    "update": {
+      "message": "A new version of Ikrive is available",
+      "reload": "Reload",
+      "dismiss": "Later"
+    },
+    "offline": {
+      "banner": "You are offline. Some data cannot be loaded until the connection is back.",
+      "title": "You are offline",
+      "description": "The server cannot be reached. Check your connection.",
+      "retry": "Retry"
+    }
   }
 }

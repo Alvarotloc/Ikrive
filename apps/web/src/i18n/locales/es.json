@@ -651,5 +651,18 @@
     "errors": {
       "conflict": "Esa acción ya no está permitida; se ha actualizado la lista."
     }
+  },
+  "pwa": {
+    "update": {
+      "message": "Hay una versión nueva de Ikrive",
+      "reload": "Recargar",
+      "dismiss": "Más tarde"
+    },
+    "offline": {
+      "banner": "Sin conexión. Algunos datos no se podrán cargar hasta que vuelva.",
+      "title": "Sin conexión",
+      "description": "No se puede contactar con el servidor. Comprueba tu conexión.",
+      "retry": "Reintentar"
+    }
   }
 }

@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
 import { meQuery } from '@/features/auth/queries';
 import { AppNavigation } from '@/features/navigation/app-navigation';
+import { RouteErrorScreen } from '@/features/pwa/route-error';
 import { settingsQuery } from '@/features/settings/queries';
 import { useUserLocale } from '@/features/settings/use-user-locale';
 
@@ -15,6 +16,7 @@ export const Route = createFileRoute('/_app')({
     void context.queryClient.prefetchQuery(settingsQuery);
   },
   component: AppLayout,
+  errorComponent: RouteErrorScreen,
 });
 
 function AppLayout() {

@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { AuthLayout } from '@/features/auth/auth-layout';
 import { meQuery } from '@/features/auth/queries';
 import { signInErrorKey } from '@/features/auth/sign-in-error';
+import { RouteErrorScreen } from '@/features/pwa/route-error';
 import { authClient } from '@/lib/auth-client';
 
 const loginSchema = z.object({ email: z.email(), password: z.string().min(1) });
@@ -20,6 +21,7 @@ export const Route = createFileRoute('/login')({
     if (await context.queryClient.ensureQueryData(meQuery)) throw redirect({ to: '/' });
   },
   component: LoginPage,
+  errorComponent: RouteErrorScreen,
 });
 
 function LoginPage() {
