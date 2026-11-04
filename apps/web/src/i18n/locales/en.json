@@ -11,7 +11,8 @@
     "odometer": "Mileage",
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
-    "menu": "Menu"
+    "menu": "Menu",
+    "users": "Users"
   },
   "auth": {
     "login": "Log in",
@@ -41,7 +42,8 @@
       }
     ],
     "loginSubtitle": "Access your history.",
-    "registerSubtitle": "Start building your car's history."
+    "registerSubtitle": "Start building your car's history.",
+    "accountDisabled": "This account is disabled. Contact the administrator of this instance."
   },
   "dashboard": {
     "welcome": "Hi, {{name}}",
@@ -612,6 +614,42 @@
       "settings": "The export currency or units do not match your settings",
       "tooLarge": "The file is too large",
       "fileType": "Unsupported file type: choose a .zip"
+    }
+  },
+  "adminUsers": {
+    "title": "Users",
+    "description": "Accounts on this instance: roles, access and deletion.",
+    "loadError": "The users could not be loaded.",
+    "roleLabel": "Role of {{name}}",
+    "roles": {
+      "admin": "Administrator",
+      "user": "User"
+    },
+    "status": {
+      "active": "Active",
+      "disabled": "Disabled"
+    },
+    "createdAt": "Joined: {{date}}",
+    "vehicles_one": "{{count}} vehicle",
+    "vehicles_other": "{{count}} vehicles",
+    "disable": "Disable",
+    "enable": "Re-enable",
+    "delete": "Delete",
+    "deleteTitle": "Delete {{name}}?",
+    "deleteDescription": "The account {{email}} will be deleted with all its vehicles, maintenance records, refuels and attachments. This cannot be undone.",
+    "roleChanged": "Role updated",
+    "disabled": "Account disabled",
+    "enabled": "Account re-enabled",
+    "deleted": "User deleted",
+    "demoteSelfTitle": "Remove your administrator role?",
+    "demoteSelfDescription": "You will lose administrator access right away and only another administrator can give it back.",
+    "demoteSelfConfirm": "Remove my role",
+    "locks": {
+      "self": "You cannot disable or delete your own account.",
+      "last_admin": "There must be at least one active administrator."
+    },
+    "errors": {
+      "conflict": "That action is no longer allowed; the list has been refreshed."
     }
   }
 }

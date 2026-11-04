@@ -5,6 +5,8 @@ export const queryKeys = {
   settings: ['settings'] as const,
   config: ['config'] as const,
   calendarFeed: ['calendar-feed'] as const,
+  /** Every account of the instance (admin only); any admin action refreshes it, locks included. */
+  adminUsers: ['admin-users'] as const,
   notifications: {
     all: ['notifications'] as const,
     list: ['notifications', 'list'] as const,
