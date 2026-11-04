@@ -393,3 +393,12 @@
 - **Tests:** shared 117, API 293, web 322. 20/20 ejecuciones seguidas de la suite web con los tests de la API en paralelo (y 6/6 más del reviewer). `pnpm harness --full` en verde.
 - **Revisión:** APPROVED a la primera (`progress/review_settings-test-flake.md`). Avisos: un `vi.mock('@/lib/auth-client')` futuro podría no aplicarse porque `setup.ts` ya lo importa; la precarga del primer test de cada fichero crece con el árbol de rutas.
 - **Gate 2:** merge aprobado.
+
+## 2026-11-04 — #39 pwa
+
+- **Rama:** `feat/pwa` (SDD, spec en `specs/pwa/`, 17 R / 18 T). `apps/web` y una cabecera en `apps/api`; sin cambios en BD, shared ni Docker.
+- **Gate 1:** aprobado con un cambio: en la T17, `playwright-core` vía `pnpm dlx`, sin añadirlo como dependencia (eso es de #41). Resto sin cambios: `generateSW` + `registerType: 'prompt'`; `/api/` en `navigateFallbackDenylist` y sin `runtimeCaching`; icono maskable nuevo; `no-cache` explícito; manifest sin `lang` ni `description`. El spec esperó en `git stash` mientras se hacía #46.
+- **Cambios:** `features/pwa/` (`config.ts` con manifest y Workbox, controlador del SW inyectable sobre `virtual:pwa-register`, `UpdatePrompt`, `OfflineBanner` con `useOnlineStatus`, `isNetworkError`, `RouteErrorScreen` como `errorComponent` de `_app`, `login`, `register` y por defecto); `icon-maskable-512.png`; textos `pwa.*` en es/en; API: `setHeaders` con `no-cache` en `sw.js`, `manifest.webmanifest` e `index.html`. Dependencias: `vite-plugin-pwa` (dev) y `workbox-window` (necesaria con pnpm estricto).
+- **Tests:** shared 117, API 296, web 342. Verificación manual repetida tras un reinicio del PC: build, `curl` de cabeceras, Chrome con `playwright-core` (SW activo, recarga offline, PDF público no cacheado, aviso de versión) en claro, oscuro y móvil. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED a la primera (`progress/review_pwa.md`). Avisos: `OfflineBanner` en el flujo y no `fixed` (se pierde al hacer scroll y ~37 px de scroll de más en escritorio offline); el plugin añade `lang: "en"` al manifest; cualquier `TypeError` cuenta como error de red; sin test de `/register` offline; `UpdatePrompt` tapa el final del contenido en móvil.
+- **Gate 2:** el humano probó la PWA en local y aprobó el PR.
