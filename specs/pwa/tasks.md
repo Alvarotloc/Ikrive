@@ -1,42 +1,42 @@
 # Tasks — pwa
 
-- [ ] T1 — Añadir `vite-plugin-pwa` (2.x) como devDependency de `apps/web` y `vite-plugin-pwa/client` a `types` en `apps/web/tsconfig.json`. Cubre: R3.
-- [ ] T2 — Generar `apps/web/public/icons/icon-maskable-512.png` (512×512, fondo `#143941`, logo al 80 % centrado) con un script de `sharp` en el scratchpad. Cubre: R2.
-- [ ] T3 — `apps/web/src/features/pwa/config.ts` con `pwaManifest`, `API_PATH` y `pwaWorkbox`; registrar `VitePWA({ registerType: 'prompt', injectRegister: false, … })` en `apps/web/vite.config.ts`. Cubre: R1, R2, R3, R4, R5, R6.
-- [ ] T4 — Tests unitarios en `apps/web/src/features/pwa/config.test.ts`:
+- [x] T1 — Añadir `vite-plugin-pwa` (2.x) como devDependency de `apps/web` y `vite-plugin-pwa/client` a `types` en `apps/web/tsconfig.json`. Cubre: R3.
+- [x] T2 — Generar `apps/web/public/icons/icon-maskable-512.png` (512×512, fondo `#143941`, logo al 80 % centrado) con un script de `sharp` en el scratchpad. Cubre: R2.
+- [x] T3 — `apps/web/src/features/pwa/config.ts` con `pwaManifest`, `API_PATH` y `pwaWorkbox`; registrar `VitePWA({ registerType: 'prompt', injectRegister: false, … })` en `apps/web/vite.config.ts`. Cubre: R1, R2, R3, R4, R5, R6.
+- [x] T4 — Tests unitarios en `apps/web/src/features/pwa/config.test.ts`:
   - `declares the brand name, colours and standalone display`. Cubre: R1.
   - `declares 192 and 512 icons and a maskable 512 icon` (y que los tres ficheros existen en `public/icons`). Cubre: R2.
   - `precaches html, js, css, fonts, images and icons`. Cubre: R4.
   - `falls back to index.html for SPA navigations` (`/vehicles/123` no casa con el denylist). Cubre: R5.
   - `never serves /api from the cache` (`/api/me`, `/api/public/reports/abc` casan con `navigateFallbackDenylist`; sin `runtimeCaching`). Cubre: R6.
-- [ ] T5 — `setHeaders` en `apps/api/src/plugins/static-spa.ts` (`no-cache` para `sw.js`, `manifest.webmanifest`, `index.html`). Cubre: R7.
-- [ ] T6 — Tests en `apps/api/test/static-spa.test.ts` (dist temporal con `index.html`, `sw.js`, `manifest.webmanifest`, `assets/app.js`):
+- [x] T5 — `setHeaders` en `apps/api/src/plugins/static-spa.ts` (`no-cache` para `sw.js`, `manifest.webmanifest`, `index.html`). Cubre: R7.
+- [x] T6 — Tests en `apps/api/test/static-spa.test.ts` (dist temporal con `index.html`, `sw.js`, `manifest.webmanifest`, `assets/app.js`):
   - `serves sw.js, the manifest and index.html with no-cache`. Cubre: R7.
   - `serves the SPA fallback with no-cache` (`GET /vehicles/123`). Cubre: R7.
   - `serves the manifest as application/manifest+json`. Cubre: R8.
-- [ ] T7 — Textos `pwa.update.*` y `pwa.offline.*` en `apps/web/src/i18n/locales/es.json` y `en.json` (el test `es and en define the same keys` de `locales.test.ts` los cubre). Cubre: R17.
-- [ ] T8 — `apps/web/src/features/pwa/service-worker.ts` (`createServiceWorkerController`, singleton `serviceWorker`, `useUpdateAvailable`) y llamada a `serviceWorker.register()` en `apps/web/src/main.tsx`. Cubre: R3, R9, R10, R11.
-- [ ] T9 — Tests unitarios en `apps/web/src/features/pwa/service-worker.test.ts` con un `register` falso (`vi.fn()` que devuelve un `updateSW` espía):
+- [x] T7 — Textos `pwa.update.*` y `pwa.offline.*` en `apps/web/src/i18n/locales/es.json` y `en.json` (el test `es and en define the same keys` de `locales.test.ts` los cubre). Cubre: R17.
+- [x] T8 — `apps/web/src/features/pwa/service-worker.ts` (`createServiceWorkerController`, singleton `serviceWorker`, `useUpdateAvailable`) y llamada a `serviceWorker.register()` en `apps/web/src/main.tsx`. Cubre: R3, R9, R10, R11.
+- [x] T9 — Tests unitarios en `apps/web/src/features/pwa/service-worker.test.ts` con un `register` falso (`vi.fn()` que devuelve un `updateSW` espía):
   - `registers the service worker immediately and only once`. Cubre: R3.
   - `reports an update when the new worker is waiting` (`onNeedRefresh` → `updateAvailable()` true y notifica a los suscriptores). Cubre: R9.
   - `applies the update by reloading through the new worker` (`applyUpdate` → `updateSW(true)`). Cubre: R10.
   - `dismisses the update without applying it`. Cubre: R11.
-- [ ] T10 — `apps/web/src/features/pwa/update-prompt.tsx` y montarlo en `apps/web/src/routes/__root.tsx`. Cubre: R9, R10, R11.
-- [ ] T11 — Tests de componente en `apps/web/src/features/pwa/update-prompt.test.tsx` (controlador real con `register` falso):
+- [x] T10 — `apps/web/src/features/pwa/update-prompt.tsx` y montarlo en `apps/web/src/routes/__root.tsx`. Cubre: R9, R10, R11.
+- [x] T11 — Tests de componente en `apps/web/src/features/pwa/update-prompt.test.tsx` (controlador real con `register` falso):
   - `shows nothing until an update is waiting`. Cubre: R9.
   - `shows the update notice with reload and later buttons`. Cubre: R9.
   - `reloads with the new worker when clicking Recargar`. Cubre: R10.
   - `hides the notice when clicking Más tarde`. Cubre: R11.
-- [ ] T12 — `use-online-status.ts` y `offline-banner.tsx` en `apps/web/src/features/pwa/`, montado en `__root.tsx`. Cubre: R12, R13.
-- [ ] T13 — Tests en `apps/web/src/features/pwa/offline-banner.test.tsx` (`navigator.onLine` con `vi.spyOn(…, 'get')` + `dispatchEvent`):
+- [x] T12 — `use-online-status.ts` y `offline-banner.tsx` en `apps/web/src/features/pwa/`, montado en `__root.tsx`. Cubre: R12, R13.
+- [x] T13 — Tests en `apps/web/src/features/pwa/offline-banner.test.tsx` (`navigator.onLine` con `vi.spyOn(…, 'get')` + `dispatchEvent`):
   - `shows the offline notice while the browser is offline`. Cubre: R12.
   - `hides the offline notice when the connection comes back`. Cubre: R13.
-- [ ] T14 — `network-error.ts` (`isNetworkError`) y test `detects fetch failures but not API errors` en `apps/web/src/features/pwa/network-error.test.ts`. Cubre: R14, R16.
-- [ ] T15 — `route-error.tsx` (`RouteErrorScreen`), `errorComponent` en `apps/web/src/routes/_app.tsx`, `login.tsx` y `register.tsx`, y `defaultErrorComponent` en `main.tsx`. Cubre: R14, R15, R16.
-- [ ] T16 — Tests de componente en `apps/web/src/features/pwa/route-error.test.tsx` (`routeTree` + `createMemoryHistory`; `GET /me` con un handler que lanza `TypeError('Failed to fetch')`):
+- [x] T14 — `network-error.ts` (`isNetworkError`) y test `detects fetch failures but not API errors` en `apps/web/src/features/pwa/network-error.test.ts`. Cubre: R14, R16.
+- [x] T15 — `route-error.tsx` (`RouteErrorScreen`), `errorComponent` en `apps/web/src/routes/_app.tsx`, `login.tsx` y `register.tsx`, y `defaultErrorComponent` en `main.tsx`. Cubre: R14, R15, R16.
+- [x] T16 — Tests de componente en `apps/web/src/features/pwa/route-error.test.tsx` (`routeTree` + `createMemoryHistory`; `GET /me` con un handler que lanza `TypeError('Failed to fetch')`):
   - `shows the offline screen when the session cannot be fetched` (en `/`). Cubre: R14.
   - `shows the offline screen on the login page without network` (en `/login`). Cubre: R14.
   - `retries the route when clicking Reintentar` (segunda respuesta 200 → se ve la app). Cubre: R15.
   - `shows the generic error when the API fails with a non-network error` (`GET /me` 500). Cubre: R16.
-- [ ] T17 — Verificación manual: `pnpm --filter @ikrive/web build` (inspeccionar `dist/manifest.webmanifest`, `dist/sw.js` y el `<link rel="manifest">` de `dist/index.html`), servir con la API (`WEB_DIST_DIR`) y con `playwright-core` en Chrome (vía `pnpm dlx`, sin añadirlo como dependencia: eso es de #41) comprobar SW activo, recarga con `context.setOffline(true)` (app shell + pantalla/aviso «Sin conexión»), que `/api/public/reports/<token>` offline no sale de caché, y capturas del aviso de versión y del estado sin conexión en claro, oscuro y móvil. Cubre: R1, R3, R4, R5, R6, R12, R14.
-- [ ] T18 — Ejecutar `pnpm harness --full` y documentar trazabilidad en `progress/impl_pwa.md`. Cubre: R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15, R16, R17.
+- [x] T17 — Verificación manual: `pnpm --filter @ikrive/web build` (inspeccionar `dist/manifest.webmanifest`, `dist/sw.js` y el `<link rel="manifest">` de `dist/index.html`), servir con la API (`WEB_DIST_DIR`) y con `playwright-core` en Chrome (vía `pnpm dlx`, sin añadirlo como dependencia: eso es de #41) comprobar SW activo, recarga con `context.setOffline(true)` (app shell + pantalla/aviso «Sin conexión»), que `/api/public/reports/<token>` offline no sale de caché, y capturas del aviso de versión y del estado sin conexión en claro, oscuro y móvil. Cubre: R1, R3, R4, R5, R6, R12, R14.
+- [x] T18 — Ejecutar `pnpm harness --full` y documentar trazabilidad en `progress/impl_pwa.md`. Cubre: R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15, R16, R17.
