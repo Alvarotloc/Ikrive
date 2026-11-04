@@ -1,4 +1,4 @@
-import { DEFAULT_USER_SETTINGS, type NotificationList } from '@ikrive/shared';
+import { DEFAULT_USER_SETTINGS, type Me, type NotificationList } from '@ikrive/shared';
 import { useQuery } from '@tanstack/react-query';
 import {
   createMemoryHistory,
@@ -8,13 +8,16 @@ import {
   Outlet,
   RouterProvider,
 } from '@tanstack/react-router';
-import { act, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
+import { queryKeys } from '@/lib/query-keys';
 import { type MockRoutes, mockApi, mockMediaQuery, renderWithProviders } from '@/test/render';
 import { AppNavigation } from './app-navigation';
 
 const noNotifications: NotificationList = { items: [], total: 0, unreadCount: 0 };
+const regularUser: Me = { id: 'u1', name: 'Ana', email: 'ana@example.com', role: 'user' };
+const admin: Me = { ...regularUser, role: 'admin' };
 
 /** A query that keeps something in the cache, to check that logging out clears it. */
 function DashboardPage() {
@@ -36,6 +39,7 @@ function setup({
   const fetchMock = mockApi({
     'GET /settings': { body: DEFAULT_USER_SETTINGS },
     'GET /notifications': { body: noNotifications },
+    'GET /me': { body: regularUser },
     ...routes,
   });
   const rootRoute = createRootRoute({
@@ -53,6 +57,7 @@ function setup({
       createRoute({ getParentRoute: () => rootRoute, path: '/', component: DashboardPage }),
       page('/vehicles', 'Página de vehículos'),
       page('/odometer', 'Página de kilómetros'),
+      page('/admin/users', 'Página de usuarios'),
       page('/settings', 'Página de ajustes'),
       page('/login', 'Página de login'),
     ]),
@@ -192,5 +197,38 @@ describe('AppNavigation', () => {
     for (const name of destinations) expect(screen.getByRole('link', { name })).toHaveTextContent(name);
     expect(screen.getByRole('button', { name: 'Cerrar sesión' })).toBeInTheDocument();
     expect(await screen.findByRole('button', { name: /^Notificaciones/ })).toBeInTheDocument();
+  });
+
+  it('shows the users entry to an admin in the sidebar and the menu', async () => {
+    setup({ desktop: true, routes: { 'GET /me': { body: admin } } });
+
+    const sidebarLink = await screen.findByRole('link', { name: 'Usuarios' });
+    expect(sidebarLink).toHaveAttribute('href', '/admin/users');
+    const links = screen.getAllByRole('link').map((link) => link.textContent);
+    expect(links.indexOf('Usuarios')).toBe(links.indexOf('Ajustes') - 1);
+    cleanup();
+
+    const { user } = setup({ routes: { 'GET /me': { body: admin } } });
+    const dialog = await openMenu(user);
+    const menuLink = await within(dialog).findByRole('link', { name: 'Usuarios' });
+    expect(menuLink).toHaveAttribute('href', '/admin/users');
+    await user.click(menuLink);
+    expect(await screen.findByRole('heading', { name: 'Página de usuarios' })).toBeInTheDocument();
+  });
+
+  it('hides the users entry from a regular user', async () => {
+    const { queryClient } = setup({ desktop: true });
+
+    // Wait for the session, so the entry is not just missing because `me` has not arrived yet.
+    await waitFor(() => expect(queryClient.getQueryData(queryKeys.me)).toEqual(regularUser));
+    expect(screen.getByRole('link', { name: 'Ajustes' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Usuarios' })).not.toBeInTheDocument();
+    cleanup();
+
+    const mobile = setup();
+    await waitFor(() => expect(mobile.queryClient.getQueryData(queryKeys.me)).toEqual(regularUser));
+    const dialog = await openMenu(mobile.user);
+    expect(within(dialog).getByRole('link', { name: 'Ajustes' })).toBeInTheDocument();
+    expect(within(dialog).queryByRole('link', { name: 'Usuarios' })).not.toBeInTheDocument();
   });
 });
