@@ -1,21 +1,14 @@
 import { DEFAULT_USER_SETTINGS, type Me, type UserSettings } from '@ikrive/shared';
-import { createMemoryHistory, createRouter, RouterProvider } from '@tanstack/react-router';
 import { screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import i18n from '@/i18n';
-import { routeTree } from '@/routeTree.gen';
-import {
-  createTestQueryClient,
-  type MockRoutes,
-  mockApi,
-  mockMediaQuery,
-  renderWithProviders,
-} from '@/test/render';
+import { type MockRoutes, mockApi, mockMediaQuery } from '@/test/render';
+import { renderApp } from '@/test/render-app';
 
 const me: Me = { id: 'u1', name: 'Ana', email: 'ana@example.com', role: 'user' };
 
 /** Renders the whole app at `path` with a signed-in user and the given API routes. */
-function renderApp(path: string, routes: MockRoutes) {
+function renderSignedIn(path: string, routes: MockRoutes) {
   mockMediaQuery(true);
   mockApi({
     'GET /me': { body: me },
@@ -25,13 +18,7 @@ function renderApp(path: string, routes: MockRoutes) {
     'GET /settings/calendar-feed': { body: { enabled: false, createdAt: null } },
     ...routes,
   });
-  const queryClient = createTestQueryClient();
-  const router = createRouter({
-    routeTree,
-    context: { queryClient },
-    history: createMemoryHistory({ initialEntries: [path] }),
-  });
-  return renderWithProviders(<RouterProvider router={router} />, { queryClient });
+  return renderApp(path);
 }
 
 describe('user locale', () => {
@@ -43,7 +30,7 @@ describe('user locale', () => {
   it('shows the authenticated app in the locale saved in the settings', async () => {
     expect(i18n.language).toBe('es');
     const settings: UserSettings = { ...DEFAULT_USER_SETTINGS, locale: 'en' };
-    renderApp('/', { 'GET /settings': { body: settings } });
+    await renderSignedIn('/', { 'GET /settings': { body: settings } });
 
     expect(await screen.findByRole('heading', { name: 'Hi, Ana' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Vehicles' })).toBeInTheDocument();
@@ -53,14 +40,14 @@ describe('user locale', () => {
   });
 
   it('keeps the active language when it already matches the settings', async () => {
-    renderApp('/', { 'GET /settings': { body: DEFAULT_USER_SETTINGS } });
+    await renderSignedIn('/', { 'GET /settings': { body: DEFAULT_USER_SETTINGS } });
 
     expect(await screen.findByRole('heading', { name: 'Hola, Ana' })).toBeInTheDocument();
     expect(i18n.language).toBe('es');
   });
 
   it('switches and remembers the language saved in Settings', async () => {
-    const { user } = renderApp('/settings', {
+    const { user } = await renderSignedIn('/settings', {
       'GET /settings': { body: DEFAULT_USER_SETTINGS },
       'PATCH /settings': { body: { ...DEFAULT_USER_SETTINGS, locale: 'en' } },
     });

@@ -22,6 +22,10 @@ window.scrollTo = () => {};
 
 // Imported after the shim: app modules must never see the real `fetch`.
 const { default: i18n } = await import('@/i18n');
+// `authClient` keeps the `fetch` it sees on import. Pages that use it are code-split, so without this the
+// first test to load one would import it while its own `mockApi` stub is the global `fetch`, and every
+// later test would send the auth requests to that stale stub.
+await import('@/lib/auth-client');
 
 // Component tests always run in Spanish, whatever the machine's locale.
 await i18n.changeLanguage('es');
