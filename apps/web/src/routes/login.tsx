@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AuthLayout } from '@/features/auth/auth-layout';
 import { meQuery } from '@/features/auth/queries';
+import { signInErrorKey } from '@/features/auth/sign-in-error';
 import { authClient } from '@/lib/auth-client';
 
 const loginSchema = z.object({ email: z.email(), password: z.string().min(1) });
@@ -31,7 +32,7 @@ function LoginPage() {
   const onSubmit = form.handleSubmit(async (values) => {
     setError(null);
     const { error } = await authClient.signIn.email(values);
-    if (error) return setError(t('auth.invalidCredentials'));
+    if (error) return setError(t(signInErrorKey(error)));
     // ensureQueryData would return the cached anonymous result, so fetch the new session explicitly.
     await queryClient.fetchQuery({ ...meQuery, staleTime: 0 });
     await navigate({ to: '/' });

@@ -11,7 +11,8 @@
     "odometer": "Kilómetros",
     "openMenu": "Abrir menú",
     "closeMenu": "Cerrar menú",
-    "menu": "Menú"
+    "menu": "Menú",
+    "users": "Usuarios"
   },
   "auth": {
     "login": "Iniciar sesión",
@@ -41,7 +42,8 @@
       }
     ],
     "loginSubtitle": "Accede a tu historial.",
-    "registerSubtitle": "Empieza a construir el historial de tu coche."
+    "registerSubtitle": "Empieza a construir el historial de tu coche.",
+    "accountDisabled": "Esta cuenta está desactivada. Contacta con el administrador de la instancia."
   },
   "dashboard": {
     "welcome": "Hola, {{name}}",
@@ -612,6 +614,42 @@
       "settings": "La moneda o las unidades del export no coinciden con tus ajustes",
       "tooLarge": "El fichero es demasiado grande",
       "fileType": "Tipo de fichero no admitido: elige un .zip"
+    }
+  },
+  "adminUsers": {
+    "title": "Usuarios",
+    "description": "Cuentas de esta instancia: roles, acceso y borrado.",
+    "loadError": "No se han podido cargar los usuarios.",
+    "roleLabel": "Rol de {{name}}",
+    "roles": {
+      "admin": "Administrador",
+      "user": "Usuario"
+    },
+    "status": {
+      "active": "Activa",
+      "disabled": "Desactivada"
+    },
+    "createdAt": "Alta: {{date}}",
+    "vehicles_one": "{{count}} vehículo",
+    "vehicles_other": "{{count}} vehículos",
+    "disable": "Desactivar",
+    "enable": "Reactivar",
+    "delete": "Eliminar",
+    "deleteTitle": "¿Eliminar a {{name}}?",
+    "deleteDescription": "Se borrará la cuenta {{email}} con todos sus vehículos, mantenimientos, repostajes y adjuntos. Esta acción no se puede deshacer.",
+    "roleChanged": "Rol actualizado",
+    "disabled": "Cuenta desactivada",
+    "enabled": "Cuenta reactivada",
+    "deleted": "Usuario eliminado",
+    "demoteSelfTitle": "¿Quitarte el rol de administrador?",
+    "demoteSelfDescription": "Perderás el acceso de administrador al instante y solo otro administrador podrá devolvértelo.",
+    "demoteSelfConfirm": "Quitarme el rol",
+    "locks": {
+      "self": "No puedes desactivar ni eliminar tu propia cuenta.",
+      "last_admin": "Debe quedar al menos un administrador activo."
+    },
+    "errors": {
+      "conflict": "Esa acción ya no está permitida; se ha actualizado la lista."
     }
   }
 }

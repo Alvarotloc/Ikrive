@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import { Link, useRouter } from '@tanstack/react-router';
 import { LogOut, Menu, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -5,19 +6,27 @@ import { useTranslation } from 'react-i18next';
 import { Brand } from '@/components/brand';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { meQuery } from '@/features/auth/queries';
 import { useLogout } from '@/features/auth/use-logout';
 import { NotificationBell } from '@/features/notifications/notification-bell';
 import { DESKTOP_QUERY, useMediaQuery } from '@/lib/use-media-query';
-import { navItems } from './nav-items';
+import { navItemsFor } from './nav-items';
 
 /** App navigation: the sidebar from `md` up, a header with a menu button below it. */
 export function AppNavigation() {
   return useMediaQuery(DESKTOP_QUERY) ? <Sidebar /> : <MobileHeader />;
 }
 
+/** The destinations for the signed-in user: the admin-only ones appear once `me` says they are an admin. */
+function useNavItems() {
+  const { data: me } = useQuery(meQuery);
+  return navItemsFor(me?.role);
+}
+
 function Sidebar() {
   const { t } = useTranslation();
   const logout = useLogout();
+  const navItems = useNavItems();
 
   return (
     <aside className="sticky top-0 z-10 flex items-center gap-1 border-b bg-card/90 px-4 py-3 backdrop-blur md:h-dvh md:flex-col md:items-stretch md:gap-2 md:border-r md:border-b-0 md:px-5 md:py-7">
@@ -68,6 +77,7 @@ function MobileNavMenu() {
   const { t } = useTranslation();
   const router = useRouter();
   const logout = useLogout();
+  const navItems = useNavItems();
   const [open, setOpen] = useState(false);
 
   // Closes the panel on any navigation, including those that don't start in it (e.g. browser back).

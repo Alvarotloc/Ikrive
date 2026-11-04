@@ -15,6 +15,7 @@ import { Route as RegisterRouteImport } from './routes/register'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppOdometerRouteImport } from './routes/_app/odometer'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
+import { Route as AppAdminUsersRouteImport } from './routes/_app/admin/users'
 import { Route as AppVehiclesIndexRouteImport } from './routes/_app/vehicles/index'
 import { Route as AppVehiclesNewRouteImport } from './routes/_app/vehicles/new'
 import { Route as AppVehiclesVehicleIdIndexRouteImport } from './routes/_app/vehicles/$vehicleId/index'
@@ -49,6 +50,11 @@ const AppSettingsRoute = AppSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminUsersRoute = AppAdminUsersRouteImport.update({
+  id: '/admin/users',
+  path: '/admin/users',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppVehiclesIndexRoute = AppVehiclesIndexRouteImport.update({
   id: '/vehicles/',
   path: '/vehicles/',
@@ -78,6 +84,7 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/odometer': typeof AppOdometerRoute
   '/settings': typeof AppSettingsRoute
+  '/admin/users': typeof AppAdminUsersRoute
   '/vehicles/new': typeof AppVehiclesNewRoute
   '/vehicles/': typeof AppVehiclesIndexRoute
   '/vehicles/$vehicleId/edit': typeof AppVehiclesVehicleIdEditRoute
@@ -89,6 +96,7 @@ export interface FileRoutesByTo {
   '/odometer': typeof AppOdometerRoute
   '/settings': typeof AppSettingsRoute
   '/': typeof AppIndexRoute
+  '/admin/users': typeof AppAdminUsersRoute
   '/vehicles/new': typeof AppVehiclesNewRoute
   '/vehicles': typeof AppVehiclesIndexRoute
   '/vehicles/$vehicleId/edit': typeof AppVehiclesVehicleIdEditRoute
@@ -102,6 +110,7 @@ export interface FileRoutesById {
   '/_app/odometer': typeof AppOdometerRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/admin/users': typeof AppAdminUsersRoute
   '/_app/vehicles/new': typeof AppVehiclesNewRoute
   '/_app/vehicles/': typeof AppVehiclesIndexRoute
   '/_app/vehicles/$vehicleId/edit': typeof AppVehiclesVehicleIdEditRoute
@@ -115,6 +124,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/odometer'
     | '/settings'
+    | '/admin/users'
     | '/vehicles/new'
     | '/vehicles/'
     | '/vehicles/$vehicleId/edit'
@@ -126,6 +136,7 @@ export interface FileRouteTypes {
     | '/odometer'
     | '/settings'
     | '/'
+    | '/admin/users'
     | '/vehicles/new'
     | '/vehicles'
     | '/vehicles/$vehicleId/edit'
@@ -138,6 +149,7 @@ export interface FileRouteTypes {
     | '/_app/odometer'
     | '/_app/settings'
     | '/_app/'
+    | '/_app/admin/users'
     | '/_app/vehicles/new'
     | '/_app/vehicles/'
     | '/_app/vehicles/$vehicleId/edit'
@@ -194,6 +206,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/admin/users': {
+      id: '/_app/admin/users'
+      path: '/admin/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AppAdminUsersRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/vehicles/': {
       id: '/_app/vehicles/'
       path: '/vehicles'
@@ -229,6 +248,7 @@ interface AppRouteChildren {
   AppOdometerRoute: typeof AppOdometerRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppAdminUsersRoute: typeof AppAdminUsersRoute
   AppVehiclesNewRoute: typeof AppVehiclesNewRoute
   AppVehiclesIndexRoute: typeof AppVehiclesIndexRoute
   AppVehiclesVehicleIdEditRoute: typeof AppVehiclesVehicleIdEditRoute
@@ -239,6 +259,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppOdometerRoute: AppOdometerRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
+  AppAdminUsersRoute: AppAdminUsersRoute,
   AppVehiclesNewRoute: AppVehiclesNewRoute,
   AppVehiclesIndexRoute: AppVehiclesIndexRoute,
   AppVehiclesVehicleIdEditRoute: AppVehiclesVehicleIdEditRoute,
