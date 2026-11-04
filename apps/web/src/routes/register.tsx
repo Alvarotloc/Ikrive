@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AuthLayout } from '@/features/auth/auth-layout';
 import { meQuery } from '@/features/auth/queries';
+import { RouteErrorScreen } from '@/features/pwa/route-error';
 import { authClient } from '@/lib/auth-client';
 
 const registerSchema = z.object({
@@ -23,6 +24,7 @@ export const Route = createFileRoute('/register')({
     if (await context.queryClient.ensureQueryData(meQuery)) throw redirect({ to: '/' });
   },
   component: RegisterPage,
+  errorComponent: RouteErrorScreen,
 });
 
 function RegisterPage() {

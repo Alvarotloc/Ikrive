@@ -4,6 +4,8 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './i18n';
 import './index.css';
+import { RouteErrorScreen } from './features/pwa/route-error';
+import { serviceWorker } from './features/pwa/service-worker';
 import { applyTheme, getStoredTheme } from './lib/theme';
 import { routeTree } from './routeTree.gen';
 
@@ -18,7 +20,10 @@ const router = createRouter({
   context: { queryClient },
   defaultPreload: 'intent',
   defaultPreloadStaleTime: 0,
+  defaultErrorComponent: RouteErrorScreen,
 });
+
+serviceWorker.register();
 
 declare module '@tanstack/react-router' {
   interface Register {
