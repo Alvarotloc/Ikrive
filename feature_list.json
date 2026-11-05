@@ -715,7 +715,7 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
-      "status": "in_progress"
+      "status": "done"
     },
     {
       "id": 42,
@@ -795,6 +795,21 @@
       ],
       "sdd": false,
       "status": "done"
+    },
+    {
+      "id": 47,
+      "name": "dockerignore-e2e-artifacts",
+      "phase": "7",
+      "title": "Excluir los artefactos E2E del contexto de Docker",
+      "description": "`.dockerignore` excluye `test-results` y `playwright-report` solo en la raíz y no excluye `e2e/.auth/`, así que `COPY . .` mete en la etapa build los artefactos de Playwright y la cookie de sesión de prueba (`e2e/.auth/admin.json`). No llegan a la imagen final, pero no deben entrar en el contexto. Aviso del reviewer en Gate 2 de #41.",
+      "acceptance": [
+        "`.dockerignore` excluye `**/test-results`, `**/playwright-report` y `e2e/.auth`",
+        "Tras ejecutar `pnpm test:e2e`, el contexto de build de Docker no incluye esos directorios (comprobado, p. ej., con un build que liste el contexto)",
+        "`docker build` y el smoke test siguen en verde",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
+      "status": "pending"
     }
   ]
 }
