@@ -2,8 +2,9 @@
 
 ARG NODE_VERSION=24
 
-# ---- Build: install deps, build web + api, prune to production deps ----
-FROM node:${NODE_VERSION}-bookworm-slim AS build
+# ---- Build: install deps, build web + bundled api ----
+# Platform-independent output: runs natively on the builder, even for arm64 releases.
+FROM --platform=$BUILDPLATFORM node:${NODE_VERSION}-bookworm-slim AS build
 RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ \
     && rm -rf /var/lib/apt/lists/*
 RUN corepack enable
@@ -17,13 +18,19 @@ RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store pnpm install
 
 COPY . .
 RUN pnpm --filter @ikrive/web build && pnpm --filter @ikrive/api build
-RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
-    pnpm --filter @ikrive/api deploy --prod --legacy /out \
-    && cp -r apps/api/dist /out/dist \
-    && cp -r apps/web/dist /out/public
+# The image does not ship source maps nor the build metafile.
+RUN find apps/api/dist -name '*.map' -delete && rm -f apps/api/dist/metafile-*.json
+
+# ---- Natives: install only the runtime externals listed in dist/package.json ----
+FROM node:${NODE_VERSION}-alpine AS natives
+WORKDIR /out
+COPY --from=build /repo/apps/api/dist/package.json ./
+COPY docker/prune-runtime.mjs /tmp/
+RUN npm install --omit=dev --no-audit --no-fund --no-package-lock \
+    && node /tmp/prune-runtime.mjs /out/node_modules
 
 # ---- Runtime: minimal image, non-root ----
-FROM node:${NODE_VERSION}-bookworm-slim AS runtime
+FROM node:${NODE_VERSION}-alpine AS runtime
 ARG VERSION=0.0.0
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
@@ -33,10 +40,9 @@ ENV NODE_ENV=production \
     IKRIVE_VERSION=${VERSION}
 
 WORKDIR /app
-COPY --from=build --chown=node:node /out/node_modules ./node_modules
-COPY --from=build --chown=node:node /out/package.json ./package.json
-COPY --from=build --chown=node:node /out/dist ./dist
-COPY --from=build --chown=node:node /out/public ./public
+COPY --from=natives --chown=node:node /out/node_modules ./node_modules
+COPY --from=build --chown=node:node /repo/apps/api/dist ./dist
+COPY --from=build --chown=node:node /repo/apps/web/dist ./public
 
 RUN mkdir -p /data && chown node:node /data
 VOLUME ["/data"]

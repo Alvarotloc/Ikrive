@@ -1,0 +1,21 @@
+# Tasks — docker-image-slim
+
+- [x] T1 — Añadir `"pdfkit": "0.20.1"` a `dependencies` de `apps/api/package.json` y `pnpm install` (el lockfile debe seguir con una sola versión de `pdfkit`). Cubre: R6.
+- [x] T2 — `apps/api/src/modules/reports/pdf/font-files.ts` con `REPORT_FONT_FILES` y `resolveReportFont(family, file, bundledDir)` en `fonts.ts` (bundle primero, `@fontsource` después). Cubre: R4, R5.
+- [x] T3 — Tests en `apps/api/test/report-fonts.test.ts`:
+  - `uses the bundled font file when it exists next to the module` (`bundledDir` temporal con el `.woff`). Cubre: R4.
+  - `falls back to the @fontsource package when there is no bundled font` (`bundledDir` vacío → ruta dentro de `@fontsource/outfit/files/` que existe). Cubre: R5.
+- [x] T4 — `apps/api/tsup.config.ts`: `RUNTIME_EXTERNALS`, `OPTIONAL_UNBUNDLED`, `runtimeManifest()`, `createBuildOptions(outDir)` con `noExternal` + `external`, banner de `createRequire`, `metafile: true` y `onSuccess` que copia migraciones y fuentes y escribe `dist/package.json`. Cubre: R1, R2, R3.
+- [x] T5 — Tests en `apps/api/test/build.test.ts` (build real en un directorio temporal):
+  - `bundles every dependency except the runtime externals` (metafile). Cubre: R1.
+  - `writes a runtime package.json with the exact versions of the externals` + unitario `runtimeManifest lists only the runtime externals`. Cubre: R2.
+  - `copies the migrations and the report fonts`. Cubre: R3.
+  - `pins pdfkit to the version required by @react-pdf/font`. Cubre: R6.
+- [x] T6 — `docker/prune-runtime.mjs` (prebuilds de otras plataformas, `deps/`/`src/` de better-sqlite3, `*.map`, builds de pdfkit no usados). Cubre: R8, R9.
+- [x] T7 — `docker/Dockerfile` en tres etapas: `build` (`--platform=$BUILDPLATFORM`, borra `*.map`), `natives` (`node:24-alpine`, `npm install` de `dist/package.json` + poda) y `runtime` (`node:24-alpine`, `USER node`, mismo `ENV`/`HEALTHCHECK`/`CMD`). Cubre: R7, R8, R9, R11, R19.
+- [x] T8 — `docker/image-size.mjs <imagen> [maxMB]` (suma de `docker history`, falla si `>= max·10⁶`). Cubre: R8, R9.
+- [x] T9 — `docker/smoke.mjs <baseUrl>` con las comprobaciones `health`, `sign-up`, `create vehicle`, `spa index`, `upload photo`, `serve photo`, `report pdf`; sale con 1 y `✗ <nombre>` al primer fallo. Cubre: R12, R13, R14, R15, R16, R18.
+- [x] T10 — Job `docker` de `.github/workflows/ci.yml`: QEMU + buildx, carga `ikrive:ci` (amd64) e `ikrive:ci-arm64`, `image-size.mjs` en ambas, comprobación de `node_modules`, contenedor + `smoke.mjs`, `node dist/job.js reminders`, `id -u` = 1000, nativos en arm64 y `docker logs` si falla. Cubre: R7, R8, R9, R11, R12, R13, R14, R15, R16, R17, R19, R20, R21.
+- [x] T11 — Verificación local (`docs/verification.md` nivel 5): `docker build -f docker/Dockerfile -t ikrive:dev .`, `node docker/image-size.mjs ikrive:dev`, contenedor + `node docker/smoke.mjs http://127.0.0.1:3000`, `docker exec … node dist/job.js reminders` y `id -u`; además forzar un fallo (p. ej. URL equivocada) y comprobar el código ≠ 0 y el mensaje `✗`. Salidas en `progress/impl_docker-image-slim.md`. Cubre: R7, R8, R11, R12, R13, R14, R15, R16, R17, R18.
+- [x] T12 — `docs/PLAN.md` (retirar el pendiente de 670 MB, fila «Imagen» con base, externos y tamaño amd64/arm64 medido en CI, `smoke.mjs` en «Verificación») y una línea en `CONTRIBUTING.md` sobre `RUNTIME_EXTERNALS`. Cubre: R10.
+- [x] T13 — Ejecutar `pnpm harness --full` y documentar trazabilidad en `progress/impl_docker-image-slim.md` (R1–R6 → tests de Vitest; R7–R9, R11–R21 → paso de CI / comprobación de `smoke.mjs` + salida local de T11; R10 → `docs/PLAN.md`). Cubre: R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15, R16, R17, R18, R19, R20, R21.

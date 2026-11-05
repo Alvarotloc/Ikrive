@@ -26,11 +26,61 @@ jobs:
     needs: check
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
+      - name: Build linux/amd64
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: docker/Dockerfile
+          platforms: linux/amd64
           push: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          load: true
+          tags: ikrive:ci
+          cache-from: type=gha,scope=ci-amd64
+          cache-to: type=gha,mode=max,scope=ci-amd64
+      - name: Build linux/arm64
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          platforms: linux/arm64
+          push: false
+          load: true
+          tags: ikrive:ci-arm64
+          cache-from: type=gha,scope=ci-arm64
+          cache-to: type=gha,mode=max,scope=ci-arm64
+      - name: Image size (< 250 MB)
+        run: |
+          node docker/image-size.mjs ikrive:ci
+          node docker/image-size.mjs ikrive:ci-arm64
+      - name: No bundled packages in node_modules
+        run: |
+          docker run --rm --entrypoint sh ikrive:ci -c \
+            'for p in better-auth fastify drizzle-orm drizzle-kit esbuild vitest; do test ! -e node_modules/$p || { echo "node_modules/$p must not be in the image"; exit 1; }; done'
+      - name: Smoke test
+        run: |
+          docker run -d --name ikrive-smoke -p 3000:3000 \
+            -e AUTH_SECRET=ci-smoke-secret-0123456789abcdefghijklmnop \
+            -e BASE_URL=http://127.0.0.1:3000 \
+            ikrive:ci
+          node docker/smoke.mjs http://127.0.0.1:3000
+          docker exec ikrive-smoke node dist/job.js reminders
+          test "$(docker exec ikrive-smoke id -u)" = 1000
+      - name: Native modules on linux/arm64
+        run: |
+          docker run --rm --platform linux/arm64 ikrive:ci-arm64 node -e "
+            const Database = require('better-sqlite3');
+            const db = new Database(':memory:');
+            if (db.prepare('select 1 as one').get().one !== 1) process.exit(1);
+            require('sharp')({ create: { width: 1, height: 1, channels: 3, background: '#000' } })
+              .webp().toBuffer()
+              .then((buffer) => { if (buffer.length === 0) process.exit(1); console.log('natives ok'); })
+              .catch((error) => { console.error(error); process.exit(1); });
+          "
+      - name: Container logs
+        if: failure()
+        run: docker logs ikrive-smoke || true
