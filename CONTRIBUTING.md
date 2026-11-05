@@ -6,6 +6,7 @@
 apps/api         API (Fastify 5 + Drizzle ORM + SQLite + Better Auth)
 apps/web         SPA (React 19 + Vite + TanStack Router/Query + Tailwind 4)
 packages/shared  Esquemas zod, enums y lógica de dominio pura compartida
+e2e/             Tests E2E con Playwright contra el build de producción
 docker/          Dockerfile multi-stage (una sola imagen sirve API + SPA)
 ```
 
@@ -57,6 +58,11 @@ Las features nuevas siguen el flujo de [docs/sdd.md](docs/sdd.md): se añaden a 
   - Busca por rol, etiqueta o texto (`getByRole`, `getByLabelText`) e interactúa con el `user` que devuelve el helper (`user-event`). Afirma lo que ve el usuario con los matchers de `jest-dom`.
   - Ejemplos: `apps/web/src/features/vehicles/odometer-form.test.tsx` y `apps/web/src/components/form-field.test.tsx`.
   - Configuración en `apps/web/vitest.config.ts`: proyecto `unit` (`*.test.ts`, Node, `src/test/setup-unit.ts`) y `dom` (`*.test.tsx`, jsdom, `src/test/setup.ts`). Ambos setups fijan i18n a `es`: los tests corren siempre en español sea cual sea el idioma del sistema (en CI es en-US), así que los textos esperados se escriben en español.
+- E2E con Playwright en `e2e/` (paquete `@ikrive/e2e`): `pnpm test:e2e` construye el build de producción y lo prueba como la imagen Docker (API sirviendo la SPA, BD temporal). Detalle en `docs/verification.md`.
+  - El proyecto `setup` (`tests/auth.setup.ts`) registra al primer usuario (admin) por la UI y guarda su sesión en `e2e/.auth/admin.json`; los demás tests la reutilizan.
+  - Para añadir uno, crea `e2e/tests/<flujo>.spec.ts` e importa `test`, `expect` y los helpers de `tests/fixtures.ts`, no de `@playwright/test`: `test` da a cada test una IP de cliente propia (`x-forwarded-for`) para que no compartan el rate limit. Cada test crea sus propios datos (`createVehicle(page.request, …)` con `uniquePlate(testInfo)`) y nunca depende de otro, porque corren en paralelo. Cuidado al contar filas en `/vehicles`: el export incluye todos los vehículos del admin compartido, así que un import en paralelo los duplica (por eso `data-portability` es un proyecto aparte con `workers: 1`); busca por matrícula única o usa `.first()`.
+  - Localiza por rol o etiqueta con los textos de i18n (`t('clave')` lee `es.json`), no con selectores CSS ni textos copiados. Espera solo con aserciones web-first (`toBeVisible`, `toHaveURL`) y eventos (`waitForEvent('download')`); nada de esperas fijas.
+  - Ejemplos: `e2e/tests/maintenance.spec.ts` (adjunto) y `e2e/tests/sale-report.spec.ts` (descarga).
 
 ## Convenciones
 

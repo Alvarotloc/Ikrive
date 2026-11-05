@@ -63,9 +63,9 @@ Ikrive es una aplicación open source y autoalojada (Docker) para gestionar tus 
 | Frontend | React 19 + Vite 8, TanStack Router (rutas por fichero) y Query, Tailwind 4, react-hook-form + zod, react-i18next (es/en), sonner, lucide-react, primitivas de Radix |
 | Gráficos | Recharts (fase 5) |
 | PWA | `vite-plugin-pwa` (fase 7; los iconos 192/512 ya existen en `apps/web/public/icons`) |
-| Calidad | TypeScript strict, Biome, Vitest, Playwright (E2E, pendiente), lefthook en pre-commit |
+| Calidad | TypeScript strict, Biome, Vitest, Playwright (E2E en `e2e/` contra el build de producción), lefthook en pre-commit |
 | Imagen | `node:24-alpine`, usuario `node` (uid 1000). La API va empaquetada con tsup salvo `better-sqlite3`, `sharp` y `pdfkit` (`RUNTIME_EXTERNALS`), los únicos paquetes en `node_modules`. Tamaño (suma de capas sin comprimir, `docker/image-size.mjs`, límite 250 MB en CI): amd64 233,4 MB; arm64 228,0 MB (antes ~670 MB) |
-| CI/CD | GitHub Actions: `ci.yml` (lint, typecheck, test, build y, en el job `docker`, imagen amd64 + arm64, tamaño, smoke test y nativos en arm64) y `release.yml` (al etiquetar `v*.*.*`, imagen multi-arch a GHCR) |
+| CI/CD | GitHub Actions: `ci.yml` (lint, typecheck, test, build y, en el job `docker`, imagen amd64 + arm64, tamaño, smoke test y nativos en arm64; en el job `e2e`, `pnpm test:e2e` con Chromium y las trazas como artefacto si falla) y `release.yml` (al etiquetar `v*.*.*`, imagen multi-arch a GHCR) |
 
 ## Estructura
 
@@ -237,6 +237,7 @@ Fuente de verdad: `apps/web/src/index.css` (tokens) y la landing en `~/dev/perso
 
 - `pnpm harness` valida el estado del backlog y los specs; `pnpm harness --full` añade lint, typecheck y tests. Detalle en [docs/verification.md](verification.md).
 - `pnpm lint && pnpm typecheck && pnpm test` en verde.
+- `pnpm test:e2e`: construye el build de producción y ejecuta los E2E de Playwright (`e2e/`) contra `apps/api/dist/server.js` sirviendo `apps/web/dist` con un `DATA_DIR` temporal. No forma parte de `pnpm test`.
 - `pnpm dev`: la API queda en `:3000` y la web en `:5173` (con proxy de `/api`).
 - `docker build -f docker/Dockerfile -t ikrive:dev .` y después `docker run -p 3000:3000 -e AUTH_SECRET=… ikrive:dev`. Comprobar health, registro, `/api/me` y que la SPA carga.
 - `node docker/smoke.mjs http://127.0.0.1:3000` contra un contenedor recién arrancado (con `/data` vacío): health, registro, vehículo, SPA, foto (`image/webp`) e informe PDF. `node docker/image-size.mjs ikrive:dev` comprueba el límite de 250 MB.
