@@ -422,3 +422,12 @@
 - **Tests:** E2E 6/6, por spec en solitario y `--repeat-each=3` (16/16). `pnpm harness --full` en verde (shared 117, API 303, web 342, e2e 1). Imagen 233,4 MB.
 - **Revisión:** APPROVED a la primera (`progress/review_e2e-playwright.md`). Avisos: `.dockerignore` no excluye los artefactos de `e2e/` ni `e2e/.auth/` (→ backlog #47 `dockerignore-e2e-artifacts`); `fuel-stats` depende del DOM de la tarjeta y del literal `6 L/100 km`; `e2e/package.json` solo declara Playwright. El aviso del import en paralelo se añadió a `CONTRIBUTING.md` en el cierre.
 - **Gate 2:** merge aprobado.
+
+## 2026-11-05 — #47 dockerignore-e2e-artifacts
+
+- **Rama:** `feat/dockerignore-e2e-artifacts` (`sdd: false`, sin spec ni Gate 1). Solo `.dockerignore`. Surgió del aviso del reviewer en Gate 2 de #41.
+- **Cambios:** patrones `**/` para `coverage`, `*.tsbuildinfo`, `.tanstack`, `data`, `*.db`, `*.db-*`, `.env`, `.env.local`, `.env.*.local`, `playwright-report` y `test-results`; `e2e/.auth`. Hallazgo: antes entraban en el contexto la BD de desarrollo y sus uploads (`apps/api/data/`), porque `data` solo cubría la raíz. `.env.example` sigue entrando.
+- **Vuelta 1 (petición del humano en Gate 2):** excluir también `.claude` (incluye `settings.local.json`) y `.agents`. Contexto de build: ~865 → 639 ficheros; los únicos versionados que salen son los 8 de `.claude/`.
+- **Tests:** `docker build` + `smoke.mjs`, job `reminders` y `id -u` = 1000 en verde. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED en las dos pasadas (`progress/review_dockerignore-e2e-artifacts.md`).
+- **Gate 2:** merge aprobado.
