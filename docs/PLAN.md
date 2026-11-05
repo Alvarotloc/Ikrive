@@ -45,7 +45,6 @@ Ikrive es una aplicación open source y autoalojada (Docker) para gestionar tus 
 | 7. Pulido y release v0.1.0 | Pendiente |
 
 **Pendientes conocidos:**
-- La imagen Docker pesa unos 670 MB por dependencias transitivas de better-auth (esbuild, rolldown…). Está previsto reducirla en la fase 7, por ejemplo empaquetando la API con tsup salvo los módulos nativos.
 - Aún no existe repositorio remoto en GitHub (cuenta `Alvarotloc`). La imagen se publicará en `ghcr.io/alvarotloc/ikrive`.
 
 ---
@@ -65,7 +64,8 @@ Ikrive es una aplicación open source y autoalojada (Docker) para gestionar tus 
 | Gráficos | Recharts (fase 5) |
 | PWA | `vite-plugin-pwa` (fase 7; los iconos 192/512 ya existen en `apps/web/public/icons`) |
 | Calidad | TypeScript strict, Biome, Vitest, Playwright (E2E, pendiente), lefthook en pre-commit |
-| CI/CD | GitHub Actions: `ci.yml` (lint, typecheck, test, build y build de Docker) y `release.yml` (al etiquetar `v*.*.*`, imagen multi-arch a GHCR) |
+| Imagen | `node:24-alpine`, usuario `node` (uid 1000). La API va empaquetada con tsup salvo `better-sqlite3`, `sharp` y `pdfkit` (`RUNTIME_EXTERNALS`), los únicos paquetes en `node_modules`. Tamaño (suma de capas sin comprimir, `docker/image-size.mjs`, límite 250 MB en CI): amd64 233,4 MB; arm64 228,0 MB (antes ~670 MB) |
+| CI/CD | GitHub Actions: `ci.yml` (lint, typecheck, test, build y, en el job `docker`, imagen amd64 + arm64, tamaño, smoke test y nativos en arm64) y `release.yml` (al etiquetar `v*.*.*`, imagen multi-arch a GHCR) |
 
 ## Estructura
 
@@ -239,4 +239,5 @@ Fuente de verdad: `apps/web/src/index.css` (tokens) y la landing en `~/dev/perso
 - `pnpm lint && pnpm typecheck && pnpm test` en verde.
 - `pnpm dev`: la API queda en `:3000` y la web en `:5173` (con proxy de `/api`).
 - `docker build -f docker/Dockerfile -t ikrive:dev .` y después `docker run -p 3000:3000 -e AUTH_SECRET=… ikrive:dev`. Comprobar health, registro, `/api/me` y que la SPA carga.
+- `node docker/smoke.mjs http://127.0.0.1:3000` contra un contenedor recién arrancado (con `/data` vacío): health, registro, vehículo, SPA, foto (`image/webp`) e informe PDF. `node docker/image-size.mjs ikrive:dev` comprueba el límite de 250 MB.
 - Revisión visual con capturas en claro, oscuro y móvil (playwright-core contra `/usr/bin/google-chrome`).

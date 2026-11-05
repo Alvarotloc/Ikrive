@@ -9,6 +9,8 @@ packages/shared  Esquemas zod, enums y lógica de dominio pura compartida
 docker/          Dockerfile multi-stage (una sola imagen sirve API + SPA)
 ```
 
+La imagen solo instala los paquetes que no se pueden empaquetar (`RUNTIME_EXTERNALS` en `apps/api/tsup.config.ts`: binarios nativos o con `require` dinámicos); todo lo demás va en el bundle de tsup. Para añadir uno, inclúyelo en `RUNTIME_EXTERNALS` y como dependencia de `apps/api` con versión exacta, y comprueba que el smoke test (`docker/smoke.mjs`) y el límite de tamaño siguen en verde.
+
 ### API
 
 Cada dominio vive en `apps/api/src/modules/<dominio>/` con tres capas:
