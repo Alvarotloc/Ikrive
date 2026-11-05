@@ -1,9 +1,26 @@
+# Dependencies and build outputs (rebuilt inside the image)
 **/node_modules
 **/dist
+**/coverage
+**/*.tsbuildinfo
+**/.tanstack
+
+# VCS
 .git
-data
-*.db
-.env
-coverage
-playwright-report
-test-results
+
+# Local data and secrets: never part of the build context
+**/data
+**/*.db
+**/*.db-*
+**/.env
+**/.env.local
+**/.env.*.local
+
+# E2E artifacts: Playwright reports, traces and the test session cookie
+**/playwright-report
+**/test-results
+e2e/.auth
+
+# Local agent tooling (SDD agents, skills, hooks, local permissions): not needed to build
+.claude
+.agents
