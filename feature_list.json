@@ -829,6 +829,107 @@
       ],
       "sdd": false,
       "status": "done"
+    },
+    {
+      "id": 49,
+      "name": "mobile-auth-api",
+      "phase": "8",
+      "title": "API para clientes nativos",
+      "description": "Etapa 1 de la fase 8 («Mi servidor»). La API acepta a la app de Capacitor, que tiene otro origen: sesión por token además de la cookie, CORS para los orígenes nativos y ficheros accesibles con el token. Ver docs/PLAN.md › Fase 8.",
+      "acceptance": [
+        "Un cliente puede iniciar sesión y obtener un token de sesión (plugin bearer de Better Auth) y usarlo en la cabecera Authorization en todas las rutas autenticadas de la API",
+        "La web sigue funcionando con cookie y sin cambios de comportamiento",
+        "La API responde a CORS (con preflight) para los orígenes de Capacitor y Better Auth los acepta en trustedOrigins; la lista es configurable con una variable de entorno validada con zod, documentada en docs/self-hosting.md, y vacía no abre CORS a nadie",
+        "La foto del vehículo, las miniaturas y las facturas se pueden obtener con el token, solo para su propietario (404 al resto)",
+        "Las cuentas desactivadas no pueden usar sus tokens",
+        "Tests de integración cubren el login por token, CORS (origen permitido y no permitido), el acceso a ficheros con token y la autorización",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 50,
+      "name": "web-api-base-url",
+      "phase": "8",
+      "title": "Web con servidor configurable",
+      "description": "Etapa 1 de la fase 8. La SPA puede hablar con un servidor de otro origen usando el token de #49, para empaquetarla en la app móvil. Va después de mobile-auth-api (#49).",
+      "acceptance": [
+        "lib/api-client.ts y lib/auth-client.ts usan una URL base configurable en tiempo de ejecución y, si la hay, envían el token de sesión guardado en el dispositivo",
+        "Sin URL base configurada, la web funciona como hoy: mismo origen y cookie",
+        "Las fotos, miniaturas, facturas y descargas se cargan con una petición autenticada cuando no hay cookie",
+        "Cerrar sesión borra el token guardado",
+        "Tests de componente o unitarios cubren los dos modos del cliente (mismo origen y URL base con token) y la carga autenticada de una imagen",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 51,
+      "name": "mobile-shell-android",
+      "phase": "8",
+      "title": "App Android con Capacitor",
+      "description": "Etapa 1 de la fase 8. Proyecto Capacitor en apps/mobile con la SPA, primera pantalla con los dos modos («Mi servidor» funcional, «En este teléfono» como próximamente) y APK firmada en GitHub Releases. Va después de web-api-base-url (#50).",
+      "acceptance": [
+        "Existe apps/mobile con Capacitor que empaqueta el build de apps/web, sin PWA ni service worker dentro de la APK",
+        "La primera pantalla ofrece «Mi servidor» y «En este teléfono»; el segundo aparece como próximamente",
+        "«Mi servidor» pide la URL, la valida con /api/health (con error claro si no responde o no es Ikrive), la recuerda y muestra el login de esa instancia; se puede cambiar de servidor",
+        "Un workflow de GitHub Actions compila la APK al empujar un tag v*, la firma con una clave guardada en secretos y la sube a la GitHub Release con su .sha256",
+        "docs/self-hosting.md o un doc nuevo explica cómo instalar la APK, la configuración de CORS necesaria y la alternativa PWA en iPhone",
+        "Todos los textos están en es.json y en.json",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 52,
+      "name": "mobile-native-calendar-notifications",
+      "phase": "8",
+      "title": "Calendario y notificaciones nativas",
+      "description": "Etapa 1 de la fase 8. En la app móvil, añadir un próximo mantenimiento al calendario del teléfono y mostrar notificaciones locales de los avisos. Va después de mobile-shell-android (#51).",
+      "acceptance": [
+        "En la app móvil, «Añadir al calendario» de una regla crea el evento en el calendario del teléfono con las funciones de packages/shared de la fase 4; en la web se mantiene el comportamiento actual",
+        "La app pide permiso de notificaciones y muestra una notificación local por cada aviso nuevo de la bandeja (sin duplicados)",
+        "Sin permiso concedido, la app sigue funcionando y lo indica",
+        "Todos los textos están en es.json y en.json",
+        "Tests unitarios o de componente cubren la elección entre calendario nativo y web y la deduplicación de notificaciones locales",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 53,
+      "name": "web-data-layer",
+      "phase": "8",
+      "title": "Capa de datos intercambiable en la web",
+      "description": "Etapa 2 de la fase 8 («En este teléfono»). La web accede a los datos a través de una interfaz (HTTP o local) y las reglas de negocio que el modo local necesita pasan a packages/shared. Sin cambios visibles. Antes de su spec hay que decidir qué hace el modo local sin jobs ni enlaces públicos (ver docs/PLAN.md).",
+      "acceptance": [
+        "Los queries.ts de apps/web usan una interfaz de acceso a datos con una implementación HTTP en lugar de llamar a api directamente",
+        "Las reglas que hoy solo están en la API y que necesita el modo local (p. ej. sincronización del odómetro con mantenimientos y repostajes) viven en packages/shared con tests unitarios, y la API las usa",
+        "No cambia el comportamiento de la web ni de la API",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 54,
+      "name": "mobile-local-mode",
+      "phase": "8",
+      "title": "Modo «En este teléfono»",
+      "description": "Etapa 2 de la fase 8. Datos en SQLite en el dispositivo, sin cuenta ni servidor, con la interfaz de web-data-layer (#53), y paso del modo local a un servidor con el zip de export/import. Va después de #53; probablemente haya que partirla al escribir su spec.",
+      "acceptance": [
+        "En la app móvil, «En este teléfono» guarda los datos en SQLite en el dispositivo sin cuenta ni servidor",
+        "El modo local usa la misma interfaz de datos de #53 y las reglas de packages/shared",
+        "Se puede exportar desde el modo local un zip que el import de un servidor acepta",
+        "Todos los textos están en es.json y en.json",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
     }
   ]
 }

@@ -43,6 +43,7 @@ Ikrive es una aplicación open source y autoalojada (Docker) para gestionar tus 
 | 5. Repostajes y estadísticas | ✅ Hecha |
 | 6. Informe de venta | ✅ Hecha |
 | 7. Pulido y release v0.1.0 | ✅ Hecha |
+| 8. App móvil | ⏳ Pendiente |
 
 **Pendientes conocidos:**
 - Ninguno. La imagen se publica en `ghcr.io/alvarotloc/ikrive` al empujar un tag `v*` (`.github/workflows/release.yml`).
@@ -201,13 +202,33 @@ Los enums ya están definidos en `packages/shared/src/enums.ts`.
 - E2E con Playwright.
 - Docs con capturas y release v0.1.0.
 
-### Después de v0.1.0: app móvil (idea)
-- APK Android con Capacitor a partir de la misma SPA, inspirada en [openGym](https://github.com/DuarteSantos8/openGym): APK firmada en GitHub Releases con su `.sha256`, sin Play Store, y en iPhone la PWA o compilar con Xcode.
+### Fase 8: app móvil
+- APK Android con Capacitor a partir de la misma SPA, inspirada en [openGym](https://github.com/DuarteSantos8/openGym): APK firmada en GitHub Releases con su `.sha256`, sin Play Store. En iPhone, la PWA (o compilar con Xcode por cuenta propia).
 - Usos nativos previstos: añadir los próximos mantenimientos al calendario del teléfono y notificaciones locales.
 - **Decisión:** como en openGym, la primera pantalla ofrece dos modos y el usuario elige uno:
   - **Mi servidor:** cliente del servidor del usuario. Pide la URL del servidor y exige adaptar Better Auth y CORS a un origen nativo (`trustedOrigins` y, probablemente, sesión por token en vez de cookie).
   - **En este teléfono:** datos en una base de datos local (SQLite en el dispositivo), sin cuenta ni servidor.
-  - Para no duplicar la lógica, la web habla con una capa de datos intercambiable (HTTP o local) y las reglas de negocio viven en `packages/shared`, que ya concentra validaciones y cálculos puros. Falta decidir cómo se pasa del modo local a un servidor (p. ej. con el export/import de la fase 7).
+  - Para no duplicar la lógica, la web habla con una capa de datos intercambiable (HTTP o local) y las reglas de negocio viven en `packages/shared`, que ya concentra validaciones y cálculos puros.
+- **Por etapas.** Primero «Mi servidor», que reutiliza la API y la web tal cual; después el modo local, que es el más costoso. Cada etapa se puede publicar por separado.
+
+#### Etapa 1: «Mi servidor»
+- **`mobile-auth-api` (#49):** la API acepta a un cliente nativo de otro origen.
+  - Sesión por token además de la cookie (plugin `bearer` de Better Auth), sin cambiar el comportamiento de la web.
+  - CORS y `trustedOrigins` para los orígenes de Capacitor (`capacitor://localhost`, `https://localhost`), solo en las rutas de la API y configurable por entorno.
+  - Ficheros (foto del vehículo, miniaturas y facturas) accesibles con el token: hoy la web los pinta con `<img src="/api/…">` y la cookie, que una app de otro origen no tiene.
+- **`web-api-base-url` (#50):** la SPA puede hablar con un servidor de otro origen.
+  - `lib/api-client.ts` y `lib/auth-client.ts` con una URL base configurable y el token guardado en el dispositivo; sin configurar, la web sigue igual (mismo origen y cookie).
+  - Las imágenes y descargas pasan por una petición autenticada (blob) cuando no hay cookie.
+- **`mobile-shell-android` (#51):** el proyecto Capacitor (`apps/mobile`) y su publicación.
+  - Primera pantalla con los dos modos; «En este teléfono» se muestra como «próximamente» hasta la etapa 2.
+  - «Mi servidor» pide la URL, la comprueba con `/api/health` y muestra el login de esa instancia.
+  - Workflow que compila la APK, la firma y la sube con su `.sha256` a la GitHub Release del tag. La PWA y el service worker no se usan dentro de la APK.
+- **`mobile-native-calendar-notifications` (#52):** añadir un próximo mantenimiento al calendario del teléfono (con las funciones de `packages/shared` de la fase 4) y notificaciones locales de los avisos.
+
+#### Etapa 2: «En este teléfono»
+- **`web-data-layer` (#53):** la web accede a los datos a través de una interfaz (HTTP o local) en lugar de llamar a `api` desde cada `queries.ts`. Las reglas que hoy solo están en la API y que el modo local necesita (p. ej. la sincronización del odómetro con mantenimientos y repostajes) pasan a `packages/shared`. Sin cambios visibles.
+- **`mobile-local-mode` (#54):** datos en SQLite en el dispositivo, sin cuenta ni servidor, con la misma interfaz de #53. Paso del modo local a un servidor con el zip de export/import de la fase 7.
+- **Pendiente de decidir antes de la etapa 2:** qué hace el modo local sin los jobs del servidor (recordatorios y aviso de km) y sin los enlaces públicos (informe y feed iCal), y si se ofrece el paso inverso (servidor → teléfono).
 
 ## Diseño
 
