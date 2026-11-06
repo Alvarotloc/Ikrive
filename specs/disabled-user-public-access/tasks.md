@@ -1,0 +1,19 @@
+# Tasks — disabled-user-public-access
+
+- [ ] T1 — Crear `apps/api/src/db/filters.ts` con `activeUserFilter = isNull(user.disabledAt)` (JSDoc: lo usan los accesos por token y los jobs) y usarlo en `countActiveAdmins` de `apps/api/src/modules/admin-users/repository.ts` (los tests de `admin-users.test.ts` siguen en verde). Cubre: R1, R3, R8, R9, R12.
+- [ ] T2 — `findBySelector` de `apps/api/src/modules/calendar/repository.ts` con `innerJoin(user)` + `activeUserFilter`, devolviendo solo las columnas de `calendarFeeds`. Cubre: R1, R2.
+- [ ] T3 — `findBySelector` de `apps/api/src/modules/report-shares/repository.ts` con `innerJoin(user, eq(user.id, vehicles.ownerId))` + `activeUserFilter`. Cubre: R3, R4.
+- [ ] T4 — Hook `onSend` con `cache-control: private, no-store` en `calendarFeedRoutes` (`apps/api/src/modules/calendar/routes.ts`) y `publicReportRoutes` (`apps/api/src/modules/report-shares/routes.ts`); quitar la cabecera duplicada de los handlers. Cubre: R7.
+- [ ] T5 — `listForActiveVehicles` de `apps/api/src/modules/schedules/repository.ts` y `listActiveForOdometerNudge` de `apps/api/src/modules/vehicles/repository.ts` con `innerJoin(user)` + `activeUserFilter`. Cubre: R8, R9, R10, R11.
+- [ ] T6 — `listEnabledByUsers` de `apps/api/src/modules/notification-channels/repository.ts` con `innerJoin(user)` + `activeUserFilter`. Cubre: R12.
+- [ ] T7 — En `apps/api/test/calendar.test.ts`, `describe('calendar feed of a disabled owner')` con un admin creado antes del dueño: tests `returns the same 404 as an unknown token while the owner is disabled` (mismo `statusCode`, `content-type` y cuerpo que un selector aleatorio) y `serves the feed again with the same token after reactivation`. Cubre: R1, R2.
+- [ ] T8 — En `apps/api/test/calendar.test.ts`, test `keeps the feed row when disabling and enabling the owner` (fila de `calendar_feeds` igual antes y después). Cubre: R6.
+- [ ] T9 — En `apps/api/test/calendar.test.ts`, test `sends no-store on feed 404s` (token desconocido y dueño desactivado → `cache-control: private, no-store`). Cubre: R7.
+- [ ] T10 — En `apps/api/test/report-shares.test.ts`, `describe('public sale report of a disabled owner')`: tests `returns the same 404 as an unknown token while the owner is disabled` (incluye que no se genera el PDF: `content-type` `problem+json`) y `serves active links again with the same token after reactivation`. Cubre: R3, R4.
+- [ ] T11 — En el mismo `describe`, test `keeps expired and revoked links at 404 after reactivation` (uno caducado con `expireShare` y otro revocado en BD mientras el dueño está desactivado; un tercero vuelve a 200). Cubre: R5.
+- [ ] T12 — En el mismo `describe`, tests `keeps the share rows when disabling and enabling the owner` y `sends no-store on public report 404s`. Cubre: R6, R7.
+- [ ] T13 — En `apps/api/test/reminders.test.ts`, tests `skips disabled owners` (otro usuario activo sí recibe su notificación; `evaluated` no cuenta al desactivado) y `notifies a reactivated owner on the next run`. Cubre: R8, R10.
+- [ ] T14 — En `apps/api/test/odometer-nudge.test.ts`, tests `skips disabled users` y `nudges a reactivated user on the next run`. Cubre: R9, R11.
+- [ ] T15 — En `apps/api/test/notification-channels-dispatch.test.ts`, test `does not send to the channels of disabled users` (`dispatch` con una fila del desactivado y otra de un activo: `fetch` solo recibe la del activo y el `last_error` del canal del desactivado no cambia). Cubre: R12.
+- [ ] T16 — `docs/PLAN.md`: completar la línea de `user.disabled_at` del modelo de datos (sin feed, enlaces públicos ni recordatorios mientras está desactivada). Cubre: R1, R3, R8.
+- [ ] T17 — Ejecutar `pnpm harness --full` y documentar trazabilidad en `progress/impl_disabled-user-public-access.md`. Cubre: R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12.
