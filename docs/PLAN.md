@@ -136,6 +136,7 @@ Pendientes:
 - **notifications**: user_id, tipo, título, cuerpo, enlace, `dedupe_key` único y `read_at`.
 - **notification_channels**: `ntfy|gotify|apprise|webhook`, config JSON, activo y último error.
 - **report_shares**: token, opciones de privacidad, `expires_at` y `revoked_at`.
+- **data_imports**: user_id, `data_sha256` (SHA-256 del `data.json` importado) y fecha, con índice único `(user_id, data_sha256)`: el mismo export no se importa dos veces en una cuenta. Se borra en cascada con la cuenta y no se exporta.
 
 Los enums ya están definidos en `packages/shared/src/enums.ts`.
 

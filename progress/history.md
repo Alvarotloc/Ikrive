@@ -440,3 +440,12 @@
 - **Tests:** API 312, web 342, shared 117, e2e 1. `pnpm harness --full` en verde. Una pasada dio 1 fallo intermitente sin identificar en `apps/api`; 3 + 5 + 15 repeticiones posteriores en verde.
 - **Revisión:** APPROVED en las dos pasadas (`progress/review_truncated-upload-400.md`). Aviso: un error de la subida con un 5xx explícito acabaría en 400 (hoy `@fastify/multipart` no lo lanza); el humano lo mantiene.
 - **Gate 2:** merge aprobado.
+
+## 2026-11-06 — #44 import-dedupe
+
+- **Rama:** `feat/import-dedupe` (SDD, spec en `specs/import-dedupe/`, 13 R / 14 T). Shared, API (tabla + migración `0012_data_imports`) y web.
+- **Gate 1:** aprobado sin cambios: problem `type` propio `urn:ikrive:problem:duplicate-import`; borrar los vehículos importados no libera la huella; orden 400 documento > 409 repetido > 409 ajustes; matrícula/VIN normalizados a mayúsculas y solo letras/dígitos, comparados también con archivados y vendidos; imports anteriores sin huella se aceptan una vez.
+- **Cambios:** `data_imports` (`userId` + `dataSha256` únicos, `ON DELETE CASCADE`); la fila es el primer `INSERT` de la transacción del import y la violación del `UNIQUE` se traduce al 409 repetido (rollback + borrado de ficheros); comprobación previa tras `parseDocument`; `AppError`/`ConflictError` con `type` opcional; `normalizeVehicleIdentifier` y `findMatchingVehicles` en shared; `matchingVehicles` en el resumen; toast `errors.duplicate` y aviso `role="status"` en Ajustes (es/en).
+- **Tests:** shared 119, API 321, web 346, e2e 1. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED a la primera (`progress/review_import-dedupe.md`). Avisos: `isUniqueViolation` acepta cualquier `SQLITE_CONSTRAINT_UNIQUE`, no solo el índice de `data_imports`; `findMatchingVehicles` se calcula tras el commit (si lanzara, se borrarían ficheros de un import confirmado); toasts de `sonner` blancos en modo oscuro (preexistente).
+- **Gate 2:** merge aprobado sin aplicar los avisos.

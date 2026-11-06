@@ -609,9 +609,19 @@
     },
     "skippedChannels_one": "{{count}} notification channel was not imported because it needs a token: create it again in “Notification channels”.",
     "skippedChannels_other": "{{count}} notification channels were not imported because they need a token: create them again in “Notification channels”.",
+    "matchingVehicles": {
+      "title": "Check these vehicles: you may already have had them",
+      "item": "{{imported}} matches {{existing}} by {{fields}}",
+      "fields": {
+        "plate": "plate",
+        "vin": "VIN",
+        "both": "plate and VIN"
+      }
+    },
     "errors": {
       "invalid": "The file is not a valid Ikrive export",
       "settings": "The export currency or units do not match your settings",
+      "duplicate": "This export was already imported into your account",
       "tooLarge": "The file is too large",
       "fileType": "Unsupported file type: choose a .zip"
     }

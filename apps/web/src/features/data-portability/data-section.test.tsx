@@ -1,4 +1,9 @@
-import { type DataImportSummary, DEFAULT_USER_SETTINGS, type Problem } from '@ikrive/shared';
+import {
+  type DataImportSummary,
+  DEFAULT_USER_SETTINGS,
+  DUPLICATE_IMPORT_PROBLEM_TYPE,
+  type Problem,
+} from '@ikrive/shared';
 import { screen, within } from '@testing-library/react';
 import { Toaster, toast } from 'sonner';
 import { afterEach, describe, expect, it, type Mock } from 'vitest';
@@ -18,6 +23,7 @@ const summary: DataImportSummary = {
   photos: 1,
   notificationChannels: 3,
   skipped: { notificationChannels: 0 },
+  matchingVehicles: [],
 };
 
 const zip = () =>
@@ -187,5 +193,81 @@ describe('DataPortabilitySection', () => {
     expect(screen.queryByRole('heading', { name: 'Último import' })).not.toBeInTheDocument();
     expect(screen.queryByText('Datos importados')).not.toBeInTheDocument();
     expect(invalidated(queryClient)).toEqual({ vehicles: false, channels: false });
+  });
+
+  it('shows a repeated import in a toast', async () => {
+    const problem: Problem = {
+      type: DUPLICATE_IMPORT_PROBLEM_TYPE,
+      title: 'Conflict',
+      status: 409,
+      detail: 'This export was already imported into your account on 2026-11-01T10:00:00.000Z',
+    };
+    const { user, queryClient } = setup({ [`POST ${IMPORT}`]: { status: 409, body: problem } });
+
+    await chooseAndConfirm(user);
+
+    expect(await screen.findByText('Este export ya se importó en tu cuenta')).toBeInTheDocument();
+    expect(
+      screen.getByText('This export was already imported into your account on 2026-11-01T10:00:00.000Z'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('La moneda o las unidades del export no coinciden con tus ajustes'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Último import' })).not.toBeInTheDocument();
+    expect(invalidated(queryClient)).toEqual({ vehicles: false, channels: false });
+  });
+
+  it('warns about vehicles matching existing ones', async () => {
+    const ref = (id: string, name: string | null, make: string, model: string) => ({ id, name, make, model });
+    const { user } = setup({
+      [`POST ${IMPORT}`]: {
+        status: 201,
+        body: {
+          ...summary,
+          matchingVehicles: [
+            {
+              imported: ref('i1', null, 'Seat', 'Ibiza'),
+              existing: ref('e1', 'El rojo', 'Seat', 'Ibiza'),
+              matchedBy: ['plate'],
+            },
+            {
+              imported: ref('i2', 'Furgo', 'Renault', 'Kangoo'),
+              existing: ref('e2', null, 'Renault', 'Trafic'),
+              matchedBy: ['vin'],
+            },
+            {
+              imported: ref('i3', null, 'Ford', 'Focus'),
+              existing: ref('e3', null, 'Ford', 'Fiesta'),
+              matchedBy: ['plate', 'vin'],
+            },
+          ],
+        } satisfies DataImportSummary,
+      },
+    });
+
+    await chooseAndConfirm(user);
+
+    const title = await screen.findByText('Revisa estos vehículos: puede que ya los tuvieras');
+    const notice = title.closest('[role="status"]') as HTMLElement;
+    expect(notice).toBeInTheDocument();
+    expect(
+      within(notice)
+        .getAllByRole('listitem')
+        .map((item) => item.textContent),
+    ).toEqual([
+      'Seat Ibiza coincide con El rojo por matrícula',
+      'Furgo coincide con Renault Trafic por VIN',
+      'Ford Focus coincide con Ford Fiesta por matrícula y VIN',
+    ]);
+  });
+
+  it('shows no matching vehicles notice without matches', async () => {
+    const { user } = setup({ [`POST ${IMPORT}`]: { status: 201, body: summary } });
+
+    await chooseAndConfirm(user);
+
+    expect(await screen.findByText('Datos importados')).toBeInTheDocument();
+    expect(screen.queryByText('Revisa estos vehículos: puede que ya los tuvieras')).not.toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 });

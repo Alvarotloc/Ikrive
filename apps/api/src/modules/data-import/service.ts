@@ -8,6 +8,7 @@ import {
   type DataExportNotificationChannel,
   type DataImportSummary,
   dataExportSchema,
+  findMatchingVehicles,
   notificationChannelConfigSchema,
 } from '@ikrive/shared';
 import type { FastifyBaseLogger } from 'fastify';
@@ -24,7 +25,7 @@ import type { FileStorage } from '../../lib/storage';
 import { openZip, type ZipReader } from '../../lib/zip-reader';
 import { sanitizeFileName } from '../attachments/service';
 import type { SettingsService } from '../settings/service';
-import type { DataImportRepository, ImportPlan } from './repository';
+import { type DataImportRepository, duplicateImportError, type ImportPlan } from './repository';
 
 export interface ImportLimits {
   /** Size of the uploaded zip. */
@@ -370,7 +371,13 @@ export function createDataImportService({
         if (dataJson.uncompressedSize > limits.dataJsonBytes) {
           throw new PayloadTooLargeError(`${DATA_JSON} is larger than ${mib(limits.dataJsonBytes)}`);
         }
-        const document = parseDocument(await zip.read(dataJson, limits.dataJsonBytes));
+        const data = await zip.read(dataJson, limits.dataJsonBytes);
+        const dataSha256 = sha256(data);
+        const document = parseDocument(data);
+        // Before the settings: if they changed since the first import, what matters is that it is
+        // already there. Only a shortcut: the unique index in `repo.insert` is the guarantee.
+        const importedAt = repo.hasImport(userId, dataSha256);
+        if (importedAt) throw duplicateImportError(importedAt);
         checkSettings(userId, document);
         // Entries the document does not reference are never opened.
         const files = referencedFiles(document, zip);
@@ -384,8 +391,25 @@ export function createDataImportService({
             stored.set(file.path, await storeFile(file, data, written));
           }
           const { plan, photos, skippedChannels } = buildPlan(document, stored);
-          const counts = repo.insert(userId, plan);
-          return { ...counts, photos, skipped: { notificationChannels: skippedChannels } };
+          // Read before inserting: only what the account had before this import is compared.
+          const existing = repo.vehicles(userId);
+          const counts = repo.insert(userId, plan, dataSha256);
+          return {
+            ...counts,
+            photos,
+            skipped: { notificationChannels: skippedChannels },
+            matchingVehicles: findMatchingVehicles(
+              plan.vehicles.map(({ id, name, make, model, plate, vin }) => ({
+                id,
+                name: name ?? null,
+                make,
+                model,
+                plate: plate ?? null,
+                vin: vin ?? null,
+              })),
+              existing,
+            ),
+          };
         } catch (error) {
           // The transaction already rolled back: only the saved files are left to undo.
           for (const key of written) {

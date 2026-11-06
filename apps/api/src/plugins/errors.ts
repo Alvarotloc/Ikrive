@@ -30,6 +30,7 @@ export default fp(async (app: FastifyInstance) => {
         .type('application/problem+json')
         .send(
           problem(error.status, error.title, {
+            type: error.type,
             detail: error.message,
             ...(error.errors ? { errors: error.errors } : {}),
           }),
