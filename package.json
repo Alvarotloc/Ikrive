@@ -15,6 +15,7 @@
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "test:e2e": "pnpm build && pnpm --filter @ikrive/e2e test:e2e",
+    "screenshots": "pnpm build && pnpm --filter @ikrive/e2e screenshots",
     "db:generate": "pnpm --filter @ikrive/api db:generate",
     "db:migrate": "pnpm --filter @ikrive/api db:migrate",
     "harness": "node scripts/harness/check.mjs"

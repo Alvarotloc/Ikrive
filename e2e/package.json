@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "test:e2e": "playwright test",
+    "screenshots": "playwright test -c screenshots.config.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

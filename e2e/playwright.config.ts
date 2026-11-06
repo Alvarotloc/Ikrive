@@ -1,8 +1,7 @@
 import { join } from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
+import { baseURL, webServer } from './server-config';
 
-const port = process.env.E2E_PORT ?? '3100';
-const baseURL = `http://127.0.0.1:${port}`;
 /** Same path as `ADMIN_STORAGE_STATE` in `tests/fixtures.ts`: the admin session saved by `setup`. */
 const ADMIN_STORAGE_STATE = join(import.meta.dirname, '.auth/admin.json');
 
@@ -44,13 +43,5 @@ export default defineConfig({
       workers: 1,
     },
   ],
-  webServer: {
-    command: 'node server.mjs',
-    url: `${baseURL}/api/health`,
-    // Always a fresh database: if the port is taken, fail instead of reusing a server with data.
-    reuseExistingServer: false,
-    timeout: 60_000,
-    // Playwright SIGKILLs the server by default; SIGTERM lets `server.mjs` delete its DATA_DIR.
-    gracefulShutdown: { signal: 'SIGTERM', timeout: 5_000 },
-  },
+  webServer,
 });
