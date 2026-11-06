@@ -468,3 +468,11 @@
 - **Tests:** API 336, web 346, shared 119, e2e 6. `pnpm harness --full` en verde.
 - **Revisión:** APPROVED a la primera (`progress/review_release-v0-1-0.md`). Avisos: matrícula desbordada en la tarjeta de vehículo a 1280 px (visible en las capturas de portada), fondo de la barra lateral cortado en `vehicle-detail.png`, `IKRIVE_VERSION` sin build-arg es `0.0.0`, `.env.example` sugiere `DATA_DIR=./data`, restauración puede necesitar `sudo`.
 - **Gate 2:** merge aprobado; los avisos pasan a #48 `pre-release-polish`, que va antes del tag `v0.1.0`. El tag no se ha creado.
+
+## 2026-11-06 — #48 pre-release-polish
+
+- **Rama:** `feat/pre-release-polish` (`sdd: false`, sin spec ni Gate 1). Avisos 1–5 del reviewer en Gate 2 de #42, antes del tag `v0.1.0`.
+- **Cambios:** `VehicleCard` con `min-w-0` en la cadena del grid y el chip de matrícula `truncate max-w-[50%]` con `title` (nuevo prop opcional en `Plate`); `captureWholePage` en el script de capturas (agranda el viewport en lugar de `fullPage`, con `expect.poll` a la altura del `aside`); `dashboard.png`, `vehicles.png` y `vehicle-detail.png` regeneradas; `docs/self-hosting.md` (`IKRIVE_VERSION` = `0.0.0` sin build-arg, `sudo` al restaurar) y `.env.example` (`DATA_DIR=/data`).
+- **Tests:** API 336, web 348, shared 119, e2e 6. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED a la primera (`progress/review_pre-release-polish.md`). Avisos: el subtítulo de la tarjeta se trunca a 1280 px; sin captura de la tarjeta en oscuro; matrículas de `/odometer` y de la ficha sin tocar.
+- **Gate 2:** merge aprobado, con orden explícita de crear y subir el tag `v0.1.0` tras el merge.
