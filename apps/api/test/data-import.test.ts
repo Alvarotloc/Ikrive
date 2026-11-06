@@ -1,8 +1,13 @@
 import { createHash } from 'node:crypto';
 import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import { type DataExport, type DataImportSummary, dataImportSummarySchema } from '@ikrive/shared';
-import { count, eq, sql } from 'drizzle-orm';
+import {
+  type DataExport,
+  type DataImportSummary,
+  DUPLICATE_IMPORT_PROBLEM_TYPE,
+  dataImportSummarySchema,
+} from '@ikrive/shared';
+import { and, count, eq, inArray, sql } from 'drizzle-orm';
 import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
 import sharp from 'sharp';
 import { describe, expect, it, vi } from 'vitest';
@@ -11,6 +16,7 @@ import { ZipFile } from 'yazl';
 import type { Db } from '../src/db/client';
 import {
   attachments,
+  dataImports,
   fuelLogs,
   maintenanceRecords,
   maintenanceSchedules,
@@ -21,7 +27,7 @@ import {
   vehicles,
 } from '../src/db/schema';
 import { createFileStorage } from '../src/lib/storage';
-import { createDataImportRepository } from '../src/modules/data-import/repository';
+import { createDataImportRepository, type DataImportRepository } from '../src/modules/data-import/repository';
 import { createDataImportService, type ImportLimits } from '../src/modules/data-import/service';
 import { createSettingsRepository } from '../src/modules/settings/repository';
 import { createSettingsService } from '../src/modules/settings/service';
@@ -308,6 +314,7 @@ function snapshot(db: Db, dataDir: string) {
     attachments: rows(attachments),
     notificationChannels: rows(notificationChannels),
     notifications: rows(notifications),
+    dataImports: rows(dataImports),
     userSettings: rows(userSettings),
     uploads: files(join(dataDir, 'uploads')),
     tmp: files(join(dataDir, 'tmp')),
@@ -368,6 +375,36 @@ const referencedPaths = (document: DataExport) =>
     ),
   ]);
 
+const DEFAULT_LIMITS: ImportLimits = {
+  zipBytes: 1024 * MIB,
+  totalBytes: 1024 * MIB,
+  fileBytes: 20 * MIB,
+  dataJsonBytes: 32 * MIB,
+  entries: 50_000,
+};
+
+/** The service with other limits (or repository), importing a zip written to disk. */
+function importWith(
+  db: Db,
+  dataDir: string,
+  limits: Partial<ImportLimits>,
+  repo: Partial<DataImportRepository> = {},
+) {
+  const service = createDataImportService({
+    repo: { ...createDataImportRepository(db), ...repo },
+    settings: createSettingsService(createSettingsRepository(db)),
+    storage: createFileStorage(join(dataDir, 'uploads')),
+    tmpDir: join(dataDir, 'tmp'),
+    limits: { ...DEFAULT_LIMITS, ...limits },
+    log: { error: vi.fn() },
+  });
+  return (userId: string, zip: Buffer) => {
+    const path = join(dataDir, 'upload.zip');
+    writeFileSync(path, zip);
+    return service.import(userId, path);
+  };
+}
+
 describe('data import', () => {
   describe('POST /api/me/import', () => {
     it('imports an export', async () => {
@@ -388,6 +425,7 @@ describe('data import', () => {
         photos: 1,
         notificationChannels: 1,
         skipped: { notificationChannels: 1 },
+        matchingVehicles: [],
       });
       const list = await app.inject({ method: 'GET', url: '/api/vehicles', headers: { cookie: b.cookie } });
       expect(list.json()).toHaveLength(1);
@@ -894,31 +932,6 @@ describe('data import', () => {
   });
 
   describe('limits', () => {
-    const DEFAULT_LIMITS: ImportLimits = {
-      zipBytes: 1024 * MIB,
-      totalBytes: 1024 * MIB,
-      fileBytes: 20 * MIB,
-      dataJsonBytes: 32 * MIB,
-      entries: 50_000,
-    };
-
-    /** The service with other limits, importing a zip written to disk. */
-    function importWith(db: Db, dataDir: string, limits: Partial<ImportLimits>) {
-      const service = createDataImportService({
-        repo: createDataImportRepository(db),
-        settings: createSettingsService(createSettingsRepository(db)),
-        storage: createFileStorage(join(dataDir, 'uploads')),
-        tmpDir: join(dataDir, 'tmp'),
-        limits: { ...DEFAULT_LIMITS, ...limits },
-        log: { error: vi.fn() },
-      });
-      return (userId: string, zip: Buffer) => {
-        const path = join(dataDir, 'upload.zip');
-        writeFileSync(path, zip);
-        return service.import(userId, path);
-      };
-    }
-
     it('rejects a zip over IMPORT_MAX_MB', async () => {
       const { app, db, dataDir, b, exported } = await setup({ IMPORT_MAX_MB: '1' });
       const before = snapshot(db, dataDir);
@@ -1044,6 +1057,191 @@ describe('data import', () => {
       ).toEqual([expect.objectContaining({ type: 'ntfy', enabled: true })]);
       expect(fetch).not.toHaveBeenCalled();
       expect(db.select().from(notifications).where(eq(notifications.userId, b.userId)).all()).toEqual([]);
+    });
+  });
+
+  describe('dedupe', () => {
+    const fingerprint = (exported: { entries: Map<string, Buffer> }) =>
+      sha256(exported.entries.get('data.json') ?? Buffer.alloc(0));
+    const fingerprintsOf = (db: Db, userId: string) =>
+      db.select().from(dataImports).where(eq(dataImports.userId, userId)).all();
+
+    /** Expects the repeated import problem and that nothing changed. */
+    function expectRepeated(
+      response: Awaited<ReturnType<typeof upload>>,
+      before: ReturnType<typeof snapshot>,
+      after: ReturnType<typeof snapshot>,
+    ) {
+      expectRejected(response, 409, before, after);
+      expect(response.json()).toMatchObject({ type: DUPLICATE_IMPORT_PROBLEM_TYPE, status: 409 });
+    }
+
+    it('records the fingerprint of an import', async () => {
+      const { app, db, b, exported } = await setup();
+
+      const response = await upload(app, b.cookie, exported.zip);
+
+      expect(response.statusCode, response.body).toBe(201);
+      expect(fingerprintsOf(db, b.userId)).toEqual([
+        expect.objectContaining({ userId: b.userId, dataSha256: fingerprint(exported) }),
+      ]);
+      expect(db.select().from(dataImports).all()).toHaveLength(1);
+    });
+
+    it('rejects an export already imported into the account', async () => {
+      const { app, db, dataDir, b, exported } = await setup();
+      expect((await upload(app, b.cookie, exported.zip)).statusCode).toBe(201);
+      const before = snapshot(db, dataDir);
+
+      // Zipped again (other bytes, same data.json): still the same export.
+      const response = await upload(app, b.cookie, await rezip(exported.entries, { compressFiles: true }));
+
+      expectRepeated(response, before, snapshot(db, dataDir));
+      const [row] = fingerprintsOf(db, b.userId);
+      expect(response.json().detail).toBe(
+        `This export was already imported into your account on ${row?.createdAt.toISOString()}`,
+      );
+    });
+
+    it('reports a repeated import before different settings', async () => {
+      const { app, db, dataDir, b, exported } = await setup();
+      expect((await upload(app, b.cookie, exported.zip)).statusCode).toBe(201);
+      await b.api.patch('/api/settings', { distanceUnit: 'mi' });
+      const before = snapshot(db, dataDir);
+
+      const response = await upload(app, b.cookie, exported.zip);
+
+      expectRepeated(response, before, snapshot(db, dataDir));
+    });
+
+    it('rejects concurrent imports of the same export', async () => {
+      const { app, db, dataDir, b, exported } = await setup();
+      const before = snapshot(db, dataDir);
+
+      const responses = await Promise.all([
+        upload(app, b.cookie, exported.zip),
+        upload(app, b.cookie, exported.zip),
+      ]);
+
+      expect(responses.map((response) => response.statusCode).sort()).toEqual([201, 409]);
+      const rejected = responses.find((response) => response.statusCode === 409);
+      expect(rejected?.json()).toMatchObject({ type: DUPLICATE_IMPORT_PROBLEM_TYPE });
+      const after = snapshot(db, dataDir);
+      expect(after.vehicles).toBe(before.vehicles + exported.document.vehicles.length);
+      expect(after.attachments).toBe(before.attachments + 2);
+      expect(after.dataImports).toBe(before.dataImports + 1);
+      // The photo and the two attachments of one import only.
+      expect(after.uploads).toHaveLength(before.uploads.length + 3);
+      expect(after.tmp).toEqual([]);
+    });
+
+    it('relies on the unique index when the pre-check misses', async () => {
+      const { app, db, dataDir, b, exported } = await setup();
+      expect((await upload(app, b.cookie, exported.zip)).statusCode).toBe(201);
+      const before = snapshot(db, dataDir);
+      const withoutCheck = importWith(db, dataDir, {}, { hasImport: () => null });
+
+      await expect(withoutCheck(b.userId, exported.zip)).rejects.toMatchObject({
+        status: 409,
+        type: DUPLICATE_IMPORT_PROBLEM_TYPE,
+        message: expect.stringMatching(/^This export was already imported into your account on /),
+      });
+
+      expect(snapshot(db, dataDir)).toEqual(before);
+    });
+
+    it('imports the same export into another account', async () => {
+      const { app, db, a, b, exported } = await setup();
+
+      expect((await upload(app, b.cookie, exported.zip)).statusCode).toBe(201);
+      const again = await upload(app, a.cookie, exported.zip);
+
+      expect(again.statusCode, again.body).toBe(201);
+      expect(fingerprintsOf(db, a.userId).map((row) => row.dataSha256)).toEqual([fingerprint(exported)]);
+      expect(fingerprintsOf(db, b.userId).map((row) => row.dataSha256)).toEqual([fingerprint(exported)]);
+    });
+
+    it('does not record the fingerprint of a failed import', async () => {
+      const { app, db, dataDir, b, exported } = await setup();
+      const pdfPath = exported.document.vehicles[0]?.maintenanceRecords[0]?.attachments[0]?.path ?? '';
+      const before = snapshot(db, dataDir);
+
+      // Same data.json, one attachment of the wrong type.
+      const failed = await upload(
+        app,
+        b.cookie,
+        await rezip(exported.entries, { files: { [pdfPath]: await png() } }),
+      );
+      expectRejected(failed, 415, before, snapshot(db, dataDir));
+      expect(fingerprintsOf(db, b.userId)).toEqual([]);
+
+      const fixed = await upload(app, b.cookie, exported.zip);
+      expect(fixed.statusCode, fixed.body).toBe(201);
+      expect(fingerprintsOf(db, b.userId)).toHaveLength(1);
+    });
+
+    it('reports vehicles matching by plate or VIN', async () => {
+      const { app, db, b, exported } = await setup();
+      const byPlate = await b.api.post('/api/vehicles', { make: 'Kia', model: 'Ceed', plate: '1234-ABC' });
+      const byVin = await b.api.post('/api/vehicles', {
+        name: 'Furgo',
+        make: 'Toyota',
+        model: 'Proace',
+        vin: 'VF1ABCDEFGH123456',
+      });
+      const document = clone(exported.document);
+      const [seat, renault, ford] = document.vehicles;
+      if (!seat || !renault || !ford) throw new Error('seed without three vehicles');
+      seat.plate = '1234 abc';
+      renault.vin = 'vf1abcdefgh123456';
+      expect([ford.plate, ford.vin]).toEqual([null, null]);
+      const ownRows = () =>
+        db
+          .select()
+          .from(vehicles)
+          .where(inArray(vehicles.id, [byPlate.id, byVin.id]))
+          .orderBy(vehicles.make)
+          .all();
+      const before = ownRows();
+
+      const response = await upload(app, b.cookie, await rezip(exported.entries, { document }));
+
+      expect(response.statusCode, response.body).toBe(201);
+      const summary = response.json() as DataImportSummary;
+      expect(summary.vehicles).toBe(3);
+      const importedId = (make: string) =>
+        db
+          .select({ id: vehicles.id })
+          .from(vehicles)
+          .where(and(eq(vehicles.ownerId, b.userId), eq(vehicles.make, make)))
+          .get()?.id;
+      expect(summary.matchingVehicles).toEqual([
+        {
+          imported: { id: importedId('Seat'), name: null, make: 'Seat', model: 'Ibiza' },
+          existing: { id: byPlate.id, name: null, make: 'Kia', model: 'Ceed' },
+          matchedBy: ['plate'],
+        },
+        {
+          imported: { id: importedId('Renault'), name: null, make: 'Renault', model: 'Clio' },
+          existing: { id: byVin.id, name: 'Furgo', make: 'Toyota', model: 'Proace' },
+          matchedBy: ['vin'],
+        },
+      ]);
+      // Nothing merged or changed: the existing vehicles as they were, every imported one created.
+      expect(ownRows()).toEqual(before);
+      expect(db.select({ n: count() }).from(vehicles).where(eq(vehicles.ownerId, b.userId)).get()?.n).toBe(5);
+      expect(
+        db
+          .select()
+          .from(vehicles)
+          .where(eq(vehicles.id, importedId('Seat') ?? ''))
+          .get()?.plate,
+      ).toBe('1234 abc');
+
+      const carol = await newUser(app, 'carol@example.com', 'Carol');
+      const withoutMatches = await upload(app, carol.cookie, exported.zip);
+      expect(withoutMatches.statusCode, withoutMatches.body).toBe(201);
+      expect((withoutMatches.json() as DataImportSummary).matchingVehicles).toEqual([]);
     });
   });
 });

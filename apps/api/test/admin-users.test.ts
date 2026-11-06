@@ -5,7 +5,16 @@ import { eq } from 'drizzle-orm';
 import sharp from 'sharp';
 import { describe, expect, it, vi } from 'vitest';
 import type { Db } from '../src/db/client';
-import { account, attachments, notifications, session, user, userSettings, vehicles } from '../src/db/schema';
+import {
+  account,
+  attachments,
+  dataImports,
+  notifications,
+  session,
+  user,
+  userSettings,
+  vehicles,
+} from '../src/db/schema';
 import { ConflictError } from '../src/lib/errors';
 import type { LogStream } from '../src/lib/logging';
 import { createFileStorage } from '../src/lib/storage';
@@ -350,6 +359,35 @@ describe('DELETE /api/admin/users/:id', () => {
     expect((await signIn(app, bob.email)).statusCode).toBe(401);
     // The admin's own rows are untouched.
     expect(userRow(db, admin.id)).toBeDefined();
+  });
+
+  it('deletes the import fingerprints with the account', async () => {
+    const { app, db, admin, bob, api } = await setup();
+    await createVehicle(app, bob.cookie);
+    // Bob imports his own export: the import is recorded with its fingerprint.
+    const exported = await app.inject({
+      method: 'GET',
+      url: '/api/me/export',
+      headers: { cookie: bob.cookie },
+    });
+    expect(exported.statusCode).toBe(200);
+    const zip = multipart(exported.rawPayload, 'ikrive-export.zip', 'application/zip');
+    const imported = await app.inject({
+      method: 'POST',
+      url: '/api/me/import',
+      headers: { cookie: bob.cookie, ...zip.headers },
+      payload: zip.payload,
+    });
+    expect(imported.statusCode, imported.body).toBe(201);
+    const fingerprints = (id: string) =>
+      db.select().from(dataImports).where(eq(dataImports.userId, id)).all();
+    expect(fingerprints(bob.id)).toHaveLength(1);
+
+    const response = await api.remove(bob.id, admin.cookie);
+
+    expect(response.statusCode).toBe(204);
+    expect(fingerprints(bob.id)).toEqual([]);
+    expect(db.select().from(dataImports).all()).toEqual([]);
   });
 
   it('still deletes when a file cannot be removed', async () => {
