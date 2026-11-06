@@ -13,8 +13,22 @@ const STORAGE_STATE = join(import.meta.dirname, '../.auth/screenshots.json');
 
 let vehicleId = '';
 
-async function capture(page: Page, name: string, options: { fullPage?: boolean } = {}) {
-  await page.screenshot({ path: join(SCREENSHOTS_DIR, name), animations: 'disabled', ...options });
+async function capture(page: Page, name: string) {
+  await page.screenshot({ path: join(SCREENSHOTS_DIR, name), animations: 'disabled' });
+}
+
+/**
+ * Captures the whole page by growing the viewport to its height instead of `fullPage`: the sidebar is
+ * sticky and `100dvh` tall, so with `fullPage` its background would stop at the original viewport height.
+ */
+async function captureWholePage(page: Page, name: string) {
+  const viewport = page.viewportSize();
+  if (!viewport) throw new Error('The screenshots project must set a viewport');
+  const height = await page.locator('html').evaluate((html) => html.scrollHeight);
+  await page.setViewportSize({ width: viewport.width, height });
+  const sidebar = page.locator('aside');
+  await expect.poll(() => sidebar.evaluate((el) => el.getBoundingClientRect().height)).toBe(height);
+  await capture(page, name);
 }
 
 test.describe
@@ -51,7 +65,7 @@ test.describe
       await page.goto(`/vehicles/${vehicleId}`);
       await expect(page.getByText('Pastillas de freno', { exact: true })).toBeVisible();
       await expect(page.getByText(t('stats.metrics.consumption'), { exact: true })).toBeVisible();
-      await capture(page, 'vehicle-detail.png', { fullPage: true });
+      await captureWholePage(page, 'vehicle-detail.png');
     });
 
     test('vehicle stats', async ({ page }) => {

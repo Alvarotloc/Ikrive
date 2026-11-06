@@ -60,7 +60,7 @@ Se leen del `.env` (`env_file` en `docker-compose.yml`). Los booleanos admiten `
 | `HOST` | `0.0.0.0` | Interfaz en la que escucha el servidor. **Lo fija la imagen**: no lo cambies |
 | `DATA_DIR` | `./data` (`/data` en la imagen) | Carpeta de la base de datos y de los ficheros subidos. **Lo fija la imagen**: monta el volumen en `/data` en lugar de cambiarlo |
 | `WEB_DIST_DIR` | — (`/app/public` en la imagen) | Carpeta con la web compilada que sirve la API. **Lo fija la imagen**: no lo cambies |
-| `IKRIVE_VERSION` | `0.0.0-dev` | Versión que muestra la instancia y que se guarda en los exports. **La fija la imagen** al construirse a partir del tag (por ejemplo `v0.1.0`) |
+| `IKRIVE_VERSION` | `0.0.0-dev` (`0.0.0` en una imagen construida sin `--build-arg VERSION`) | Versión que muestra la instancia y que se guarda en los exports. **La fija la imagen** al construirse a partir del tag (por ejemplo `v0.1.0`); un `docker build` local sin `--build-arg VERSION=…` la deja en `0.0.0` |
 
 ## Copias de seguridad
 
@@ -89,7 +89,7 @@ rm -rf data && tar -xzf ikrive-AAAA-MM-DD.tar.gz
 docker compose start
 ```
 
-El contenedor se ejecuta como el usuario `node` (uid 1000): si restauras con otro usuario, devuelve la carpeta a su dueño con `sudo chown -R 1000:1000 data`. Si la copia es de una versión anterior, las migraciones pendientes se aplican al arrancar.
+El contenedor se ejecuta como el usuario `node` (uid 1000) y es el dueño de los ficheros de `data`: si tu usuario del host no es el uid 1000, borrar o sustituir la carpeta (`rm -rf data`) puede fallar por permisos y necesitar `sudo` (`sudo rm -rf data`). Después de restaurar con otro usuario, devuelve la carpeta a su dueño con `sudo chown -R 1000:1000 data`. Si la copia es de una versión anterior, las migraciones pendientes se aplican al arrancar.
 
 ### Export e import por usuario
 

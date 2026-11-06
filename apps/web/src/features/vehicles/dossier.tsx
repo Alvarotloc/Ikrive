@@ -7,9 +7,19 @@ import { useFormat } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 /** Number plate chip, as in the "Expediente del vehículo" mockup of the landing. */
-export function Plate({ children, className }: { children: ReactNode; className?: string }) {
+export function Plate({
+  children,
+  className,
+  title,
+}: {
+  children: ReactNode;
+  className?: string;
+  /** Full plate as a tooltip, for the places where the chip may be truncated. */
+  title?: string;
+}) {
   return (
     <span
+      title={title}
       className={cn(
         'inline-flex items-center rounded-md border bg-card/75 px-3 py-1.5 font-display font-bold tracking-[0.12em] whitespace-nowrap',
         className,
