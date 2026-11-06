@@ -1,6 +1,7 @@
 import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import type { Db } from '../../db/client';
-import { reportShares, vehicles } from '../../db/schema';
+import { activeUserFilter } from '../../db/filters';
+import { reportShares, user, vehicles } from '../../db/schema';
 
 export type ReportShareRow = typeof reportShares.$inferSelect;
 export type NewReportShareRow = typeof reportShares.$inferInsert;
@@ -23,13 +24,17 @@ export function createReportSharesRepository(db: Db) {
         .where(and(eq(reportShares.id, id), eq(reportShares.vehicleId, vehicleId)))
         .get();
     },
-    /** The link of a token selector and the owner of its vehicle (whose settings render the report). */
+    /**
+     * The link of a token selector and the owner of its vehicle (whose settings render the report),
+     * unless the owner is disabled (then it behaves as an unknown token).
+     */
     findBySelector(selector: string) {
       return db
         .select({ share: reportShares, ownerId: vehicles.ownerId })
         .from(reportShares)
         .innerJoin(vehicles, eq(vehicles.id, reportShares.vehicleId))
-        .where(eq(reportShares.selector, selector))
+        .innerJoin(user, eq(user.id, vehicles.ownerId))
+        .where(and(eq(reportShares.selector, selector), activeUserFilter))
         .get();
     },
     create(values: NewReportShareRow) {

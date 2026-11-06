@@ -37,6 +37,11 @@ export const calendarFeedRoutes: FastifyPluginAsyncZod<{ service: CalendarServic
   app,
   { service },
 ) => {
+  // Every response, 404s included: a cached 404 would outlive a reactivation or a new token.
+  app.addHook('onSend', async (_request, reply) => {
+    reply.header('cache-control', 'private, no-store');
+  });
+
   app.get(
     '/calendar/:file',
     { schema: { params: z.object({ file: z.string() }) } },
@@ -44,10 +49,7 @@ export const calendarFeedRoutes: FastifyPluginAsyncZod<{ service: CalendarServic
       const { file } = request.params;
       if (!file.endsWith(ICS_SUFFIX)) throw new NotFoundError('Calendar feed not found');
       const ics = service.feed(file.slice(0, -ICS_SUFFIX.length));
-      return reply
-        .type('text/calendar; charset=utf-8')
-        .header('cache-control', 'private, no-store')
-        .send(ics);
+      return reply.type('text/calendar; charset=utf-8').send(ics);
     },
   );
 };

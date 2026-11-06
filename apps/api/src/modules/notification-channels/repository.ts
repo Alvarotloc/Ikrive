@@ -1,7 +1,8 @@
 import type { NotificationChannelConfig } from '@ikrive/shared';
-import { and, asc, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, getTableColumns, inArray } from 'drizzle-orm';
 import type { Db } from '../../db/client';
-import { notificationChannels } from '../../db/schema';
+import { activeUserFilter } from '../../db/filters';
+import { notificationChannels, user } from '../../db/schema';
 
 export type NotificationChannelRow = typeof notificationChannels.$inferSelect;
 export type NewNotificationChannelRow = typeof notificationChannels.$inferInsert;
@@ -34,13 +35,20 @@ export function createNotificationChannelsRepository(db: Db) {
     remove(userId: string, id: string) {
       db.delete(notificationChannels).where(owned(userId, id)).run();
     },
-    /** Enabled channels of the given users (used by the jobs, not by the API). */
+    /** Enabled channels of the given users, skipping disabled accounts (used by the jobs, not by the API). */
     listEnabledByUsers(userIds: string[]) {
       if (userIds.length === 0) return [];
       return db
-        .select()
+        .select(getTableColumns(notificationChannels))
         .from(notificationChannels)
-        .where(and(inArray(notificationChannels.userId, userIds), eq(notificationChannels.enabled, true)))
+        .innerJoin(user, eq(user.id, notificationChannels.userId))
+        .where(
+          and(
+            inArray(notificationChannels.userId, userIds),
+            eq(notificationChannels.enabled, true),
+            activeUserFilter,
+          ),
+        )
         .orderBy(asc(notificationChannels.createdAt), asc(notificationChannels.id))
         .all();
     },

@@ -449,3 +449,13 @@
 - **Tests:** shared 119, API 321, web 346, e2e 1. `pnpm harness --full` en verde.
 - **Revisión:** APPROVED a la primera (`progress/review_import-dedupe.md`). Avisos: `isUniqueViolation` acepta cualquier `SQLITE_CONSTRAINT_UNIQUE`, no solo el índice de `data_imports`; `findMatchingVehicles` se calcula tras el commit (si lanzara, se borrarían ficheros de un import confirmado); toasts de `sonner` blancos en modo oscuro (preexistente).
 - **Gate 2:** merge aprobado sin aplicar los avisos.
+
+## 2026-11-06 — #45 disabled-user-public-access
+
+- **Rama:** `feat/disabled-user-public-access` (SDD, spec en `specs/disabled-user-public-access/`, 12 R / 17 T). Solo `apps/api`; sin cambios en BD, shared ni web.
+- **Gate 1:** aprobado sin cambios: filtro en la consulta del selector (token válido de desactivado indistinguible de uno inventado, también en tiempo); `cache-control: private, no-store` en todas las respuestas de las rutas públicas, 404 incluidos; los jobs omiten por completo al desactivado y al reactivar la siguiente ejecución crea los avisos aún pendientes; las notificaciones in-app existentes se conservan; `evaluated` no cuenta a los desactivados.
+- **Inventario:** se filtran feed iCal, informe público, `reminders`, `odometer-nudge` y dispatcher (defensa en profundidad). Sin cambios: sesiones (#37), `verification` (sin reset ni verificación de email configurados), rutas con sesión; no hay emails.
+- **Cambios:** `db/filters.ts` con `activeUserFilter` (también en `countActiveAdmins`); `innerJoin(user)` + filtro en `findBySelector` de calendario e informe, `listForActiveVehicles`, `listActiveForOdometerNudge` y `listEnabledByUsers`; hook `onSend` con `cache-control` en los plugins encapsulados `calendarFeedRoutes` y `publicReportRoutes`.
+- **Tests:** API 335, web 346, shared 119, e2e 1. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED a la primera (`progress/review_disabled-user-public-access.md`). Avisos: sin test que afirme que otras rutas no reciben el `cache-control` (lo garantiza la encapsulación de Fastify); futuros accesos por token o jobs deben usar `activeUserFilter`.
+- **Gate 2:** merge aprobado.

@@ -504,6 +504,120 @@ describe('public sale report denials', () => {
   });
 });
 
+describe('public sale report of a disabled owner', () => {
+  /** The admin signs up first (an admin cannot disable themselves); the owner has a vehicle. */
+  async function setupOwner() {
+    const { app, db } = await createTestApp();
+    const admin = await signUp(app, 'admin@example.com', 'Admin');
+    const owner = await signUp(app, 'ada@example.com', 'Ada');
+    const ownerId = (owner.response.json() as { user: { id: string } }).user.id;
+    const vehicle = await createVehicle(app, owner.cookie);
+    const api = sharesApi(app, owner.cookie, vehicle.id);
+    const setDisabled = async (disabled: boolean) => {
+      const action = disabled ? 'disable' : 'enable';
+      const response = await app.inject({
+        method: 'POST',
+        url: `/api/admin/users/${ownerId}/${action}`,
+        headers: { cookie: admin.cookie },
+      });
+      expect(response.statusCode).toBe(200);
+    };
+    const shareRows = () =>
+      db
+        .select()
+        .from(reportShares)
+        .where(eq(reportShares.vehicleId, vehicle.id))
+        .orderBy(reportShares.id)
+        .all();
+    return { app, db, api, setDisabled, shareRows };
+  }
+
+  /** A well-formed token whose selector does not exist. */
+  const unknownReport = (app: TestApp) =>
+    fetchPublic(app, `/api/public/reports/${crypto.randomBytes(40).toString('hex')}`);
+
+  it('returns the same 404 as an unknown token while the owner is disabled', async () => {
+    const { app, api, setDisabled } = await setupOwner();
+    const share = await api.share();
+    expect((await fetchPublic(app, share.path)).statusCode).toBe(200);
+    await setDisabled(true);
+
+    const disabled = await fetchPublic(app, share.path);
+    const unknown = await unknownReport(app);
+    expect(disabled.statusCode).toBe(404);
+    expect(disabled.headers['content-type']).toContain('application/problem+json');
+    expect(disabled.rawPayload.subarray(0, 5).toString('latin1')).not.toBe('%PDF-');
+    expect(disabled.statusCode).toBe(unknown.statusCode);
+    expect(disabled.headers['content-type']).toBe(unknown.headers['content-type']);
+    expect(disabled.json()).toEqual(unknown.json());
+    expect(disabled.json()).toMatchObject({ status: 404, detail: 'Report not found' });
+  });
+
+  it('serves active links again with the same token after reactivation', async () => {
+    const { app, api, setDisabled } = await setupOwner();
+    const first = await api.share();
+    const second = await api.share({ hidePrices: true });
+    await setDisabled(true);
+    for (const share of [first, second]) expect((await fetchPublic(app, share.path)).statusCode).toBe(404);
+    await setDisabled(false);
+
+    for (const share of [first, second]) {
+      const response = await fetchPublic(app, share.path);
+      expect(response.statusCode).toBe(200);
+      expect(response.headers['content-type']).toBe('application/pdf');
+      expect(response.rawPayload.subarray(0, 5).toString('latin1')).toBe('%PDF-');
+    }
+  });
+
+  it('keeps expired and revoked links at 404 after reactivation', async () => {
+    const { app, db, api, setDisabled } = await setupOwner();
+    const expired = await api.share();
+    const revoked = await api.share();
+    const active = await api.share();
+    await setDisabled(true);
+    // The owner has no session while disabled: the link expires and is revoked in the database.
+    expireShare(db, expired.id);
+    db.update(reportShares).set({ revokedAt: new Date() }).where(eq(reportShares.id, revoked.id)).run();
+    await setDisabled(false);
+
+    for (const share of [expired, revoked]) {
+      const response = await fetchPublic(app, share.path);
+      expect(response.statusCode).toBe(404);
+      expect(response.json()).toMatchObject({ detail: 'Report not found' });
+    }
+    expect((await fetchPublic(app, active.path)).statusCode).toBe(200);
+  });
+
+  it('keeps the share rows when disabling and enabling the owner', async () => {
+    const { db, api, setDisabled, shareRows } = await setupOwner();
+    await api.share();
+    const expired = await api.share();
+    expireShare(db, expired.id);
+    const revoked = await api.share();
+    expect((await api.revoke(revoked.id)).statusCode).toBe(204);
+    const before = shareRows();
+    expect(before).toHaveLength(3);
+
+    await setDisabled(true);
+    expect(shareRows()).toEqual(before);
+    await setDisabled(false);
+    expect(shareRows()).toEqual(before);
+  });
+
+  it('sends no-store on public report 404s', async () => {
+    const { app, api, setDisabled } = await setupOwner();
+    const share = await api.share();
+    const responses = [await unknownReport(app), await fetchPublic(app, '/api/public/reports/not-a-token')];
+    await setDisabled(true);
+    responses.push(await fetchPublic(app, share.path));
+
+    for (const response of responses) {
+      expect(response.statusCode).toBe(404);
+      expect(response.headers['cache-control']).toBe('private, no-store');
+    }
+  });
+});
+
 describe('public sale report limits and logs', () => {
   it('rate limits the public report', async () => {
     const { app } = await setup();

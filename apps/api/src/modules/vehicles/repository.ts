@@ -2,7 +2,15 @@ import type { VehicleStatus } from '@ikrive/shared';
 import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, max, or, type SQL } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/sqlite-core';
 import type { Db } from '../../db/client';
-import { attachments, maintenanceRecords, odometerReadings, userSettings, vehicles } from '../../db/schema';
+import { activeUserFilter } from '../../db/filters';
+import {
+  attachments,
+  maintenanceRecords,
+  odometerReadings,
+  user,
+  userSettings,
+  vehicles,
+} from '../../db/schema';
 
 export type VehicleRow = typeof vehicles.$inferSelect;
 export type NewVehicleRow = typeof vehicles.$inferInsert;
@@ -123,9 +131,10 @@ export function createVehiclesRepository(db: Db) {
           reminderHour: userSettings.reminderHour,
         })
         .from(vehicles)
+        .innerJoin(user, eq(user.id, vehicles.ownerId))
         .innerJoin(userSettings, eq(userSettings.userId, vehicles.ownerId))
         .leftJoin(odometerReadings, eq(odometerReadings.vehicleId, vehicles.id))
-        .where(and(activeVehicleFilter, isNotNull(userSettings.odometerReminderWeekday)))
+        .where(and(activeVehicleFilter, activeUserFilter, isNotNull(userSettings.odometerReminderWeekday)))
         .groupBy(vehicles.id)
         .orderBy(asc(vehicles.createdAt))
         .all();

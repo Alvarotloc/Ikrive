@@ -1,6 +1,7 @@
 import type { UserRole } from '@ikrive/shared';
-import { and, asc, count, eq, isNotNull, isNull } from 'drizzle-orm';
+import { and, asc, count, eq, isNotNull } from 'drizzle-orm';
 import type { Db } from '../../db/client';
+import { activeUserFilter } from '../../db/filters';
 import { attachments, session, user, vehicles } from '../../db/schema';
 
 const adminUserColumns = {
@@ -32,7 +33,7 @@ export function createAdminUsersRepository(db: Db) {
         db
           .select({ value: count() })
           .from(user)
-          .where(and(eq(user.role, 'admin'), isNull(user.disabledAt)))
+          .where(and(eq(user.role, 'admin'), activeUserFilter))
           .get()?.value ?? 0
       );
     },

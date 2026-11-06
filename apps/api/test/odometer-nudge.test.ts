@@ -2,7 +2,7 @@ import { asc, eq } from 'drizzle-orm';
 import Fastify from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
 import type { Db } from '../src/db/client';
-import { notifications, odometerReadings, userSettings, vehicles } from '../src/db/schema';
+import { notifications, odometerReadings, user, userSettings, vehicles } from '../src/db/schema';
 import {
   ODOMETER_NUDGE_CRON,
   odometerNudgeDedupeKey,
@@ -61,6 +61,14 @@ const setCreatedAt = (db: Db, vehicleId: string, createdAt: Date) =>
 
 const addReading = (db: Db, vehicleId: string, date: string, value: number) =>
   db.insert(odometerReadings).values({ vehicleId, date, value }).run();
+
+/** Disables (an admin's `disabled_at`) or reactivates an account directly in the database. */
+const setDisabled = (db: Db, userId: string, disabled: boolean) =>
+  db
+    .update(user)
+    .set({ disabledAt: disabled ? new Date() : null })
+    .where(eq(user.id, userId))
+    .run();
 
 const rows = (db: Db) => db.select().from(notifications).orderBy(asc(notifications.createdAt)).all();
 
@@ -285,6 +293,50 @@ describe('runOdometerNudge', () => {
       // Without active vehicles the user is not evaluated.
       await ada.patchVehicle(active, { archived: true });
       expect(await run(db, at('2026-11-01T10:00:00.000Z'))).toEqual({ evaluated: 0, created: 0, failed: 0 });
+    });
+  });
+
+  describe('disabled users', () => {
+    it('skips disabled users', async () => {
+      const { app, db } = await createTestApp();
+      const ada = await createUser(app, 'ada@example.com');
+      const bob = await createUser(app, 'bob@example.com');
+      setCreatedAt(db, await ada.createVehicle({ name: 'Golf' }), LONG_AGO);
+      setCreatedAt(db, await bob.createVehicle({ name: 'Civic' }), LONG_AGO);
+      await ada.addChannel({ type: 'webhook', config: { url: 'https://hooks.example.com/ada' } });
+      await bob.addChannel({ type: 'webhook', config: { url: 'https://hooks.example.com/bob' } });
+      setDisabled(db, ada.userId, true);
+      const fetch = vi.fn<typeof globalThis.fetch>(async () => new Response(null, { status: 200 }));
+
+      expect(await run(db, NOW, createTestDispatcher(db, fetch))).toEqual({
+        evaluated: 1,
+        created: 1,
+        failed: 0,
+      });
+      expect(rows(db)).toMatchObject([{ userId: bob.userId, title: 'Civic' }]);
+      expect(fetch.mock.calls.map(([url]) => String(url))).toEqual(['https://hooks.example.com/bob']);
+    });
+
+    it('nudges a reactivated user on the next run', async () => {
+      const { app, db } = await createTestApp();
+      const ada = await createUser(app, 'ada@example.com');
+      setCreatedAt(db, await ada.createVehicle({ name: 'Golf' }), LONG_AGO);
+      setDisabled(db, ada.userId, true);
+
+      expect(await run(db)).toEqual({ evaluated: 0, created: 0, failed: 0 });
+      expect(rows(db)).toEqual([]);
+
+      setDisabled(db, ada.userId, false);
+      const later = at('2026-10-25T11:00:00.000Z');
+      expect(await run(db, later)).toEqual({ evaluated: 1, created: 1, failed: 0 });
+      expect(rows(db)).toMatchObject([
+        {
+          userId: ada.userId,
+          title: 'Golf',
+          dedupeKey: `odometer_nudge:${ada.userId}:2026-W43`,
+          createdAt: later,
+        },
+      ]);
     });
   });
 

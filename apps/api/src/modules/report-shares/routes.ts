@@ -52,6 +52,12 @@ export const publicReportRoutes: FastifyPluginAsyncZod<{ service: ReportSharesSe
   app,
   { service },
 ) => {
+  // Personal data generated on the fly: never stored by the browser or a proxy. Every response,
+  // 404s included, so a cached 404 does not outlive a reactivation of the owner.
+  app.addHook('onSend', async (_request, reply) => {
+    reply.header('cache-control', 'private, no-store');
+  });
+
   app.get(
     '/public/reports/:token',
     {
@@ -65,8 +71,7 @@ export const publicReportRoutes: FastifyPluginAsyncZod<{ service: ReportSharesSe
         reply
           .type('application/pdf')
           .header('content-disposition', contentDisposition(fileName, 'inline'))
-          // Personal data generated on the fly: never stored by the browser or a proxy, nor indexed.
-          .header('cache-control', 'private, no-store')
+          // Never indexed (`cache-control` is set by the `onSend` hook).
           .header('x-robots-tag', 'noindex')
           .header('x-content-type-options', 'nosniff')
           .send(pdf)
