@@ -1,8 +1,6 @@
 import { createHash } from 'node:crypto';
 import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import { Readable } from 'node:stream';
-import { setTimeout } from 'node:timers/promises';
 import { type DataExport, type DataImportSummary, dataImportSummarySchema } from '@ikrive/shared';
 import { count, eq, sql } from 'drizzle-orm';
 import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
@@ -27,7 +25,7 @@ import { createDataImportRepository } from '../src/modules/data-import/repositor
 import { createDataImportService, type ImportLimits } from '../src/modules/data-import/service';
 import { createSettingsRepository } from '../src/modules/settings/repository';
 import { createSettingsService } from '../src/modules/settings/service';
-import { createTestApp, signUp } from './helpers';
+import { createTestApp, incompleteMultipart, signUp } from './helpers';
 
 type TestApp = Awaited<ReturnType<typeof createTestApp>>['app'];
 
@@ -437,14 +435,13 @@ describe('data import', () => {
     it('rejects a multipart body that never completes', async () => {
       const { app, db, dataDir, b, exported } = await setup();
       const before = snapshot(db, dataDir);
-      // The whole body arrives (right Content-Length) but without the closing boundary.
       const truncated = (data: Buffer) => {
         const { payload, headers } = multipart(data, 'ikrive-export.zip', 'application/zip');
         return app.inject({
           method: 'POST',
           url: IMPORT,
           headers: { cookie: b.cookie, ...headers },
-          payload: payload.subarray(0, payload.lastIndexOf('\r\n--')),
+          payload: incompleteMultipart(payload).whole,
         });
       };
 
@@ -454,25 +451,13 @@ describe('data import', () => {
         expect(response.json().detail).toBe('The upload ended before the zip was complete');
       }
 
-      // Over the network the body arrives in several chunks: busboy is already reading the part
-      // when the body ends, and it fails the file stream with an error instead of closing it.
       const { payload, headers } = multipart(exported.zip, 'ikrive-export.zip', 'application/zip');
-      const body = payload.subarray(0, payload.lastIndexOf('\r\n--'));
-      const head = body.indexOf('\r\n\r\n') + 4;
+      const { whole, chunked: stream } = incompleteMultipart(payload);
       const chunked = await app.inject({
         method: 'POST',
         url: IMPORT,
-        headers: { cookie: b.cookie, ...headers, 'content-length': String(body.length) },
-        payload: Readable.from(
-          (async function* () {
-            for (const chunk of [body.subarray(0, head), body.subarray(head, head + 1000)]) {
-              yield chunk;
-              await setTimeout(20);
-            }
-            yield body.subarray(head + 1000);
-          })(),
-          { objectMode: false },
-        ),
+        headers: { cookie: b.cookie, ...headers, 'content-length': String(whole.length) },
+        payload: stream(),
       });
       expectRejected(chunked, 400, before, snapshot(db, dataDir));
       expect(chunked.json().detail).toBe('The upload ended before the zip was complete');

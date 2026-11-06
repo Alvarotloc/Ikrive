@@ -9,6 +9,7 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { BadRequestError } from '../../lib/errors';
 import { contentDisposition } from '../../lib/http';
+import { receiveToBuffer } from '../../lib/uploads';
 import { currentUser } from '../../plugins/auth';
 import type { AttachmentsService } from './service';
 
@@ -65,7 +66,7 @@ export const attachmentsRoutes: FastifyPluginAsyncZod<{ service: AttachmentsServ
       const file = await request.file();
       if (!file) throw new BadRequestError('Expected a file in the "file" field');
       // Buffered before anything is written, so a file over the size limit (413) leaves nothing on disk.
-      const data = await file.toBuffer();
+      const data = await receiveToBuffer(file);
       const attachment = await service.upload(currentUser(request).id, id, recordId, {
         filename: file.filename,
         data,

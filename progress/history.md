@@ -431,3 +431,12 @@
 - **Tests:** `docker build` + `smoke.mjs`, job `reminders` y `id -u` = 1000 en verde. `pnpm harness --full` en verde.
 - **Revisión:** APPROVED en las dos pasadas (`progress/review_dockerignore-e2e-artifacts.md`).
 - **Gate 2:** merge aprobado.
+
+## 2026-11-06 — #43 truncated-upload-400
+
+- **Rama:** `feat/truncated-upload-400` (`sdd: false`, sin spec ni Gate 1). Solo `apps/api`. La sesión se cortó por un apagado del PC con el código casi terminado; se reanudó el mismo implementer.
+- **Cambios:** nuevo `src/lib/uploads.ts` con `receiveToFile` (la `receive` de import, movida sin cambios) y `receiveToBuffer` (envuelve `toBuffer()`); adjuntos, foto del vehículo e import lo usan. Una subida sin boundary de cierre o cortada responde 400 problem+json en vez de 500, sin dejar ficheros ni filas. Helper de test `incompleteMultipart`.
+- **Vuelta 1 (petición del humano en Gate 2, aviso 1 del reviewer):** los dos helpers relanzan tal cual cualquier error con `statusCode` 4xx (no solo `FST_REQ_FILE_TOO_LARGE`); el fallo del disco sigue en 500. Tests unitarios en `test/uploads.test.ts`.
+- **Tests:** API 312, web 342, shared 117, e2e 1. `pnpm harness --full` en verde. Una pasada dio 1 fallo intermitente sin identificar en `apps/api`; 3 + 5 + 15 repeticiones posteriores en verde.
+- **Revisión:** APPROVED en las dos pasadas (`progress/review_truncated-upload-400.md`). Aviso: un error de la subida con un 5xx explícito acabaría en 400 (hoy `@fastify/multipart` no lo lanza); el humano lo mantiene.
+- **Gate 2:** merge aprobado.

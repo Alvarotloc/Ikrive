@@ -2,7 +2,7 @@ import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import sharp from 'sharp';
 import { describe, expect, it } from 'vitest';
-import { createTestApp, signUp } from './helpers';
+import { createTestApp, incompleteMultipart, signUp } from './helpers';
 
 type TestApp = Awaited<ReturnType<typeof createTestApp>>['app'];
 
@@ -211,6 +211,42 @@ describe('vehicles', () => {
     expect(readdirSync(photoDir)).toHaveLength(1);
 
     await app.inject({ method: 'DELETE', url: `/api/vehicles/${vehicle.id}`, headers: { cookie } });
+    expect(existsSync(photoDir) ? readdirSync(photoDir) : []).toHaveLength(0);
+  });
+
+  it('rejects a photo upload that never completes', async () => {
+    const { app, dataDir } = await createTestApp();
+    const { cookie } = await signUp(app);
+    const vehicle = await createVehicle(app, cookie);
+    const photoDir = join(dataDir, 'uploads', 'vehicles');
+    const send = async (payload: Buffer | NodeJS.ReadableStream, length?: number) => {
+      const response = await app.inject({
+        method: 'PUT',
+        url: `/api/vehicles/${vehicle.id}/photo`,
+        headers: {
+          cookie,
+          ...multipart(Buffer.alloc(0)).headers,
+          ...(length === undefined ? {} : { 'content-length': String(length) }),
+        },
+        payload,
+      });
+      expect(response.statusCode).toBe(400);
+      expect(response.headers['content-type']).toContain('application/problem+json');
+      expect(response.json().detail).toBe('The upload ended before the file was complete');
+    };
+
+    const small = await png();
+    const big = Buffer.concat([small, Buffer.alloc(64 * 1024)]);
+    for (const data of [small, big]) await send(incompleteMultipart(multipart(data).payload).whole);
+    const { whole, chunked } = incompleteMultipart(multipart(big).payload);
+    await send(chunked(), whole.length);
+
+    const current = await app.inject({
+      method: 'GET',
+      url: `/api/vehicles/${vehicle.id}`,
+      headers: { cookie },
+    });
+    expect(current.json().photoUrl).toBeNull();
     expect(existsSync(photoDir) ? readdirSync(photoDir) : []).toHaveLength(0);
   });
 
