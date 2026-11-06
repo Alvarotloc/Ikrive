@@ -1,44 +1,14 @@
-import { createWriteStream } from 'node:fs';
 import { rm } from 'node:fs/promises';
-import type { Readable } from 'node:stream';
-import { pipeline } from 'node:stream/promises';
 import { type DataImportSummary, dataImportSummarySchema } from '@ikrive/shared';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { BadRequestError, PayloadTooLargeError } from '../../lib/errors';
+import { receiveToFile } from '../../lib/uploads';
 import { currentUser } from '../../plugins/auth';
 import type { DataImportService } from './service';
 
 const MIB = 1024 * 1024;
 
 const INCOMPLETE_UPLOAD = 'The upload ended before the zip was complete';
-
-/**
- * Writes the uploaded file to `path`; always settles. When the body is malformed (no closing
- * boundary) or the client disconnects, `@fastify/multipart` either destroys the file stream
- * without an error or busboy emits an error on it («Part terminated early…»), depending on
- * whether the part was already being read. If the stream was already destroyed before we got
- * here, `pipeline` would wait forever on a closed stream, so it is checked first. Any other
- * failure of the upload side (error or premature close) means the upload is incomplete: 400.
- * Only a failure of the disk side (full disk…) is rethrown, and ends in a 500.
- */
-async function receive(source: Readable, path: string): Promise<void> {
-  if (source.destroyed && !source.readableEnded) throw new BadRequestError(INCOMPLETE_UPLOAD);
-  const sink = createWriteStream(path);
-  // `pipeline` destroys both streams with the first error, so whichever fails first is the cause.
-  let failed: 'source' | 'sink' | undefined;
-  source.once('error', () => {
-    failed ??= 'source';
-  });
-  sink.once('error', () => {
-    failed ??= 'sink';
-  });
-  try {
-    await pipeline(source, sink);
-  } catch (error) {
-    if (failed === 'sink') throw error;
-    throw new BadRequestError(INCOMPLETE_UPLOAD);
-  }
-}
 
 /** Import of an export zip into the user's account (session required). Adds, never overwrites. */
 export const dataImportRoutes: FastifyPluginAsyncZod<{ service: DataImportService }> = async (
@@ -63,7 +33,7 @@ export const dataImportRoutes: FastifyPluginAsyncZod<{ service: DataImportServic
       const zipPath = await service.tempZipPath();
       let summary: DataImportSummary;
       try {
-        await receive(file.file, zipPath);
+        await receiveToFile(file.file, zipPath, INCOMPLETE_UPLOAD);
         if (file.file.truncated) {
           throw new PayloadTooLargeError(`The zip is larger than ${Math.round(maxBytes / MIB)} MiB`);
         }

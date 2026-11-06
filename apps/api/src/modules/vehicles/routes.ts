@@ -11,6 +11,7 @@ import {
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { BadRequestError } from '../../lib/errors';
+import { receiveToBuffer } from '../../lib/uploads';
 import { currentUser } from '../../plugins/auth';
 import type { VehiclesService } from './service';
 
@@ -64,7 +65,7 @@ export const vehiclesRoutes: FastifyPluginAsyncZod<{ service: VehiclesService }>
     async (request) => {
       const file = await request.file();
       if (!file) throw new BadRequestError('Expected an image file in the "file" field');
-      return service.setPhoto(currentUser(request).id, request.params.id, await file.toBuffer());
+      return service.setPhoto(currentUser(request).id, request.params.id, await receiveToBuffer(file));
     },
   );
 
