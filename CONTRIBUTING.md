@@ -63,6 +63,7 @@ Las features nuevas siguen el flujo de [docs/sdd.md](docs/sdd.md): se añaden a 
   - Para añadir uno, crea `e2e/tests/<flujo>.spec.ts` e importa `test`, `expect` y los helpers de `tests/fixtures.ts`, no de `@playwright/test`: `test` da a cada test una IP de cliente propia (`x-forwarded-for`) para que no compartan el rate limit. Cada test crea sus propios datos (`createVehicle(page.request, …)` con `uniquePlate(testInfo)`) y nunca depende de otro, porque corren en paralelo. Cuidado al contar filas en `/vehicles`: el export incluye todos los vehículos del admin compartido, así que un import en paralelo los duplica (por eso `data-portability` es un proyecto aparte con `workers: 1`); busca por matrícula única o usa `.first()`.
   - Localiza por rol o etiqueta con los textos de i18n (`t('clave')` lee `es.json`), no con selectores CSS ni textos copiados. Espera solo con aserciones web-first (`toBeVisible`, `toHaveURL`) y eventos (`waitForEvent('download')`); nada de esperas fijas.
   - Ejemplos: `e2e/tests/maintenance.spec.ts` (adjunto) y `e2e/tests/sale-report.spec.ts` (descarga).
+- Capturas del README: `pnpm screenshots` las regenera en `docs/screenshots/` con Playwright (`e2e/screenshots.config.ts`, specs en `e2e/screenshots/`) sobre un build de producción con datos de ejemplo propios. No forman parte de `pnpm test:e2e`; regenéralas cuando cambie la UI.
 
 ## Convenciones
 
