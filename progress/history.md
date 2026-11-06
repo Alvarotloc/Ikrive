@@ -459,3 +459,12 @@
 - **Tests:** API 335, web 346, shared 119, e2e 1. `pnpm harness --full` en verde.
 - **Revisión:** APPROVED a la primera (`progress/review_disabled-user-public-access.md`). Avisos: sin test que afirme que otras rutas no reciben el `cache-control` (lo garantiza la encapsulación de Fastify); futuros accesos por token o jobs deben usar `activeUserFilter`.
 - **Gate 2:** merge aprobado.
+
+## 2026-11-06 — #42 release-v0-1-0
+
+- **Rama:** `feat/release-v0-1-0` (SDD, spec en `specs/release-v0-1-0/`, 17 R / 16 T). Docs, `e2e/` y versiones; en producción solo `apps/api/src/config.ts` (exporta `ENV_VARIABLES`, sin cambio de comportamiento).
+- **Gate 1:** aprobado tras un cambio pedido: se quitan los tests de contenido que solo valen para la v0.1.0 (versión, CHANGELOG, fase 7, roadmap); R13–R16 se verifican en revisión. Guía aparte `docs/self-hosting.md` con README reducido; 7 capturas versionadas en español.
+- **Cambios:** `pnpm screenshots` (config Playwright aparte, `e2e/server-config.ts` compartido, seed propio por API con fechas relativas) genera 7 PNG en `docs/screenshots/` (1,4 MB); guía de instalación, variables, copias (volumen y export/import), exposición a internet y jobs manuales; README reescrito; `CHANGELOG.md` `[0.1.0] - 2026-11-06`; los 5 `package.json` en 0.1.0; fase 7 «✅ Hecha» en `docs/PLAN.md`.
+- **Tests:** API 336, web 346, shared 119, e2e 6. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED a la primera (`progress/review_release-v0-1-0.md`). Avisos: matrícula desbordada en la tarjeta de vehículo a 1280 px (visible en las capturas de portada), fondo de la barra lateral cortado en `vehicle-detail.png`, `IKRIVE_VERSION` sin build-arg es `0.0.0`, `.env.example` sugiere `DATA_DIR=./data`, restauración puede necesitar `sudo`.
+- **Gate 2:** merge aprobado; los avisos pasan a #48 `pre-release-polish`, que va antes del tag `v0.1.0`. El tag no se ha creado.

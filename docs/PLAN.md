@@ -42,10 +42,10 @@ Ikrive es una aplicación open source y autoalojada (Docker) para gestionar tus 
 | 4. Reglas y alertas | ✅ Hecha |
 | 5. Repostajes y estadísticas | ✅ Hecha |
 | 6. Informe de venta | ✅ Hecha |
-| 7. Pulido y release v0.1.0 | Pendiente |
+| 7. Pulido y release v0.1.0 | ✅ Hecha |
 
 **Pendientes conocidos:**
-- Aún no existe repositorio remoto en GitHub (cuenta `Alvarotloc`). La imagen se publicará en `ghcr.io/alvarotloc/ikrive`.
+- Ninguno. La imagen se publica en `ghcr.io/alvarotloc/ikrive` al empujar un tag `v*` (`.github/workflows/release.yml`).
 
 ---
 
@@ -239,6 +239,7 @@ Fuente de verdad: `apps/web/src/index.css` (tokens) y la landing en `~/dev/perso
 - `pnpm harness` valida el estado del backlog y los specs; `pnpm harness --full` añade lint, typecheck y tests. Detalle en [docs/verification.md](verification.md).
 - `pnpm lint && pnpm typecheck && pnpm test` en verde.
 - `pnpm test:e2e`: construye el build de producción y ejecuta los E2E de Playwright (`e2e/`) contra `apps/api/dist/server.js` sirviendo `apps/web/dist` con un `DATA_DIR` temporal. No forma parte de `pnpm test`.
+- `pnpm screenshots`: construye el build de producción y regenera las capturas del README (`docs/screenshots/*.png`) con Playwright (`e2e/screenshots/`) sobre un `DATA_DIR` temporal con datos de ejemplo propios. No forma parte de `pnpm test:e2e` ni de `pnpm test`.
 - `pnpm dev`: la API queda en `:3000` y la web en `:5173` (con proxy de `/api`).
 - `docker build -f docker/Dockerfile -t ikrive:dev .` y después `docker run -p 3000:3000 -e AUTH_SECRET=… ikrive:dev`. Comprobar health, registro, `/api/me` y que la SPA carga.
 - `node docker/smoke.mjs http://127.0.0.1:3000` contra un contenedor recién arrancado (con `/data` vacío): health, registro, vehículo, SPA, foto (`image/webp`) e informe PDF. `node docker/image-size.mjs ikrive:dev` comprueba el límite de 250 MB.

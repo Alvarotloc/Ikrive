@@ -731,7 +731,7 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 43,
@@ -810,6 +810,25 @@
       ],
       "sdd": false,
       "status": "done"
+    },
+    {
+      "id": 48,
+      "name": "pre-release-polish",
+      "phase": "7",
+      "title": "Pulido previo al tag v0.1.0",
+      "description": "Arreglos detectados por el reviewer en Gate 2 de release-v0-1-0 (#42), antes de crear el tag v0.1.0: la matrícula se sale de la tarjeta del vehículo a 1280 px y se ve en las capturas de portada del README, y tres matices de documentación. Va antes del tag v0.1.0. Decidida por el humano en Gate 2 de #42.",
+      "acceptance": [
+        "En inicio y en /vehicles, la matrícula de la tarjeta de vehículo no se desborda a ningún ancho (móvil, 1280 px y escritorio ancho): se ajusta o se trunca dentro de la tarjeta, también con matrículas largas",
+        "Un test de componente cubre que la tarjeta de vehículo aplica el ajuste o truncado a la matrícula",
+        "En vehicle-detail.png (captura de página completa) el fondo de la barra lateral cubre toda la altura, o la captura deja de ser de página completa",
+        "Las capturas de docs/screenshots/ se regeneran con pnpm screenshots y ya no muestran la matrícula cortada",
+        "docs/self-hosting.md indica el valor real de IKRIVE_VERSION en una imagen construida sin --build-arg VERSION",
+        ".env.example sugiere DATA_DIR=/data (o explica que dentro de la imagen no debe cambiarse) en lugar de ./data",
+        "La restauración del volumen en docs/self-hosting.md avisa de que borrar o sustituir la carpeta de datos puede necesitar sudo si el usuario del host no es el uid 1000",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
+      "status": "pending"
     }
   ]
 }

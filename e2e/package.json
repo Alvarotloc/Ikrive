@@ -1,10 +1,11 @@
 {
   "name": "@ikrive/e2e",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "test:e2e": "playwright test",
+    "screenshots": "playwright test -c screenshots.config.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
