@@ -1,6 +1,7 @@
 import { and, asc, eq, getTableColumns, sql } from 'drizzle-orm';
 import type { Db } from '../../db/client';
-import { maintenanceSchedules, userSettings, vehicles } from '../../db/schema';
+import { activeUserFilter } from '../../db/filters';
+import { maintenanceSchedules, user, userSettings, vehicles } from '../../db/schema';
 import { activeVehicleFilter } from '../vehicles/repository';
 
 export type MaintenanceScheduleRow = typeof maintenanceSchedules.$inferSelect;
@@ -34,8 +35,9 @@ export function createSchedulesRepository(db: Db) {
         })
         .from(maintenanceSchedules)
         .innerJoin(vehicles, eq(vehicles.id, maintenanceSchedules.vehicleId))
+        .innerJoin(user, eq(user.id, vehicles.ownerId))
         .leftJoin(userSettings, eq(userSettings.userId, vehicles.ownerId))
-        .where(activeVehicleFilter)
+        .where(and(activeVehicleFilter, activeUserFilter))
         .all();
     },
     /** Schedules of one user's active vehicles, with the vehicle's name, make and model. For the iCal feed. */
