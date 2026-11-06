@@ -10,6 +10,8 @@ export class AppError extends Error {
     readonly title: string,
     detail?: string,
     readonly errors?: ProblemError[],
+    /** `type` of the problem details: a URI that identifies the kind of problem for clients. */
+    readonly type = 'about:blank',
   ) {
     super(detail ?? title);
     this.name = new.target.name;
@@ -41,8 +43,8 @@ export class NotFoundError extends AppError {
 }
 
 export class ConflictError extends AppError {
-  constructor(detail?: string) {
-    super(409, 'Conflict', detail);
+  constructor(detail?: string, { type }: { type?: string } = {}) {
+    super(409, 'Conflict', detail, undefined, type);
   }
 }
 

@@ -7,6 +7,7 @@ export * from './domain/report-shares';
 export * from './domain/sale-report';
 export * from './domain/schedules';
 export * from './domain/stats';
+export * from './domain/vehicle-identifiers';
 export * from './enums';
 export * from './schemas/admin';
 export * from './schemas/attachments';

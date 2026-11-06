@@ -85,6 +85,13 @@
       "when": 1793693010512,
       "tag": "0011_user_disabled_at",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1793960547374,
+      "tag": "0012_data_imports",
+      "breakpoints": true
     }
   ]
 }

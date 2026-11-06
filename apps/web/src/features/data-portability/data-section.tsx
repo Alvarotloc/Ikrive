@@ -1,4 +1,4 @@
-import type { DataImportSummary } from '@ikrive/shared';
+import type { DataImportSummary, ImportedVehicleMatch } from '@ikrive/shared';
 import { Download, Loader2, Upload } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -14,6 +14,7 @@ import {
   AlertDialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { vehicleTitle } from '@/features/vehicles/display';
 import { ApiError } from '@/lib/api-client';
 import { useFormat } from '@/lib/format';
 import { IMPORT_ACCEPT, importErrorKey } from './import';
@@ -30,6 +31,14 @@ const SUMMARY_KEYS = [
   'photos',
   'notificationChannels',
 ] as const;
+
+/** Translation key of the fields an imported vehicle matches by. */
+const matchedByKey = (matchedBy: ImportedVehicleMatch['matchedBy']) =>
+  matchedBy.length > 1
+    ? 'dataPortability.matchingVehicles.fields.both'
+    : matchedBy[0] === 'vin'
+      ? 'dataPortability.matchingVehicles.fields.vin'
+      : 'dataPortability.matchingVehicles.fields.plate';
 
 /**
  * Settings card «Tus datos»: downloads the export with a plain link (streamed by the browser) and
@@ -121,6 +130,22 @@ export function DataPortabilitySection() {
               <p role="status" className="rounded-lg border bg-muted p-3 text-sm">
                 {t('dataPortability.skippedChannels', { count: summary.skipped.notificationChannels })}
               </p>
+            )}
+            {summary.matchingVehicles.length > 0 && (
+              <div role="status" className="grid gap-1.5 rounded-lg border bg-muted p-3 text-sm">
+                <p className="font-medium">{t('dataPortability.matchingVehicles.title')}</p>
+                <ul className="grid list-disc gap-1 pl-5">
+                  {summary.matchingVehicles.map((match) => (
+                    <li key={`${match.imported.id}:${match.existing.id}`}>
+                      {t('dataPortability.matchingVehicles.item', {
+                        imported: vehicleTitle(match.imported),
+                        existing: vehicleTitle(match.existing),
+                        fields: t(matchedByKey(match.matchedBy)),
+                      })}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
           </section>
         )}
