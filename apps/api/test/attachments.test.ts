@@ -5,7 +5,7 @@ import { attachmentSchema } from '@ikrive/shared';
 import sharp from 'sharp';
 import { describe, expect, it } from 'vitest';
 import { attachments } from '../src/db/schema';
-import { createTestApp, signUp } from './helpers';
+import { createTestApp, incompleteMultipart, signUp } from './helpers';
 
 type TestApp = Awaited<ReturnType<typeof createTestApp>>['app'];
 type Response = Awaited<ReturnType<TestApp['inject']>>;
@@ -195,6 +195,36 @@ describe('maintenance attachments', () => {
     expect(big.length).toBe(1024 * 1024 + 1);
 
     expectProblem(await api.upload(big, 'factura.pdf'), 413);
+    expect(storedFiles()).toHaveLength(0);
+    expect(db.select().from(attachments).all()).toHaveLength(0);
+    expect((await api.list()).json()).toEqual([]);
+  });
+
+  it('rejects a multipart body that never completes', async () => {
+    const { app, db, cookie, api, storedFiles } = await setup();
+    const expectIncomplete = (response: Response) => {
+      expectProblem(response, 400);
+      expect(response.json().detail).toBe('The upload ended before the file was complete');
+    };
+    const send = (payload: Buffer | NodeJS.ReadableStream, length?: number) =>
+      app.inject({
+        method: 'POST',
+        url: api.base,
+        headers: {
+          cookie,
+          ...multipart(Buffer.alloc(0)).headers,
+          ...(length === undefined ? {} : { 'content-length': String(length) }),
+        },
+        payload,
+      });
+
+    const big = Buffer.concat([pdf(), Buffer.alloc(64 * 1024, 0x20)]);
+    for (const data of [pdf(), big]) {
+      expectIncomplete(await send(incompleteMultipart(multipart(data).payload).whole));
+    }
+    const { whole, chunked } = incompleteMultipart(multipart(big).payload);
+    expectIncomplete(await send(chunked(), whole.length));
+
     expect(storedFiles()).toHaveLength(0);
     expect(db.select().from(attachments).all()).toHaveLength(0);
     expect((await api.list()).json()).toEqual([]);
