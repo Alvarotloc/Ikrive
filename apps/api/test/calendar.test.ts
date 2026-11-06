@@ -1,4 +1,5 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
+import { eq } from 'drizzle-orm';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { calendarFeeds } from '../src/db/schema';
 import { createTestApp, signUp } from './helpers';
@@ -330,5 +331,82 @@ describe('calendar feed not found', () => {
       expectNotFound(await app.inject({ method: 'GET', url: path }));
     }
     expect(countEvents((await getFeed(app, url)).body)).toBe(0);
+  });
+});
+
+describe('calendar feed of a disabled owner', () => {
+  /** The admin signs up first (an admin cannot disable themselves); the owner has a feed. */
+  async function setupOwner() {
+    const { app, db } = await createTestApp();
+    const admin = await signUp(app, 'admin@example.com', 'Admin');
+    const owner = await signUp(app, 'ada@example.com', 'Ada');
+    const ownerId = (owner.response.json() as { user: { id: string } }).user.id;
+    const { url } = await feedApi(app, owner.cookie).enable();
+    const setDisabled = async (disabled: boolean) => {
+      const action = disabled ? 'disable' : 'enable';
+      const response = await app.inject({
+        method: 'POST',
+        url: `/api/admin/users/${ownerId}/${action}`,
+        headers: { cookie: admin.cookie },
+      });
+      expect(response.statusCode).toBe(200);
+    };
+    const feedRow = () => db.select().from(calendarFeeds).where(eq(calendarFeeds.userId, ownerId)).get();
+    return { app, url, setDisabled, feedRow };
+  }
+
+  /** A well-formed token whose selector does not exist. */
+  const unknownFeed = (app: TestApp) =>
+    app.inject({ method: 'GET', url: `/api/calendar/${randomBytes(40).toString('hex')}.ics` });
+
+  it('returns the same 404 as an unknown token while the owner is disabled', async () => {
+    const { app, url, setDisabled } = await setupOwner();
+    expect((await getFeed(app, url)).statusCode).toBe(200);
+    await setDisabled(true);
+
+    const disabled = await getFeed(app, url);
+    const unknown = await unknownFeed(app);
+    expectNotFound(disabled);
+    expect(disabled.statusCode).toBe(unknown.statusCode);
+    expect(disabled.headers['content-type']).toBe(unknown.headers['content-type']);
+    expect(disabled.json()).toEqual(unknown.json());
+  });
+
+  it('serves the feed again with the same token after reactivation', async () => {
+    const { app, url, setDisabled } = await setupOwner();
+    await setDisabled(true);
+    expectNotFound(await getFeed(app, url));
+    await setDisabled(false);
+
+    const response = await getFeed(app, url);
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['content-type']).toBe('text/calendar; charset=utf-8');
+    expect(response.body).toContain('BEGIN:VCALENDAR');
+  });
+
+  it('keeps the feed row when disabling and enabling the owner', async () => {
+    const { feedRow, setDisabled } = await setupOwner();
+    const before = feedRow();
+    expect(before).toBeDefined();
+    await setDisabled(true);
+    expect(feedRow()).toEqual(before);
+    await setDisabled(false);
+    expect(feedRow()).toEqual(before);
+  });
+
+  it('sends no-store on feed 404s', async () => {
+    const { app, url, setDisabled } = await setupOwner();
+    expect((await getFeed(app, url)).headers['cache-control']).toBe('private, no-store');
+    const unknown = await unknownFeed(app);
+    expect(unknown.statusCode).toBe(404);
+    expect(unknown.headers['cache-control']).toBe('private, no-store');
+    const noSuffix = await app.inject({ method: 'GET', url: pathOf(url).replace(/\.ics$/, '') });
+    expect(noSuffix.statusCode).toBe(404);
+    expect(noSuffix.headers['cache-control']).toBe('private, no-store');
+
+    await setDisabled(true);
+    const disabled = await getFeed(app, url);
+    expect(disabled.statusCode).toBe(404);
+    expect(disabled.headers['cache-control']).toBe('private, no-store');
   });
 });

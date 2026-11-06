@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { describe, expect, it, vi } from 'vitest';
 import type { Db } from '../src/db/client';
-import { notificationChannels, notifications } from '../src/db/schema';
+import { notificationChannels, notifications, user } from '../src/db/schema';
 import { runReminders } from '../src/jobs/reminders.job';
 import { createTestApp, createTestDispatcher, signUp } from './helpers';
 
@@ -187,5 +187,28 @@ describe('sending notifications through channels', () => {
     await runReminders({ db, now: NOW, dispatcher: createTestDispatcher(db, fakeFetch()) });
 
     expect(lastError(db, id)).toBeNull();
+  });
+
+  it('does not send to the channels of disabled users', async () => {
+    const { app, db } = await createTestApp();
+    const ada = await userWithOverdueSchedule(app, 'ada@example.com', 'Coche de Ada');
+    const bob = await userWithOverdueSchedule(app, 'bob@example.com', "Bob's car");
+    const adaChannel = await ada.addChannel(webhook('https://hooks.example.com/ada'));
+    await bob.addChannel(webhook('https://hooks.example.com/bob'));
+    // Both notifications exist; then Ada is disabled before they are dispatched.
+    await runReminders({ db, now: NOW, dispatcher: createTestDispatcher(db, fakeFetch()) });
+    const created = db.select().from(notifications).all();
+    expect(created.map((row) => row.userId).sort()).toEqual([ada.userId, bob.userId].sort());
+    db.update(notificationChannels)
+      .set({ lastError: 'HTTP 502' })
+      .where(eq(notificationChannels.id, adaChannel))
+      .run();
+    db.update(user).set({ disabledAt: new Date() }).where(eq(user.id, ada.userId)).run();
+    const fetch = fakeFetch();
+
+    expect(await createTestDispatcher(db, fetch).dispatch(created)).toEqual({ sent: 1, failed: 0 });
+
+    expect(sentUrls(fetch)).toEqual(['https://hooks.example.com/bob']);
+    expect(lastError(db, adaChannel)).toBe('HTTP 502');
   });
 });

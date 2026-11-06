@@ -4,7 +4,7 @@ import Fastify from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
 import { loadConfig } from '../src/config';
 import type { Db } from '../src/db/client';
-import { maintenanceSchedules, notifications, odometerReadings, userSettings } from '../src/db/schema';
+import { maintenanceSchedules, notifications, odometerReadings, user, userSettings } from '../src/db/schema';
 import {
   REMINDERS_CRON,
   reminderDedupeKey,
@@ -93,6 +93,14 @@ async function createUser(app: TestApp, email: string, settings: Record<string, 
 }
 
 const rows = (db: Db) => db.select().from(notifications).orderBy(asc(notifications.title)).all();
+
+/** Disables (an admin's `disabled_at`) or reactivates an account directly in the database. */
+const setDisabled = (db: Db, userId: string, disabled: boolean) =>
+  db
+    .update(user)
+    .set({ disabledAt: disabled ? new Date() : null })
+    .where(eq(user.id, userId))
+    .run();
 
 describe('reminders job scheduling', () => {
   it('validates REMINDERS_ENABLED', () => {
@@ -243,6 +251,63 @@ describe('runReminders', () => {
       failed: 0,
     });
     expect(rows(db)).toEqual([]);
+  });
+
+  it('skips disabled owners', async () => {
+    const { app, db } = await createTestApp();
+    const ada = await createUser(app, 'ada@example.com');
+    const bob = await createUser(app, 'bob@example.com');
+    const adaVehicle = await ada.createVehicle();
+    await ada.createSchedule(adaVehicle, overdueRule);
+    await ada.createSchedule(adaVehicle, dueSoonRule);
+    await bob.createSchedule(await bob.createVehicle(), overdueRule);
+    for (const [owner, name] of [
+      [ada, 'ada'],
+      [bob, 'bob'],
+    ] as const) {
+      const channel = await app.inject({
+        method: 'POST',
+        url: '/api/notification-channels',
+        headers: { cookie: owner.cookie },
+        payload: { type: 'webhook', config: { url: `https://hooks.example.com/${name}` } },
+      });
+      expect(channel.statusCode).toBe(201);
+    }
+    setDisabled(db, ada.userId, true);
+    const fetch = vi.fn<typeof globalThis.fetch>(async () => new Response(null, { status: 200 }));
+
+    expect(await runReminders({ db, now: NOW, dispatcher: createTestDispatcher(db, fetch) })).toEqual({
+      evaluated: 1,
+      created: 1,
+      failed: 0,
+    });
+    expect(rows(db)).toMatchObject([{ userId: bob.userId, type: 'schedule_overdue' }]);
+    expect(fetch.mock.calls.map(([url]) => String(url))).toEqual(['https://hooks.example.com/bob']);
+  });
+
+  it('notifies a reactivated owner on the next run', async () => {
+    const { app, db } = await createTestApp();
+    const ada = await createUser(app, 'ada@example.com');
+    const vehicle = await ada.createVehicle();
+    await ada.createSchedule(vehicle, overdueRule);
+    await ada.createSchedule(vehicle, dueSoonRule);
+    setDisabled(db, ada.userId, true);
+    const dispatcher = createTestDispatcher(db);
+
+    expect(await runReminders({ db, now: NOW, dispatcher })).toEqual({ evaluated: 0, created: 0, failed: 0 });
+    expect(rows(db)).toEqual([]);
+
+    setDisabled(db, ada.userId, false);
+    const later = at('2026-10-22T11:00:00.000Z');
+    expect(await runReminders({ db, now: later, dispatcher })).toEqual({
+      evaluated: 2,
+      created: 2,
+      failed: 0,
+    });
+    expect(rows(db)).toMatchObject([
+      { userId: ada.userId, type: 'schedule_overdue', title: 'Cambio de aceite', createdAt: later },
+      { userId: ada.userId, type: 'schedule_due_soon', title: 'ITV', createdAt: later },
+    ]);
   });
 
   it("uses the owner's time zone for today", async () => {
