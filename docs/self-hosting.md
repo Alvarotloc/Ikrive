@@ -50,6 +50,7 @@ Se leen del `.env` (`env_file` en `docker-compose.yml`). Los booleanos admiten `
 | `AUTH_SECRET` | — | Secreto para firmar las sesiones, de al menos 32 caracteres. **Obligatoria en producción**. Si la cambias, se cierran todas las sesiones |
 | `DISABLE_SIGNUP` | `false` | Bloquea los registros nuevos. La primera cuenta siempre se puede crear |
 | `REMINDERS_ENABLED` | `true` | Programa los jobs horarios de recordatorios de mantenimiento (`reminders`) y de aviso de kilometraje (`odometer-nudge`). No afecta a su [lanzamiento manual](#lanzar-los-jobs-a-mano) |
+| `CORS_ORIGINS` | `capacitor://localhost,https://localhost` | Orígenes de la app móvil (Capacitor), separados por comas, con el formato `esquema://host[:puerto]` (sin ruta ni barra final; no admite `*`). Desde ellos la API acepta el inicio de sesión (origen de confianza de Better Auth) y responde a CORS en `/api/*`, sin credenciales: la app se autentica con el token de sesión en `Authorization: Bearer`. Vacía (`CORS_ORIGINS=`) no confía en ningún origen además de `BASE_URL` ni envía cabeceras CORS. La web no la necesita |
 | `MAX_UPLOAD_MB` | `20` | Tamaño máximo, en MB, de cada adjunto (facturas y fotos) |
 | `REPORT_MAX_ANNEX_MB` | `100` | Tope total, en MB, de las facturas anexadas a un informe de venta. Las que no caben se omiten con un aviso en el informe |
 | `IMPORT_MAX_MB` | `1024` | Tamaño máximo, en MB, del zip de un export que se importa y de su contenido descomprimido. Cada fichero del zip sigue limitado por `MAX_UPLOAD_MB` |
