@@ -1,5 +1,6 @@
 import { APIError, betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { bearer } from 'better-auth/plugins';
 import { count, eq } from 'drizzle-orm';
 import type { Config } from './config';
 import type { Db } from './db/client';
@@ -16,10 +17,14 @@ export function createAuth(db: Db, config: Config) {
     baseURL: config.BASE_URL,
     basePath: '/api/auth',
     secret: config.AUTH_SECRET,
-    trustedOrigins:
-      config.NODE_ENV === 'development'
-        ? [config.BASE_URL, 'http://localhost:5173', 'http://localhost:5174']
-        : [config.BASE_URL],
+    // Native clients (CORS_ORIGINS) sign in from their own origin.
+    trustedOrigins: [
+      config.BASE_URL,
+      ...(config.NODE_ENV === 'development' ? ['http://localhost:5173', 'http://localhost:5174'] : []),
+      ...config.CORS_ORIGINS,
+    ],
+    // Better Auth skips the origin check when NODE_ENV is `test`; keep it on so tests see production.
+    advanced: { disableOriginCheck: false },
     database: drizzleAdapter(db, { provider: 'sqlite', schema }),
     emailAndPassword: { enabled: true, minPasswordLength: 8 },
     user: {
@@ -27,6 +32,9 @@ export function createAuth(db: Db, config: Config) {
         role: { type: 'string', required: false, defaultValue: 'user', input: false },
       },
     },
+    // Native clients send the signed session token (`set-auth-token` on sign-in) as
+    // `Authorization: Bearer`. Unsigned tokens are the raw value stored in the session table.
+    plugins: [bearer({ requireSignature: true })],
     rateLimit: { enabled: config.NODE_ENV === 'production' },
     databaseHooks: {
       user: {

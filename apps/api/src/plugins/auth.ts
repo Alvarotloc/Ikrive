@@ -22,6 +22,21 @@ export function currentUser(request: FastifyRequest): SessionUser {
   return request.user;
 }
 
+/**
+ * Union of two comma-separated header lists, without case-insensitive duplicates. Used so Better
+ * Auth's `Access-Control-Expose-Headers` (bearer adds `set-auth-token`) does not overwrite the one
+ * set by the CORS plugin.
+ */
+function mergeHeaderList(current: unknown, added: string): string {
+  const existing = Array.isArray(current) ? current.join(',') : typeof current === 'string' ? current : '';
+  const merged = new Map<string, string>();
+  for (const name of `${existing},${added}`.split(',')) {
+    const trimmed = name.trim();
+    if (trimmed && !merged.has(trimmed.toLowerCase())) merged.set(trimmed.toLowerCase(), trimmed);
+  }
+  return [...merged.values()].join(', ');
+}
+
 export default fp(async (app: FastifyInstance, { auth }: { auth: Auth }) => {
   app.decorateRequest('user', null);
 
@@ -51,7 +66,12 @@ export default fp(async (app: FastifyInstance, { auth }: { auth: Auth }) => {
       );
       reply.status(response.status);
       response.headers.forEach((value, key) => {
-        if (key !== 'set-cookie') reply.header(key, value);
+        if (key === 'set-cookie') return;
+        if (key === 'access-control-expose-headers') {
+          reply.header(key, mergeHeaderList(reply.getHeader(key), value));
+          return;
+        }
+        reply.header(key, value);
       });
       const cookies = response.headers.getSetCookie();
       if (cookies.length > 0) reply.header('set-cookie', cookies);

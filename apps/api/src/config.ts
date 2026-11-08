@@ -4,6 +4,12 @@ const booleanString = z
   .enum(['true', 'false', '1', '0'])
   .transform((value) => value === 'true' || value === '1');
 
+/** Origins of the native app (Capacitor on iOS and Android). */
+const DEFAULT_CORS_ORIGINS = 'capacitor://localhost,https://localhost';
+// scheme://host[:port], without path, query or trailing slash. `new URL().origin` does not work
+// here: it is "null" for non-special schemes such as `capacitor://`.
+const ORIGIN = /^[a-z][a-z0-9+.-]*:\/\/[^/?#\s*]+$/i;
+
 const INSECURE_DEV_SECRET = 'ikrive-insecure-development-secret-change-me';
 
 const envObjectSchema = z.object({
@@ -24,6 +30,19 @@ const envObjectSchema = z.object({
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   /** Directory with the built SPA. When set, the API also serves the frontend. */
   WEB_DIST_DIR: z.string().optional(),
+  /** Comma-separated origins of native clients: CORS on `/api/*` and Better Auth trusted origins. */
+  CORS_ORIGINS: z
+    .string()
+    .default(DEFAULT_CORS_ORIGINS)
+    .transform((value) =>
+      value
+        .split(',')
+        .map((origin) => origin.trim())
+        .filter(Boolean),
+    )
+    .pipe(
+      z.array(z.string().regex(ORIGIN, 'Expected a comma-separated list of origins (scheme://host[:port])')),
+    ),
 });
 
 /** Keys of the environment the API reads (documented in `docs/self-hosting.md`). */
