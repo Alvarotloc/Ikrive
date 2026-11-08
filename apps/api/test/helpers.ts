@@ -35,11 +35,16 @@ export async function createTestApp(
 type TestApp = Awaited<ReturnType<typeof createTestApp>>['app'];
 
 /** Signs up a user and returns the session cookie header to authenticate later requests. */
-export async function signUp(app: TestApp, email = 'ada@example.com', name = 'Ada') {
+export async function signUp(
+  app: TestApp,
+  email = 'ada@example.com',
+  name = 'Ada',
+  origin = 'http://localhost:3000',
+) {
   const response = await app.inject({
     method: 'POST',
     url: '/api/auth/sign-up/email',
-    headers: { origin: 'http://localhost:3000' },
+    headers: { origin },
     payload: { email, name, password: 'correct-horse-battery' },
   });
   const cookie = response.cookies.map((c) => `${c.name}=${c.value}`).join('; ');

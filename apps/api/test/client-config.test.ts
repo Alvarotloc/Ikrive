@@ -13,7 +13,8 @@ describe('GET /api/config', () => {
 
   it('does not flag a public BASE_URL', async () => {
     const { app } = await createTestApp({ BASE_URL: 'https://ikrive.example.com' });
-    const { cookie } = await signUp(app);
+    // Sign up from the instance's own origin: Better Auth rejects any other (403).
+    const { cookie } = await signUp(app, 'ada@example.com', 'Ada', 'https://ikrive.example.com');
     const response = await app.inject({ method: 'GET', url: '/api/config', headers: { cookie } });
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({ localBaseUrl: false });
