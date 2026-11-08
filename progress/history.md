@@ -476,3 +476,12 @@
 - **Tests:** API 336, web 348, shared 119, e2e 6. `pnpm harness --full` en verde.
 - **Revisión:** APPROVED a la primera (`progress/review_pre-release-polish.md`). Avisos: el subtítulo de la tarjeta se trunca a 1280 px; sin captura de la tarjeta en oscuro; matrículas de `/odometer` y de la ficha sin tocar.
 - **Gate 2:** merge aprobado, con orden explícita de crear y subir el tag `v0.1.0` tras el merge.
+
+## 2026-11-08 — #49 mobile-auth-api
+
+- **Rama:** `feat/mobile-auth-api` (SDD, spec en `specs/mobile-auth-api/`, 20 R / 18 T), publicada como `claude/siguiente-feature-oke4gr`. Solo `apps/api` y docs; sin cambios en BD, shared ni web.
+- **Gate 1:** aprobado sin cambios: plugin `bearer({ requireSignature: true })`; `CORS_ORIGINS` por defecto `capacitor://localhost,https://localhost` (vacía = sin CORS ni orígenes nativos), alimenta CORS y `trustedOrigins`; CORS solo en `/api/*`, sin credenciales; origen no permitido sin cabeceras CORS (preflight → 404); sin token en la query (la app cargará ficheros con fetch + blob en #50).
+- **Cambios:** `@fastify/cors` con `delegator` en `plugins/cors.ts`; `CORS_ORIGINS` en `config.ts` y `docs/self-hosting.md`; `isApiRequest` en `lib/http.ts`; decisión en `docs/PLAN.md`. Desviaciones: `advanced.disableOriginCheck: false` (Better Auth no comprueba el origen con `NODE_ENV=test`; sin efecto en dev/prod; `signUp` acepta `origin`) y el puente `/api/auth/*` fusiona `Access-Control-Expose-Headers` en vez de pisarla.
+- **Tests:** API 357 (21 nuevos en `mobile-auth.test.ts`), web 348, shared 119, e2e 6. Como root falla el conocido `data-import › answers 500…`; en verde como no root.
+- **Revisión:** APPROVED en la segunda vuelta (`progress/review_mobile-auth-api.md`); V1 pidió exponer también `content-disposition` en el login nativo (R6). Avisos: el login web también lleva `Access-Control-Expose-Headers: set-auth-token` (inocuo, sin `Allow-Origin`); `Vary: Origin` en todas las respuestas; `docker build` sin probar aquí.
+- **Gate 2:** merge aprobado; PR desde `claude/siguiente-feature-oke4gr`.
