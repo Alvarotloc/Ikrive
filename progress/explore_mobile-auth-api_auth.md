@@ -1,0 +1,9 @@
+# Exploración #49 mobile-auth-api: Better Auth y sesión por token
+
+- `better-auth` 1.7.7 (`apps/api/package.json:24`). `bearer` disponible en `better-auth/plugins` (sin paquete extra).
+  - Opción `requireSignature` (default false). Hook *before*: `Authorization: Bearer <token>` → verifica HMAC y lo convierte en cookie de sesión en la petición. Hook *after*: si la respuesta pone la cookie de sesión, añade `set-auth-token` y lo añade a `Access-Control-Expose-Headers`.
+- `apps/api/src/auth.ts`: `createAuth` `:11`; `trustedOrigins` `:19-22` (dev: BASE_URL + localhost:5173/5174; prod: BASE_URL). **No hay `plugins`** hoy. Sin `session.cookieCache` → `getSession` siempre lee BD. `databaseHooks.session.create.before` `:50-57` rechaza cuentas desactivadas. Tipos `Auth`/`SessionUser` `:8-9` (vigilar `$Infer` al añadir plugins).
+- `apps/api/src/plugins/auth.ts`: `authenticate` → `auth.api.getSession({ headers: fromNodeHeaders(request.headers) })` → 401. Con `bearer()` en plugins, Authorization funciona en todas las rutas sin tocar esto. Puente `/api/auth/*` (solo GET|POST) copia todas las cabeceras salvo set-cookie (que trata aparte) → `set-auth-token` llega. El preflight OPTIONS lo debe responder CORS antes del enrutado.
+- Cuentas desactivadas: `modules/admin-users/repository.ts:44-49` pone `disabledAt` y **borra todas sus sesiones** en una transacción → los tokens existentes dejan de valer al instante (401). Nuevos tokens bloqueados por el hook de sesión. `db/filters.ts:8` `activeUserFilter`.
+- Tests: `test/helpers.ts` `createTestApp(env)` `:17-33` (BASE_URL http://localhost:3000), `signUp` `:38-47` (origin http://localhost:3000; token en `response.headers['set-auth-token']`). `test/admin-users.test.ts` tiene `signIn`, `disable/enable`, `me()`, `createVehicle` (`:37-114`), buen patrón para el test de token desactivado.
+- Better Auth comprueba `Origin` en sign-in/sign-up contra `trustedOrigins`: hay que añadir los orígenes nativos.
