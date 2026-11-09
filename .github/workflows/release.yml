@@ -39,3 +39,71 @@ jobs:
           build-args: VERSION=${{ github.ref_name }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # Signed APK of the Android app (apps/mobile) attached to the GitHub Release of the tag.
+  # Secrets and keystore: docs/mobile.md › Publicar una versión.
+  android:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      - name: Check the signing secrets
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          missing=0
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then echo "::error::Missing secret $name (docs/mobile.md)"; missing=1; fi
+          done
+          if [ "$missing" -ne 0 ]; then exit 1; fi
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @ikrive/mobile build:web
+      - run: pnpm --filter @ikrive/mobile exec cap sync android
+      - name: Build the release APK (unsigned)
+        working-directory: apps/mobile/android
+        run: |
+          # «1.2.3 10203»; fails the job unless the tag is v<major>.<minor>.<patch>.
+          version="$(node ../scripts/android-version.mjs "$GITHUB_REF_NAME")"
+          read -r name code <<< "$version"
+          ./gradlew assembleRelease -PikriveVersionName="$name" -PikriveVersionCode="$code"
+      - name: Sign the APK
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          build_tools="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -n 1)"
+          keystore="$RUNNER_TEMP/ikrive.keystore"
+          trap 'rm -f "$keystore"' EXIT
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$keystore"
+          "$build_tools/zipalign" -p -f 4 \
+            apps/mobile/android/app/build/outputs/apk/release/app-release-unsigned.apk "$RUNNER_TEMP/aligned.apk"
+          "$build_tools/apksigner" sign --ks "$keystore" --ks-key-alias "$ANDROID_KEY_ALIAS" \
+            --ks-pass env:ANDROID_KEYSTORE_PASSWORD --key-pass env:ANDROID_KEY_PASSWORD \
+            --out "ikrive-$TAG.apk" "$RUNNER_TEMP/aligned.apk"
+          "$build_tools/apksigner" verify --verbose "ikrive-$TAG.apk"
+          sha256sum "ikrive-$TAG.apk" > "ikrive-$TAG.apk.sha256"
+      - name: Upload to the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$TAG" > /dev/null 2>&1 \
+            || gh release create "$TAG" --verify-tag --title "$TAG" --generate-notes
+          gh release upload "$TAG" "ikrive-$TAG.apk" "ikrive-$TAG.apk.sha256" --clobber
