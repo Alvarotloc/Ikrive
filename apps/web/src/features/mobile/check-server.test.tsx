@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { type MockResponse, mockApi, setServerMode } from '@/test/render';
 import { checkServer, parseServerInput } from './check-server';
 
@@ -13,6 +13,28 @@ describe('parseServerInput', () => {
     expect(parseServerInput('ftp://x')).toBeNull();
     expect(parseServerInput('not a url')).toBeNull();
     expect(parseServerInput('')).toBeNull();
+  });
+
+  it('accepts DNS names, IPv4 with port and bracketed IPv6', () => {
+    expect(parseServerInput('ikrive.example.com')).toBe('https://ikrive.example.com');
+    expect(parseServerInput('192.168.1.10:3000')).toBe('https://192.168.1.10:3000');
+    expect(parseServerInput('http://[::1]:3000')).toBe('http://[::1]:3000');
+  });
+
+  it('rejects whitespace and escaped hosts even when the URL parser accepts them (Android WebView)', () => {
+    // Chromium parses `https://hola mundo` with the host `hola%20mundo`; Node throws. Fake a lenient
+    // parser so the check does not depend on the runtime's one.
+    class LenientUrl {
+      readonly protocol = 'https:';
+      readonly hostname = 'hola%20mundo';
+      readonly origin = 'https://hola%20mundo';
+      readonly pathname = '/';
+    }
+    vi.stubGlobal('URL', LenientUrl);
+
+    expect(parseServerInput('hola mundo')).toBeNull();
+    expect(parseServerInput('https://hola mundo')).toBeNull();
+    expect(parseServerInput('hola%20mundo')).toBeNull();
   });
 });
 
@@ -29,6 +51,8 @@ describe('checkServer', () => {
 
     expect(await checkServer('ftp://x')).toEqual({ ok: false, reason: 'invalid' });
     expect(await checkServer('not a url')).toEqual({ ok: false, reason: 'invalid' });
+    expect(await checkServer('hola mundo')).toEqual({ ok: false, reason: 'invalid' });
+    expect(await checkServer('hola%20mundo')).toEqual({ ok: false, reason: 'invalid' });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

@@ -14,7 +14,7 @@ export function getServerUrl(): string | null {
 
 /**
  * Sets the server URL (`null` removes it, back to same-origin mode). Throws a `TypeError` unless it is
- * an `http:` or `https:` URL, leaving the stored one as it was. It is stored as origin + path,
+ * a valid `http:` or `https:` URL (see `normalizeServerUrl`), leaving the stored one as it was. It is stored as origin + path,
  * without trailing slashes, query or hash. Changing it drops the stored token:
  * the token of one server is never sent to another.
  */
@@ -26,8 +26,19 @@ export function setServerUrl(url: string | null): void {
   setSessionToken(null);
 }
 
-/** `url` as it is stored: origin + path, without trailing slashes, query or hash. Throws a `TypeError` unless it is http(s). */
+/**
+ * A DNS name or IPv4 (letters, digits, hyphens and dots) or a bracketed IPv6. Checked on the parsed
+ * host so validation does not depend on how lenient the browser's URL parser is: Chromium (the Android
+ * WebView) accepts `https://hola mundo` and escapes the space as `hola%20mundo`, where Node throws.
+ */
+const VALID_HOST = /^(?:[a-z\d-]+(?:\.[a-z\d-]+)*\.?|\[[\da-f:.]+\])$/i;
+
+/**
+ * `url` as it is stored: origin + path, without trailing slashes, query or hash. Throws a `TypeError`
+ * unless it is http(s), has no whitespace and its host is a DNS name, an IPv4 or a bracketed IPv6.
+ */
 export function normalizeServerUrl(url: string): string {
+  if (/\s/.test(url)) throw new TypeError(`Invalid server URL: ${url}`);
   let parsed: URL;
   try {
     parsed = new URL(url);
@@ -37,6 +48,7 @@ export function normalizeServerUrl(url: string): string {
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     throw new TypeError(`The server URL must be http(s): ${url}`);
   }
+  if (!VALID_HOST.test(parsed.hostname)) throw new TypeError(`Invalid server host: ${url}`);
   // From the parsed URL, without query or hash: `<server URL>/api/…` must stay a valid path.
   return `${parsed.origin}${parsed.pathname.replace(/\/+$/, '')}`;
 }
