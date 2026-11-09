@@ -45,6 +45,7 @@ La [guía de autoalojamiento](docs/self-hosting.md) cuenta el resto:
 - [Copias de seguridad: volumen `/data` y export por usuario](docs/self-hosting.md#copias-de-seguridad)
 - [Exposición a internet para los enlaces públicos](docs/self-hosting.md#exposición-a-internet)
 - [Lanzar los jobs de recordatorios a mano](docs/self-hosting.md#lanzar-los-jobs-a-mano)
+- [App de Android (APK) y PWA en iPhone](docs/mobile.md)
 
 ## Desarrollo
 
@@ -72,8 +73,7 @@ Más detalles sobre la arquitectura y cómo contribuir en [CONTRIBUTING.md](CONT
 - [x] Repostajes y estadísticas
 - [x] Informe de venta (PDF y enlace público)
 - [x] Exportar/importar, PWA y release v0.1.0
-
-Después de la v0.1.0 se estudia una app Android a partir de la misma web (ver [docs/PLAN.md](docs/PLAN.md)).
+- [ ] App móvil: [app de Android](docs/mobile.md) con la misma web y tu servidor; después, modo «En este teléfono» sin servidor (ver [docs/PLAN.md](docs/PLAN.md))
 
 ## Licencia
 

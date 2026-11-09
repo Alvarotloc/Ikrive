@@ -48,7 +48,7 @@ Se leen del `.env` (`env_file` en `docker-compose.yml`). Los booleanos admiten `
 |---|---|---|
 | `BASE_URL` | `http://localhost:3000` | URL pública de la instancia, tal como la abres en el navegador. Se usa en las cookies de sesión (con `https://` son `__Secure-`), en los enlaces de las notificaciones y en los enlaces públicos de los informes y del calendario |
 | `AUTH_SECRET` | — | Secreto para firmar las sesiones, de al menos 32 caracteres. **Obligatoria en producción**. Si la cambias, se cierran todas las sesiones |
-| `TRUSTED_ORIGINS` | `capacitor://localhost,https://localhost` | Orígenes, separados por comas, de los clientes que no se sirven desde `BASE_URL` (la app móvil de Capacitor en iOS y Android). Pueden iniciar sesión y llamar a la API con CORS; la app usa un token de sesión (`Authorization: Bearer`), nunca la cookie. Cada elemento es `esquema://host[:puerto]`, sin ruta ni `*`. Vacía (`TRUSTED_ORIGINS=`) no permite ningún origen. `capacitor://localhost` es la app en iOS y `https://localhost` la de Android: si no usas la app de Android, deja solo `TRUSTED_ORIGINS=capacitor://localhost`, y si no usas ninguna app, déjala vacía |
+| `TRUSTED_ORIGINS` | `capacitor://localhost,https://localhost` | Orígenes, separados por comas, de los clientes que no se sirven desde `BASE_URL` (la app móvil de Capacitor en iOS y Android). Pueden iniciar sesión y llamar a la API con CORS; la app usa un token de sesión (`Authorization: Bearer`), nunca la cookie. Cada elemento es `esquema://host[:puerto]`, sin ruta ni `*`. Vacía (`TRUSTED_ORIGINS=`) no permite ningún origen. `capacitor://localhost` es la app en iOS y `https://localhost` la de Android: si no usas la app de Android, deja solo `TRUSTED_ORIGINS=capacitor://localhost`, y si no usas ninguna app, déjala vacía. Más en [App móvil](mobile.md#cors-trusted_origins) |
 | `DISABLE_SIGNUP` | `false` | Bloquea los registros nuevos. La primera cuenta siempre se puede crear |
 | `REMINDERS_ENABLED` | `true` | Programa los jobs horarios de recordatorios de mantenimiento (`reminders`) y de aviso de kilometraje (`odometer-nudge`). No afecta a su [lanzamiento manual](#lanzar-los-jobs-a-mano) |
 | `MAX_UPLOAD_MB` | `20` | Tamaño máximo, en MB, de cada adjunto (facturas y fotos) |
@@ -113,6 +113,8 @@ Ikrive funciona entero en tu red local. Solo necesitas exponerlo a internet si q
 - `/api/calendar/:file`: el feed iCal de los próximos mantenimientos (con el token privado del usuario).
 
 El resto de la API exige sesión (cookie o token de la app).
+
+La [app de Android](mobile.md) necesita llegar al servidor desde el móvil: en casa le basta la LAN; fuera, una VPN o el proxy inverso con HTTPS de abajo.
 
 ### Proxy inverso con HTTPS
 
