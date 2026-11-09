@@ -1,7 +1,7 @@
 import { DEFAULT_USER_SETTINGS, type Me } from '@ikrive/shared';
 import { screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
-import { type MockResponse, mockApi, mockMediaQuery } from '@/test/render';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { type MockResponse, mockApi, mockMediaQuery, setServerMode } from '@/test/render';
 import { renderApp } from '@/test/render-app';
 
 const me: Me = { id: 'u1', name: 'Ana', email: 'ana@example.com', role: 'user' };
@@ -63,5 +63,35 @@ describe('route error screen', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Algo ha ido mal');
     expect(screen.queryByText('Sin conexión')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument();
+  });
+
+  describe('change server', () => {
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('native app: offers to change the server on a network error', async () => {
+      vi.stubEnv('MODE', 'native');
+      setServerMode('https://ikrive.example.com', 'tok');
+      mockApi({ 'GET /me': networkFailure });
+      const { user, router } = await renderApp('/');
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('Sin conexión');
+      expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument();
+      await user.click(screen.getByRole('link', { name: 'Cambiar servidor' }));
+
+      expect(await screen.findByLabelText('Dirección del servidor')).toBeInTheDocument();
+      expect(router.state.location.pathname).toBe('/server');
+    });
+
+    it('web: offers only retry', async () => {
+      mockApi({ 'GET /me': networkFailure });
+
+      await renderApp('/');
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('Sin conexión');
+      expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'Cambiar servidor' })).not.toBeInTheDocument();
+    });
   });
 });

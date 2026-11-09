@@ -82,4 +82,24 @@ describe('ApiImage', () => {
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
     expect(container.firstElementChild).toHaveClass('bg-muted');
   });
+
+  it('server mode: does not reuse a file cached for another server', async () => {
+    setServerMode('https://one.example.com', 'token-1');
+    const fetchMock = mockApi({ 'GET /vehicles/v1/photo': jpeg() });
+    const { createObjectURL } = mockObjectUrls();
+    const { queryClient, unmount } = renderWithProviders(<ApiImage src={URL_PATH} alt="Foto" />);
+    expect(await screen.findByRole('img', { name: 'Foto' })).toHaveAttribute('src', 'blob:1');
+    unmount();
+
+    // Another server, same `/api/…` path and the same cache (no `queryClient.clear()`).
+    setServerMode('https://two.example.com', 'token-2');
+    renderWithProviders(<ApiImage src={URL_PATH} alt="Foto" />, { queryClient });
+
+    expect(await screen.findByRole('img', { name: 'Foto' })).toHaveAttribute('src', 'blob:2');
+    expect(fetchMock.mock.calls.map(([input]) => String(input))).toEqual([
+      `https://one.example.com${URL_PATH}`,
+      `https://two.example.com${URL_PATH}`,
+    ]);
+    expect(createObjectURL).toHaveBeenCalledTimes(2);
+  });
 });

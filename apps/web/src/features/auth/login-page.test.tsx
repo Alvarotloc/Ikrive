@@ -1,6 +1,6 @@
 import { screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
-import { type MockResponse, mockApi } from '@/test/render';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { type MockResponse, mockApi, setServerMode } from '@/test/render';
 import { renderApp } from '@/test/render-app';
 
 /** The whole app on `/login` with no session; `signIn` answers the sign-in request. */
@@ -39,5 +39,33 @@ describe('login page', () => {
     await submitLogin(user);
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Email o contraseña incorrectos');
+  });
+
+  describe('server link', () => {
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('native app: shows the saved server and a link to change it', async () => {
+      vi.stubEnv('MODE', 'native');
+      setServerMode('https://ikrive.example.com');
+      const { user, router } = await renderLogin({ status: 200, body: {} });
+
+      expect(await screen.findByText('Servidor: ikrive.example.com')).toBeInTheDocument();
+      await user.click(screen.getByRole('link', { name: 'Cambiar servidor' }));
+
+      expect(await screen.findByLabelText('Dirección del servidor')).toHaveValue(
+        'https://ikrive.example.com',
+      );
+      expect(router.state.location.pathname).toBe('/server');
+    });
+
+    it('web: shows no server link', async () => {
+      await renderLogin({ status: 200, body: {} });
+
+      expect(await screen.findByRole('heading', { name: 'Iniciar sesión' })).toBeInTheDocument();
+      expect(screen.queryByText(/Servidor:/)).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'Cambiar servidor' })).not.toBeInTheDocument();
+    });
   });
 });
