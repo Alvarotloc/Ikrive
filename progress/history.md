@@ -514,3 +514,12 @@
 - **Revisión:** APPROVED a la primera (`progress/review_ci-workflow-permissions.md`). En Gate 2 el humano pide acotar el test del job `changes` a su propio bloque; segunda pasada APPROVED (8 mutaciones).
 - **Pendientes:** `paths-filter` v4 y fijar el resto de acciones por SHA pasan a #58 `dependabot-actions` (Dependabot semanal y agrupado, solo `github-actions`), por delante de #55.
 - **Gate 2:** merge aprobado.
+
+## 2026-11-09 — #57 data-dir-not-writable
+
+- **Rama:** `feat/data-dir-not-writable` (`sdd: false`, sin spec ni Gate 1). Detectado al probar #51 en el móvil (`./data` de root → `SQLITE_CANTOPEN` y reinicio en bucle).
+- **Cambios:** `apps/api/src/lib/data-dir.ts` (`ensureWritableDataDir` crea la carpeta y escribe/borra una sonda; `dataDirErrorMessage`; `ensureWritableDataDirOrExit` escribe una línea en stderr y sale con 1), llamado en `server.ts` antes de `createDb`; `docs/self-hosting.md` con `mkdir data`, uid 1000, `sudo chown -R 1000:1000 data` y el mensaje literal del log (un test comprueba que coincide).
+- **Tests:** API 368, web 403, más los `node:test` de `apps/mobile`. `pnpm harness --full` en verde; smoke de Docker OK y caso negativo probado con la imagen real (exit 1, una línea).
+- **Revisión:** APPROVED a la primera (`progress/review_data-dir-not-writable.md`).
+- **Pendientes:** `jobs/cli.ts` y `db/migrate.ts` sin la guarda (fuera de alcance); los tests de permisos se saltan como root (CI no corre como root).
+- **Gate 2:** merge aprobado.
