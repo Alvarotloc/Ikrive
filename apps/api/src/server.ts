@@ -3,9 +3,12 @@ import { loadConfig } from './config';
 import { createDb, runMigrations } from './db/client';
 import { runOdometerNudge, startOdometerNudgeJob } from './jobs/odometer-nudge.job';
 import { runReminders, startRemindersJob } from './jobs/reminders.job';
+import { ensureWritableDataDirOrExit } from './lib/data-dir';
 import { createNotificationDispatcher } from './modules/notification-channels/dispatcher';
 
 const config = loadConfig();
+// Before opening SQLite: a non-writable volume would otherwise crash with SQLITE_CANTOPEN.
+ensureWritableDataDirOrExit(config.DATA_DIR);
 const db = createDb(databasePath(config));
 runMigrations(db);
 
