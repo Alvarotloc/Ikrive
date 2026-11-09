@@ -5,6 +5,7 @@ import type { ReactElement, ReactNode } from 'react';
 import { I18nextProvider } from 'react-i18next';
 import { vi } from 'vitest';
 import i18n from '@/i18n';
+import { setServerUrl, setSessionToken } from '@/lib/server';
 import { rejectUnmockedRequest } from './unmocked-requests';
 
 /** A fresh client per test: no retries (errors surface at once) and no cache shared between tests. */
@@ -97,4 +98,32 @@ export function mockMediaQuery(matches: boolean) {
     removeListener: () => {},
     dispatchEvent: () => false,
   }));
+}
+
+/**
+ * Puts the app in server mode: requests go to `url` (e.g. `https://ikrive.example.com`) with the bearer
+ * `token`, if given. `setup.ts` clears `localStorage` after each test, back to same-origin mode.
+ */
+export function setServerMode(url: string, token?: string) {
+  setServerUrl(url);
+  if (token !== undefined) setSessionToken(token);
+}
+
+/**
+ * jsdom implements neither `URL.createObjectURL` nor `URL.revokeObjectURL`: stubs both on a `URL`
+ * subclass (restored after each test) so `blob:` URLs can be asserted. Each created URL is
+ * `blob:<n>`, numbered from 1; returns the spies.
+ */
+export function mockObjectUrls() {
+  let count = 0;
+  const createObjectURL = vi.fn((_blob: Blob) => `blob:${++count}`);
+  const revokeObjectURL = vi.fn((_url: string) => {});
+  vi.stubGlobal(
+    'URL',
+    class extends URL {
+      static override createObjectURL = createObjectURL;
+      static override revokeObjectURL = revokeObjectURL;
+    },
+  );
+  return { createObjectURL, revokeObjectURL };
 }

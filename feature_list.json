@@ -863,7 +863,7 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 51,
@@ -878,6 +878,7 @@
         "Un workflow de GitHub Actions compila la APK al empujar un tag v*, la firma con una clave guardada en secretos y la sube a la GitHub Release con su .sha256",
         "docs/self-hosting.md o un doc nuevo explica cómo instalar la APK, la configuración de CORS necesaria y la alternativa PWA en iPhone",
         "Todos los textos están en es.json y en.json",
+        "Cambiar de servidor no muestra fotos ni facturas en caché del servidor anterior: la caché de ficheros (useApiFileSrc, clave [\"api-file\", url]) incluye la URL del servidor o se vacía (queryClient.clear()) al cambiarlo. Origen: aviso del reviewer en Gate 2 de #50",
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,

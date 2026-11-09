@@ -1,7 +1,7 @@
 import { DEFAULT_USER_SETTINGS, type MaintenanceSchedule } from '@ikrive/shared';
 import { screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { mockApi, renderWithProviders } from '@/test/render';
+import { mockApi, renderWithProviders, setServerMode } from '@/test/render';
 import { AddToCalendarMenu } from './add-to-calendar';
 
 const schedule = (overrides: Partial<MaintenanceSchedule> = {}): MaintenanceSchedule => ({
@@ -76,6 +76,17 @@ describe('AddToCalendarMenu', () => {
       enddt: '2026-03-11',
       allday: 'true',
     });
+  });
+
+  it('server mode: links the event to the server', async () => {
+    setServerMode('https://ikrive.example.com', 'secret-token');
+    const { user } = setup();
+    await user.click(trigger());
+
+    const google = await screen.findByRole('menuitem', { name: 'Google Calendar' });
+    const details = paramsOf(google.getAttribute('href')).details;
+    expect(details).toContain('https://ikrive.example.com/vehicles/v1');
+    expect(details).not.toContain(window.location.origin);
   });
 
   it('downloads an .ics file', async () => {

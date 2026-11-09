@@ -6,9 +6,9 @@ import {
   createRouter,
   RouterProvider,
 } from '@tanstack/react-router';
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { mockApi, renderWithProviders } from '@/test/render';
+import { type MockRoutes, mockApi, mockObjectUrls, renderWithProviders, setServerMode } from '@/test/render';
 import { VehicleCard } from './vehicle-card';
 
 const car: Vehicle = {
@@ -36,8 +36,8 @@ const car: Vehicle = {
 };
 
 /** The card on `/` of an in-memory router, with the detail route its link points to. */
-async function setup(vehicle: Partial<Vehicle> = {}) {
-  mockApi({ 'GET /settings': { body: DEFAULT_USER_SETTINGS } });
+async function setup(vehicle: Partial<Vehicle> = {}, routes: MockRoutes = {}) {
+  const fetchMock = mockApi({ 'GET /settings': { body: DEFAULT_USER_SETTINGS }, ...routes });
   const rootRoute = createRootRoute();
   const router = createRouter({
     routeTree: rootRoute.addChildren([
@@ -51,7 +51,8 @@ async function setup(vehicle: Partial<Vehicle> = {}) {
     history: createMemoryHistory({ initialEntries: ['/'] }),
   });
   renderWithProviders(<RouterProvider router={router} />);
-  return screen.findByRole('link', { name: /Toyota Corolla/ });
+  const card = await screen.findByRole('link', { name: /Toyota Corolla/ });
+  return Object.assign(card, { fetchMock });
 }
 
 describe('VehicleCard', () => {
@@ -81,5 +82,22 @@ describe('VehicleCard', () => {
 
     expect(card).toHaveTextContent('50.040 km');
     expect(card.querySelector('[title]')).toBeNull();
+  });
+
+  it('server mode: shows the photo loaded with the token', async () => {
+    setServerMode('https://ikrive.example.com', 'secret-token');
+    mockObjectUrls();
+    const photoUrl = '/api/vehicles/v1/photo?v=2';
+    const card = await setup(
+      { photoUrl },
+      { 'GET /vehicles/v1/photo': { body: new Blob(['jpeg'], { type: 'image/jpeg' }) } },
+    );
+
+    await waitFor(() => expect(card.querySelector('img')).toHaveAttribute('src', 'blob:1'));
+    const photoRequest = card.fetchMock.mock.calls
+      .map(([input, init]) => new Request(String(input), init))
+      .find((request) => request.url.includes('/photo'));
+    expect(photoRequest?.url).toBe(`https://ikrive.example.com${photoUrl}`);
+    expect(photoRequest?.headers.get('authorization')).toBe('Bearer secret-token');
   });
 });

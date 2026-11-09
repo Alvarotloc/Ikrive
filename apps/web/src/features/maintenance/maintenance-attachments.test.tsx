@@ -2,8 +2,15 @@ import type { Attachment } from '@ikrive/shared';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { useState } from 'react';
 import { Toaster, toast } from 'sonner';
-import { afterEach, describe, expect, it, type Mock } from 'vitest';
-import { type MockResponse, type MockRoutes, mockApi, renderWithProviders } from '@/test/render';
+import { afterEach, describe, expect, it, type Mock, vi } from 'vitest';
+import {
+  type MockResponse,
+  type MockRoutes,
+  mockApi,
+  mockObjectUrls,
+  renderWithProviders,
+  setServerMode,
+} from '@/test/render';
 import { MaintenanceAttachmentsDialog } from './maintenance-attachments';
 
 const BASE = '/vehicles/v1/maintenance/r1/attachments';
@@ -70,6 +77,25 @@ const uploadedNames = (fetchMock: Mock<typeof fetch>, path = BASE) =>
     if (!(body instanceof FormData)) throw new Error(`Expected a multipart body for POST ${path}`);
     return (body.get('file') as File).name;
   });
+
+const SERVER = 'https://ikrive.example.com';
+
+/** The requests sent to the server, as `Request`s. */
+const requestsOf = (fetchMock: Mock<typeof fetch>) =>
+  fetchMock.mock.calls.map(([input, init]) => new Request(String(input), init));
+
+/** Server mode with a token, stubbed object URLs and the links the app clicks (downloads, new tabs). */
+function setupServerMode(routes: MockRoutes) {
+  setServerMode(SERVER, 'secret-token');
+  mockObjectUrls();
+  const clicked: HTMLAnchorElement[] = [];
+  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+    clicked.push(this);
+  });
+  return { clicked, ...setup(routes) };
+}
+
+const jpeg = (): MockResponse => ({ body: new Blob(['jpeg'], { type: 'image/jpeg' }) });
 
 const fileInput = () => screen.getByLabelText('Elegir facturas');
 const helpText = 'PDF, JPG, PNG o WebP · máx. 1 MB';
@@ -360,5 +386,89 @@ describe('MaintenanceAttachmentsDialog', () => {
     expect(calls(fetchMock, 'DELETE', `${BASE}/a2`)).toHaveLength(1);
     expect(screen.getByText('factura.pdf')).toBeInTheDocument();
     expect(screen.queryByText('Factura eliminada')).not.toBeInTheDocument();
+  });
+
+  it('server mode: shows thumbnails loaded with the token', async () => {
+    const { fetchMock } = setupServerMode({
+      [`GET ${BASE}`]: { body: [image] },
+      [`GET ${BASE}/a1/thumbnail`]: jpeg(),
+    });
+
+    const thumbnail = await screen.findByRole('img', { name: 'ticket.jpg' });
+    expect(thumbnail).toHaveAttribute('src', 'blob:1');
+    const request = requestsOf(fetchMock).find((r) => r.url.endsWith('/thumbnail'));
+    expect(request?.url).toBe(`${SERVER}/api${BASE}/a1/thumbnail`);
+    expect(request?.headers.get('authorization')).toBe('Bearer secret-token');
+  });
+
+  it('server mode: downloads an invoice with the token', async () => {
+    const { user, fetchMock, clicked } = setupServerMode({
+      [`GET ${BASE}`]: { body: [pdf, attachment({ id: 'a3', url: `/api${BASE}/a3`, thumbnailUrl: null })] },
+      [`GET ${BASE}/a2`]: {
+        body: new Blob(['%PDF-1.7'], { type: 'application/pdf' }),
+        headers: { 'content-disposition': 'attachment; filename="factura-taller.pdf"' },
+      },
+      [`GET ${BASE}/a3`]: jpeg(),
+    });
+
+    // A button, not a link: there is no cookie for the browser to send.
+    await user.click(await screen.findByRole('button', { name: 'Descargar «factura.pdf»' }));
+    await waitFor(() => expect(clicked).toHaveLength(1));
+    expect(clicked[0]).toHaveAttribute('download', 'factura-taller.pdf');
+    expect(clicked[0]).toHaveAttribute('href', 'blob:1');
+
+    // Without a `Content-Disposition`, the original name.
+    await user.click(screen.getByRole('button', { name: 'Descargar «ticket.jpg»' }));
+    await waitFor(() => expect(clicked).toHaveLength(2));
+    expect(clicked[1]).toHaveAttribute('download', 'ticket.jpg');
+
+    const downloads = requestsOf(fetchMock).filter((r) => /\/a[23]$/.test(r.url));
+    expect(downloads.map((r) => r.url)).toEqual([`${SERVER}/api${BASE}/a2`, `${SERVER}/api${BASE}/a3`]);
+    for (const request of downloads) expect(request.headers.get('authorization')).toBe('Bearer secret-token');
+    expect(screen.queryByRole('link', { name: /Descargar/ })).not.toBeInTheDocument();
+  });
+
+  it('server mode: opens a PDF with the token in a new tab', async () => {
+    const { user, fetchMock, clicked } = setupServerMode({
+      [`GET ${BASE}`]: { body: [pdf] },
+      [`GET ${BASE}/a2`]: { body: new Blob(['%PDF-1.7'], { type: 'application/pdf' }) },
+    });
+
+    await user.click(await screen.findByRole('button', { name: 'Abrir «factura.pdf» en una pestaña nueva' }));
+
+    await waitFor(() => expect(clicked).toHaveLength(1));
+    expect(clicked[0]).toHaveAttribute('href', 'blob:1');
+    expect(clicked[0]).toHaveAttribute('target', '_blank');
+    expect(clicked[0]).toHaveAttribute('rel', 'noopener');
+    const request = requestsOf(fetchMock).find((r) => r.url.includes('/a2'));
+    expect(request?.url).toBe(`${SERVER}/api${BASE}/a2?inline=1`);
+    expect(request?.headers.get('authorization')).toBe('Bearer secret-token');
+  });
+
+  it('server mode: shows the viewer error when the image request fails', async () => {
+    const { user } = setupServerMode({
+      [`GET ${BASE}`]: { body: [image] },
+      [`GET ${BASE}/a1/thumbnail`]: jpeg(),
+      [`GET ${BASE}/a1`]: problem(500),
+    });
+
+    await user.click(await screen.findByRole('button', { name: 'Ver «ticket.jpg»' }));
+    const viewer = await screen.findByRole('dialog', { name: 'ticket.jpg' });
+
+    expect(await within(viewer).findByRole('alert')).toHaveTextContent('No se ha podido cargar la imagen.');
+    expect(within(viewer).queryByRole('img')).not.toBeInTheDocument();
+    expect(within(viewer).getByRole('button', { name: 'Descargar' })).toBeInTheDocument();
+  });
+
+  it('server mode: shows an error toast when a download fails', async () => {
+    const { user, clicked } = setupServerMode({
+      [`GET ${BASE}`]: { body: [pdf] },
+      [`GET ${BASE}/a2`]: problem(500),
+    });
+
+    await user.click(await screen.findByRole('button', { name: 'Descargar «factura.pdf»' }));
+
+    expect(await screen.findByText('No se ha podido abrir el archivo')).toBeInTheDocument();
+    expect(clicked).toHaveLength(0);
   });
 });

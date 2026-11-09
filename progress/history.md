@@ -486,3 +486,12 @@
 - **Tests:** API 358, web 348, shared 119, e2e 6. `pnpm harness --full` en verde.
 - **Revisión:** APPROVED a la primera (`progress/review_mobile-auth-api.md`). En Gate 2 el humano pide el test del 429 con CORS (T22) y la línea de doc sobre qué orígenes dejar; segunda pasada APPROVED. Descartados: `Vary: Origin` para orígenes no listados y `set-auth-token` en la web (respuestas `private`, sin impacto). Pendientes: login sin cabecera `Origin` (HTTP nativo) no lo limita la lista, a tener en cuenta en #51; el comentario de `app.ts:92` sobre el orden CORS/rate limit ya no es necesario.
 - **Gate 2:** merge aprobado.
+
+## 2026-11-09 — #50 web-api-base-url
+
+- **Rama:** `feat/web-api-base-url` (SDD, spec en `specs/web-api-base-url/`, 17 R / 17 T). Solo `apps/web`; sin cambios en API, BD, shared, Docker ni E2E.
+- **Gate 1:** aprobado sin cambios: modo servidor = hay URL base guardada; URL y token en `localStorage` (`ikrive.serverUrl`, `ikrive.sessionToken`), costura única en `lib/server.ts` para que #51 pueda cambiar de almacén; cambiar de servidor borra el token; se guarda la cabecera `set-auth-token`; «Añadir al calendario» enlaza a la web del servidor; sin UI para fijar la URL (la pone #51).
+- **Cambios:** `lib/server.ts` con `apiFetch` como única puerta a la API (mismo origen: `credentials: 'include'`; servidor: `<URL base>/api/…`, `credentials: 'omit'` y `Authorization: Bearer`); `api-client.ts` y `auth-client.ts` (`customFetchImpl` + `onSuccess` que guarda el token) por `apiFetch`; logout borra el token en `finally`; `ApiImage` y `lib/api-files.ts` (`useApiFileSrc`, `saveApiFile`, `openApiFile`) para fotos, miniaturas, visor, facturas, PDF y export en modo servidor; `openBlob` en `download.ts`; `common.fileError`.
+- **Tests:** API 358, web 375, shared 119, e2e 6. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED a la primera (`progress/review_web-api-base-url.md`). En Gate 2 el humano pide arreglar el placeholder `<div>` dentro de `<button>` (→ `<span class="block">`) y que `setServerUrl` guarde la URL sin query ni hash; segunda pasada APPROVED. Pendientes: la caché de ficheros no distingue servidores (pasa a un acceptance de #51); la descarga desde el visor no tiene test propio; en la WebView, `blob:` y pestañas nuevas necesitarán ayuda nativa en #51 (`lib/api-files.ts`).
+- **Gate 2:** merge aprobado.

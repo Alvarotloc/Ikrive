@@ -4,6 +4,7 @@ import { Download, FileText, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { ApiImage } from '@/components/api-image';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -19,6 +20,8 @@ import {
   DialogFooter,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { openApiFile, saveApiFile } from '@/lib/api-files';
+import { isServerMode } from '@/lib/server';
 import { AttachmentPicker } from './attachment-picker';
 import { AttachmentViewer } from './attachment-viewer';
 import { inlineUrl } from './attachments';
@@ -127,11 +130,28 @@ function AttachmentCard({
 }) {
   const { t } = useTranslation();
   const name = attachment.originalName;
+  // Server mode has no cookie: the PDF and the download are fetched with the token (`api-files`).
+  const serverMode = isServerMode();
+  const fileAction = (action: () => Promise<void>) => async () => {
+    try {
+      await action();
+    } catch {
+      toast.error(t('common.fileError'));
+    }
+  };
   const nameLabel = (
     <span className="truncate text-sm" title={name}>
       {name}
     </span>
   );
+  const pdfIcon = (
+    <span className="grid aspect-square w-full place-items-center rounded-md bg-muted text-muted-foreground">
+      <FileText aria-hidden className="size-10" />
+    </span>
+  );
+  const openPdfLabel = t('maintenance.attachments.openPdf', { name });
+  const downloadLabel = t('maintenance.attachments.downloadLabel', { name });
+  const downloadClassName = 'absolute top-3 left-3 size-9 bg-card/90 text-foreground shadow-sm hover:bg-card';
 
   return (
     <li className="relative min-w-0 overflow-hidden rounded-lg border bg-card">
@@ -143,12 +163,22 @@ function AttachmentCard({
           aria-label={t('maintenance.attachments.view', { name })}
           className={cardActionClassName}
         >
-          <img
+          <ApiImage
             src={attachment.thumbnailUrl}
             alt={name}
             loading="lazy"
             className="aspect-square w-full rounded-md bg-muted object-cover"
           />
+          {nameLabel}
+        </button>
+      ) : serverMode ? (
+        <button
+          type="button"
+          onClick={fileAction(() => openApiFile(inlineUrl(attachment.url)))}
+          aria-label={openPdfLabel}
+          className={cardActionClassName}
+        >
+          {pdfIcon}
           {nameLabel}
         </button>
       ) : (
@@ -157,25 +187,31 @@ function AttachmentCard({
           href={inlineUrl(attachment.url)}
           target="_blank"
           rel="noopener noreferrer"
-          aria-label={t('maintenance.attachments.openPdf', { name })}
+          aria-label={openPdfLabel}
           className={cardActionClassName}
         >
-          <span className="grid aspect-square w-full place-items-center rounded-md bg-muted text-muted-foreground">
-            <FileText aria-hidden className="size-10" />
-          </span>
+          {pdfIcon}
           {nameLabel}
         </a>
       )}
-      <Button
-        asChild
-        variant="ghost"
-        size="icon"
-        className="absolute top-3 left-3 size-9 bg-card/90 text-foreground shadow-sm hover:bg-card"
-      >
-        <a href={attachment.url} download aria-label={t('maintenance.attachments.downloadLabel', { name })}>
+      {serverMode ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className={downloadClassName}
+          aria-label={downloadLabel}
+          onClick={fileAction(() => saveApiFile(attachment.url, name))}
+        >
           <Download aria-hidden />
-        </a>
-      </Button>
+        </Button>
+      ) : (
+        <Button asChild variant="ghost" size="icon" className={downloadClassName}>
+          <a href={attachment.url} download aria-label={downloadLabel}>
+            <Download aria-hidden />
+          </a>
+        </Button>
+      )}
       <DeleteAttachmentDialog vehicleId={vehicleId} recordId={recordId} attachment={attachment} />
     </li>
   );
