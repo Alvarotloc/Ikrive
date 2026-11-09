@@ -47,7 +47,7 @@ const SERVER_URL_KEY = 'ikrive.serverUrl';
 const TOKEN_KEY = 'ikrive.sessionToken';
 
 export function getServerUrl(): string | null;          // sin barra final
-/** Valida http(s) (lanza TypeError si no), quita barras finales; null la borra. Si cambia, borra el token (R7). */
+/** Valida http(s) (lanza TypeError si no), guarda origin + pathname del URL parseado (sin barras finales, query ni hash); null la borra. Si cambia, borra el token (R7). */
 export function setServerUrl(url: string | null): void;
 export function getSessionToken(): string | null;
 export function setSessionToken(token: string | null): void;
@@ -90,7 +90,7 @@ better-fetch fija `credentials: 'include'` por defecto; `apiFetch` lo sustituye 
 
 ## Impacto en UI
 
-- **`ApiImage`** (`src`, `alt`, `className`, `loading`, `onError`): en mismo origen pinta `<img src={src}>` igual que hoy (R2). En modo servidor, mientras carga, un `<div className={cn(className, 'bg-muted')} aria-hidden />` (R11); con el blob, `<img src="blob:…">` (R10); si la petición falla, llama a `onError` (R12) y deja el placeholder. `VehiclePhoto`, la miniatura y el visor solo cambian `<img>` por `<ApiImage>`.
+- **`ApiImage`** (`src`, `alt`, `className`, `loading`, `onError`): en mismo origen pinta `<img src={src}>` igual que hoy (R2). En modo servidor, mientras carga, un `<span className={cn('block', className, 'bg-muted')} aria-hidden />` (span y no div: va dentro del `<button>` de la miniatura) (R11); con el blob, `<img src="blob:…">` (R10); si la petición falla, llama a `onError` (R12) y deja el placeholder. `VehiclePhoto`, la miniatura y el visor solo cambian `<img>` por `<ApiImage>`.
 - **Descargas y PDF** en modo servidor: el mismo `Button` (mismas clases, icono, `aria-label` y texto) con `asChild` sobre `<a>` en mismo origen y como `<button type="button">` en modo servidor, con `onClick` → `saveApiFile` / `openApiFile` y `toast.error(t('common.fileError'))` si falla (R16). Mientras se descarga no hay estado extra (las facturas son pequeñas; el export se nota más, ver Riesgos).
 - Sin pantallas nuevas, sin cambios visuales en mismo origen. Claro/oscuro/móvil: solo el placeholder `bg-muted`, que ya es el fondo de las miniaturas y del visor.
 
