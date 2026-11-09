@@ -882,6 +882,27 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
+      "status": "in_progress"
+    },
+    {
+      "id": 55,
+      "name": "mobile-native-files",
+      "phase": "8",
+      "title": "Ficheros nativos en la app móvil",
+      "description": "Etapa 1 de la fase 8. En la WebView de Android, <a download> con blob: no descarga y openBlob no abre pestañas, así que en la APK no funcionan descargar/abrir facturas, el export zip ni el .ics. Se cambia solo la costura lib/download.ts / lib/api-files.ts por APIs nativas (p. ej. @capacitor/filesystem + @capacitor/share o un file-opener) en la app. Prioritaria: va justo después de mobile-shell-android (#51) y antes de #52; no se publica ningún tag con APK hasta tenerla. Decidida por el humano en Gate 1 de #51.",
+      "acceptance": [
+        "En la app móvil, descargar una factura la guarda en el dispositivo o abre la hoja de compartir con su nombre original",
+        "En la app móvil, abrir una factura PDF la muestra con el visor del sistema",
+        "En la app móvil, el export de datos genera el zip y se puede guardar o compartir",
+        "En la app móvil, el .ics de «Añadir al calendario» se puede guardar o compartir (hasta que #52 lo sustituya por el calendario nativo)",
+        "En la web no cambia el comportamiento de descargas ni de apertura de ficheros",
+        "Los errores al guardar o abrir un fichero se muestran con un toast",
+        "Todos los textos están en es.json y en.json",
+        "Tests unitarios o de componente cubren la elección entre la vía nativa y la web en la costura de ficheros",
+        "docs/mobile.md deja de listar la descarga de ficheros como limitación conocida",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
       "status": "pending"
     },
     {
