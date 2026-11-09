@@ -14,7 +14,10 @@ Requisitos: Docker con el plugin `docker compose`.
    mkdir ikrive && cd ikrive
    curl -O https://raw.githubusercontent.com/alvarotloc/ikrive/main/docker-compose.yml
    curl -o .env https://raw.githubusercontent.com/alvarotloc/ikrive/main/.env.example
+   mkdir data
    ```
+
+   La carpeta `data` es el volumen `/data` y **debe pertenecer al uid 1000**, el usuario `node` con el que se ejecuta el contenedor. Créala tú con `mkdir data` antes del primer arranque (si tu usuario del host no es el uid 1000, después ejecuta `sudo chown -R 1000:1000 data`): si no existe, Docker la crea como `root` y el contenedor no puede escribir en ella.
 
 2. Edita `.env` y fija como mínimo:
    - `BASE_URL`: la URL con la que vas a abrir Ikrive (por ejemplo `http://192.168.1.10:3000` en tu red o `https://ikrive.example.com` detrás de un proxy, ver [Exposición a internet](#exposición-a-internet)).
@@ -26,7 +29,13 @@ Requisitos: Docker con el plugin `docker compose`.
    docker compose up -d
    ```
 
-   Las migraciones de la base de datos se aplican solas al arrancar. `docker compose logs -f ikrive` muestra el log; si la configuración no es válida, el contenedor no arranca y el log empieza por `Invalid configuration` con la variable que falla.
+   Las migraciones de la base de datos se aplican solas al arrancar. `docker compose logs -f ikrive` muestra el log; si la configuración no es válida, el contenedor no arranca y el log empieza por `Invalid configuration` con la variable que falla. Si la carpeta `data` no es escribible, el contenedor se detiene antes de abrir la base de datos (y `restart: unless-stopped` lo reintenta) con una sola línea en el log:
+
+   ```text
+   DATA_DIR /data is not writable by the process (uid 1000, gid 1000): EACCES. Make the folder belong to that user; with Docker Compose, run `sudo chown -R 1000:1000 data` next to docker-compose.yml (or create it with `mkdir data` before the first start) and restart the container.
+   ```
+
+   Arréglalo con `sudo chown -R 1000:1000 data` junto al `docker-compose.yml` y `docker compose restart ikrive`.
 
 4. Abre `BASE_URL` en el navegador y crea tu cuenta. **La primera cuenta que se registra es la de administrador**: puede gestionar las demás cuentas en *Usuarios*.
 
