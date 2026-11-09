@@ -4,6 +4,9 @@ const booleanString = z
   .enum(['true', 'false', '1', '0'])
   .transform((value) => value === 'true' || value === '1');
 
+/** An origin as sent in the `Origin` header: `scheme://host[:port]`, without path, query, fragment or wildcard. */
+const ORIGIN_PATTERN = /^[a-z][a-z0-9+.-]*:\/\/[^/?#\s*]+$/i;
+
 const INSECURE_DEV_SECRET = 'ikrive-insecure-development-secret-change-me';
 
 const envObjectSchema = z.object({
@@ -22,6 +25,17 @@ const envObjectSchema = z.object({
   /** Size, in MB, of an uploaded export zip and of the uncompressed files the import reads from it. */
   IMPORT_MAX_MB: z.coerce.number().int().positive().default(1024),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
+  /** Origins of native/other-origin clients (CORS + Better Auth trustedOrigins). Empty string = none. */
+  TRUSTED_ORIGINS: z
+    .string()
+    .default('capacitor://localhost,https://localhost')
+    .transform((value) =>
+      value
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean),
+    )
+    .pipe(z.array(z.string().regex(ORIGIN_PATTERN, 'Expected origins like scheme://host[:port]'))),
   /** Directory with the built SPA. When set, the API also serves the frontend. */
   WEB_DIST_DIR: z.string().optional(),
 });

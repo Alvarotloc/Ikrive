@@ -1,5 +1,6 @@
 import { APIError, betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { bearer } from 'better-auth/plugins';
 import { count, eq } from 'drizzle-orm';
 import type { Config } from './config';
 import type { Db } from './db/client';
@@ -16,10 +17,14 @@ export function createAuth(db: Db, config: Config) {
     baseURL: config.BASE_URL,
     basePath: '/api/auth',
     secret: config.AUTH_SECRET,
-    trustedOrigins:
-      config.NODE_ENV === 'development'
-        ? [config.BASE_URL, 'http://localhost:5173', 'http://localhost:5174']
-        : [config.BASE_URL],
+    // The web (BASE_URL, plus Vite in development) and the native clients of TRUSTED_ORIGINS.
+    trustedOrigins: [
+      config.BASE_URL,
+      ...(config.NODE_ENV === 'development' ? ['http://localhost:5173', 'http://localhost:5174'] : []),
+      ...config.TRUSTED_ORIGINS,
+    ],
+    // Native clients authenticate with `Authorization: Bearer <set-auth-token>` instead of the cookie.
+    plugins: [bearer()],
     database: drizzleAdapter(db, { provider: 'sqlite', schema }),
     emailAndPassword: { enabled: true, minPasswordLength: 8 },
     user: {
@@ -28,6 +33,9 @@ export function createAuth(db: Db, config: Config) {
       },
     },
     rateLimit: { enabled: config.NODE_ENV === 'production' },
+    // Better Auth skips the origin (CSRF) check under NODE_ENV=test unless this is set: keep the
+    // production behaviour everywhere so the tests check it too.
+    advanced: { disableOriginCheck: false },
     databaseHooks: {
       user: {
         create: {

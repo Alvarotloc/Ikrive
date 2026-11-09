@@ -50,8 +50,10 @@ export default fp(async (app: FastifyInstance, { auth }: { auth: Auth }) => {
         }),
       );
       reply.status(response.status);
+      // CORS headers come only from the CORS plugin: Better Auth's (the bearer plugin sets
+      // `access-control-expose-headers`) would override them.
       response.headers.forEach((value, key) => {
-        if (key !== 'set-cookie') reply.header(key, value);
+        if (key !== 'set-cookie' && !key.startsWith('access-control-')) reply.header(key, value);
       });
       const cookies = response.headers.getSetCookie();
       if (cookies.length > 0) reply.header('set-cookie', cookies);

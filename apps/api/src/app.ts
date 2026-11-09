@@ -8,6 +8,7 @@ import { createAuth } from './auth';
 import type { Config } from './config';
 import type { Db } from './db/client';
 import { isLocalBaseUrl } from './lib/base-url';
+import { isApiRequest } from './lib/http';
 import { type LogStream, loggerOptions } from './lib/logging';
 import { createFileStorage } from './lib/storage';
 import { adminRoutes } from './modules/admin/routes';
@@ -59,6 +60,7 @@ import { createVehiclesRepository } from './modules/vehicles/repository';
 import { vehiclesRoutes } from './modules/vehicles/routes';
 import { createVehiclesService } from './modules/vehicles/service';
 import authPlugin from './plugins/auth';
+import corsPlugin from './plugins/cors';
 import errorsPlugin, { problem } from './plugins/errors';
 import staticSpa from './plugins/static-spa';
 
@@ -87,6 +89,8 @@ export async function buildApp({ config, db, fetch = globalThis.fetch, logStream
       directives: { 'style-src': ["'self'", "'unsafe-inline'"], 'img-src': ["'self'", 'data:', 'blob:'] },
     },
   });
+  // Before the rate limit, so a 429 for an allowed origin also carries CORS and the app can read it.
+  await app.register(corsPlugin, { origins: config.TRUSTED_ORIGINS });
   // Only the API is rate limited: SPA static files and the client-route fallback are free,
   // otherwise a few full page loads would exhaust the budget and the app would get 429s.
   await app.register(rateLimit, {
@@ -243,7 +247,6 @@ export async function buildApp({ config, db, fetch = globalThis.fetch, logStream
   return app;
 }
 
-const isApiRequest = (url: string) => url.startsWith('/api/');
 const MIB = 1024 * 1024;
 
 export const databasePath = (config: Config) => join(config.DATA_DIR, 'ikrive.db');
