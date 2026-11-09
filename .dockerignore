@@ -1,6 +1,7 @@
 # Dependencies and build outputs (rebuilt inside the image)
 **/node_modules
 **/dist
+**/dist-native
 **/coverage
 **/*.tsbuildinfo
 **/.tanstack
@@ -24,3 +25,6 @@ e2e/.auth
 # Local agent tooling (SDD agents, skills, hooks, local permissions): not needed to build
 .claude
 .agents
+
+# Android project of the mobile app: the image only needs apps/mobile/package.json (lockfile importer)
+apps/mobile/android
