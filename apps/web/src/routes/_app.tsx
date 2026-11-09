@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
 import { meQuery } from '@/features/auth/queries';
+import { requireServer } from '@/features/mobile/require-server';
 import { AppNavigation } from '@/features/navigation/app-navigation';
 import { RouteErrorScreen } from '@/features/pwa/route-error';
 import { settingsQuery } from '@/features/settings/queries';
@@ -7,6 +8,7 @@ import { useUserLocale } from '@/features/settings/use-user-locale';
 
 export const Route = createFileRoute('/_app')({
   beforeLoad: async ({ context }) => {
+    requireServer();
     const me = await context.queryClient.ensureQueryData(meQuery);
     if (!me) throw redirect({ to: '/login' });
     return { me };

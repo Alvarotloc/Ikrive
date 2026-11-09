@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Ikrive</string>
+    <string name="title_activity_main">Ikrive</string>
+    <string name="package_name">com.ikrive.app</string>
+    <string name="custom_url_scheme">com.ikrive.app</string>
+</resources>

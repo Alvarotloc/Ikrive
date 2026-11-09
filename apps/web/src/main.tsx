@@ -6,6 +6,7 @@ import './i18n';
 import './index.css';
 import { RouteErrorScreen } from './features/pwa/route-error';
 import { serviceWorker } from './features/pwa/service-worker';
+import { isNativeApp } from './lib/platform';
 import { applyTheme, getStoredTheme } from './lib/theme';
 import { routeTree } from './routeTree.gen';
 
@@ -23,7 +24,8 @@ const router = createRouter({
   defaultErrorComponent: RouteErrorScreen,
 });
 
-serviceWorker.register();
+// The native build has no service worker (the APK ships its assets); the web registers it.
+if (!isNativeApp()) serviceWorker.register();
 
 declare module '@tanstack/react-router' {
   interface Register {

@@ -19,10 +19,10 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
+import { Warning } from '@/components/warning';
 import { clientConfigQuery } from '@/lib/client-config';
 import { useFormat } from '@/lib/format';
 import { reportSharesQuery, useCreateReportShare, useRevokeReportShare } from './queries';
-import { Warning } from './warning';
 
 const EXPIRY_DAYS = [7, 30, 90] as const;
 const DEFAULT_EXPIRY_DAYS = 30;

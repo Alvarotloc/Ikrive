@@ -1,5 +1,6 @@
 node_modules/
 dist/
+dist-native/
 coverage/
 *.tsbuildinfo
 .env
@@ -12,6 +13,10 @@ test-results/
 e2e/.auth/
 .DS_Store
 .claude/settings.local.json
+
+# Android signing keys: never in the repo (release secrets, docs/mobile.md)
+*.keystore
+*.jks
 
 # TanStack Router plugin scratch files
 .tanstack/

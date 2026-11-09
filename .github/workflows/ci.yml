@@ -20,6 +20,8 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      # The web build packaged in the APK: no service worker nor PWA manifest (fails otherwise).
+      - run: pnpm --filter @ikrive/mobile build:web
 
   e2e:
     runs-on: ubuntu-latest
@@ -107,3 +109,53 @@ jobs:
       - name: Container logs
         if: failure()
         run: docker logs ikrive-smoke || true
+
+  # Whether the Android project may have changed: the `android` job only runs then (paths filters only
+  # exist for whole workflows, and `check`, `e2e` and `docker` must always run).
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      android: ${{ steps.filter.outputs.android }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            android:
+              - 'apps/mobile/**'
+              - 'apps/web/**'
+              - 'pnpm-lock.yaml'
+              - '.github/workflows/ci.yml'
+
+  # Debug APK (signed with the debug key) to try the app on a phone: artifact `ikrive-debug-apk`.
+  android:
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.android == 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @ikrive/mobile build:web
+      - run: pnpm --filter @ikrive/mobile exec cap sync android
+      - name: Build the debug APK
+        working-directory: apps/mobile/android
+        run: ./gradlew assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ikrive-debug-apk
+          path: apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14

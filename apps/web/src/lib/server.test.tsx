@@ -1,5 +1,12 @@
-import { describe, expect, it } from 'vitest';
-import { getServerUrl, getSessionToken, isServerMode, setServerUrl, setSessionToken } from './server';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  getServerUrl,
+  getSessionToken,
+  isServerMode,
+  normalizeServerUrl,
+  setServerUrl,
+  setSessionToken,
+} from './server';
 
 describe('server URL', () => {
   it('stores the server URL without trailing slashes', () => {
@@ -30,6 +37,29 @@ describe('server URL', () => {
       expect(() => setServerUrl(url)).toThrow(TypeError);
       expect(getServerUrl()).toBe('https://ikrive.example.com');
     }
+  });
+
+  it('rejects whitespace and hosts that are not a DNS name, an IPv4 or a bracketed IPv6', () => {
+    setServerUrl('https://ikrive.example.com');
+
+    for (const url of ['https://hola mundo', 'https://hola%20mundo', 'https://x.example.com ']) {
+      expect(() => setServerUrl(url)).toThrow(TypeError);
+      expect(getServerUrl()).toBe('https://ikrive.example.com');
+    }
+    expect(normalizeServerUrl('http://[::1]:3000/')).toBe('http://[::1]:3000');
+  });
+
+  it('checks the parsed host, not only whether the URL parser throws', () => {
+    // A lenient parser like Chromium's (Android WebView) that escapes the space in the host.
+    class LenientUrl {
+      readonly protocol = 'https:';
+      readonly hostname = 'hola%20mundo';
+      readonly origin = 'https://hola%20mundo';
+      readonly pathname = '/';
+    }
+    vi.stubGlobal('URL', LenientUrl);
+
+    expect(() => normalizeServerUrl('https://hola%20mundo')).toThrow(TypeError);
   });
 
   it('clears the token when the server URL changes or is removed', () => {

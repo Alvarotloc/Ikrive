@@ -13,10 +13,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { Warning } from '@/components/warning';
 import { useDownloadSaleReport } from './queries';
 import { ReportSharesSection } from './report-shares-section';
 import { hidesAnything } from './sale-report';
-import { Warning } from './warning';
 
 type ReportVehicle = Pick<Vehicle, 'id' | 'name' | 'make' | 'model' | 'plate' | 'vin'>;
 

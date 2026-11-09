@@ -10,6 +10,8 @@ import { Input } from '@/components/ui/input';
 import { AuthLayout } from '@/features/auth/auth-layout';
 import { meQuery } from '@/features/auth/queries';
 import { signInErrorKey } from '@/features/auth/sign-in-error';
+import { requireServer } from '@/features/mobile/require-server';
+import { ServerLink } from '@/features/mobile/server-link';
 import { RouteErrorScreen } from '@/features/pwa/route-error';
 import { authClient } from '@/lib/auth-client';
 
@@ -18,6 +20,7 @@ type LoginForm = z.infer<typeof loginSchema>;
 
 export const Route = createFileRoute('/login')({
   beforeLoad: async ({ context }) => {
+    requireServer();
     if (await context.queryClient.ensureQueryData(meQuery)) throw redirect({ to: '/' });
   },
   component: LoginPage,
@@ -68,6 +71,7 @@ function LoginPage() {
             {t('auth.register')}
           </Link>
         </p>
+        <ServerLink />
       </form>
     </AuthLayout>
   );

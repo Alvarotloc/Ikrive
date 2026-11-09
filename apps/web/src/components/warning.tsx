@@ -1,7 +1,7 @@
 import { TriangleAlert } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-/** Highlighted notice of the sale report dialog (privacy limits, local `BASE_URL`). */
+/** Highlighted, non-blocking notice: privacy limits of the sale report, a local `BASE_URL`, an `http:` server. */
 export function Warning({ children }: { children: ReactNode }) {
   return (
     <p className="flex gap-2.5 rounded-lg bg-warning/15 p-3 text-sm text-foreground">

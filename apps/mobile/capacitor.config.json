@@ -1,0 +1,7 @@
+{
+  "appId": "com.ikrive.app",
+  "appName": "Ikrive",
+  "webDir": "../web/dist-native",
+  "server": { "androidScheme": "https" },
+  "android": { "allowMixedContent": true }
+}
