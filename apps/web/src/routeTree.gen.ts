@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as RegisterRouteImport } from './routes/register'
+import { Route as ServerRouteImport } from './routes/server'
+import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppOdometerRouteImport } from './routes/_app/odometer'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
@@ -33,6 +35,16 @@ const LoginRoute = LoginRouteImport.update({
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ServerRoute = ServerRouteImport.update({
+  id: '/server',
+  path: '/server',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WelcomeRoute = WelcomeRouteImport.update({
+  id: '/welcome',
+  path: '/welcome',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppIndexRoute = AppIndexRouteImport.update({
@@ -82,6 +94,8 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/server': typeof ServerRoute
+  '/welcome': typeof WelcomeRoute
   '/odometer': typeof AppOdometerRoute
   '/settings': typeof AppSettingsRoute
   '/admin/users': typeof AppAdminUsersRoute
@@ -93,6 +107,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/server': typeof ServerRoute
+  '/welcome': typeof WelcomeRoute
   '/odometer': typeof AppOdometerRoute
   '/settings': typeof AppSettingsRoute
   '/': typeof AppIndexRoute
@@ -107,6 +123,8 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/server': typeof ServerRoute
+  '/welcome': typeof WelcomeRoute
   '/_app/odometer': typeof AppOdometerRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/': typeof AppIndexRoute
@@ -122,6 +140,8 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/register'
+    | '/server'
+    | '/welcome'
     | '/odometer'
     | '/settings'
     | '/admin/users'
@@ -133,6 +153,8 @@ export interface FileRouteTypes {
   to:
     | '/login'
     | '/register'
+    | '/server'
+    | '/welcome'
     | '/odometer'
     | '/settings'
     | '/'
@@ -146,6 +168,8 @@ export interface FileRouteTypes {
     | '/_app'
     | '/login'
     | '/register'
+    | '/server'
+    | '/welcome'
     | '/_app/odometer'
     | '/_app/settings'
     | '/_app/'
@@ -160,6 +184,8 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
   RegisterRoute: typeof RegisterRoute
+  ServerRoute: typeof ServerRoute
+  WelcomeRoute: typeof WelcomeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -183,6 +209,20 @@ declare module '@tanstack/react-router' {
       path: '/register'
       fullPath: '/register'
       preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/server': {
+      id: '/server'
+      path: '/server'
+      fullPath: '/server'
+      preLoaderRoute: typeof ServerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/welcome': {
+      id: '/welcome'
+      path: '/welcome'
+      fullPath: '/welcome'
+      preLoaderRoute: typeof WelcomeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/': {
@@ -272,6 +312,8 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
+  ServerRoute: ServerRoute,
+  WelcomeRoute: WelcomeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

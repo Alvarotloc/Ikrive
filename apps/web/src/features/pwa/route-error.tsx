@@ -1,13 +1,15 @@
-import { type ErrorComponentProps, useRouter } from '@tanstack/react-router';
+import { type ErrorComponentProps, Link, useRouter } from '@tanstack/react-router';
 import { WifiOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Brand } from '@/components/brand';
 import { Button } from '@/components/ui/button';
+import { isNativeApp } from '@/lib/platform';
 import { isNetworkError } from './network-error';
 
 /**
  * Error screen for a route that failed to load: «Sin conexión» when the server could not be reached,
- * the generic error otherwise. Both retry by reloading the route.
+ * the generic error otherwise. Both retry by reloading the route. In the native app, when the server
+ * cannot be reached, it may be the wrong one: it also offers to change it.
  */
 export function RouteErrorScreen({ error }: ErrorComponentProps) {
   const { t } = useTranslation();
@@ -24,7 +26,14 @@ export function RouteErrorScreen({ error }: ErrorComponentProps) {
         </h1>
         {offline && <p className="text-muted-foreground">{t('pwa.offline.description')}</p>}
       </div>
-      <Button onClick={() => void router.invalidate()}>{t('pwa.offline.retry')}</Button>
+      <div className="flex flex-wrap justify-center gap-3">
+        <Button onClick={() => void router.invalidate()}>{t('pwa.offline.retry')}</Button>
+        {offline && isNativeApp() && (
+          <Button variant="outline" asChild>
+            <Link to="/server">{t('mobile.serverLink.change')}</Link>
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

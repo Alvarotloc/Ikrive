@@ -675,5 +675,32 @@
       "description": "The server cannot be reached. Check your connection.",
       "retry": "Retry"
     }
+  },
+  "mobile": {
+    "welcome": {
+      "title": "How do you want to use Ikrive",
+      "subtitle": "Choose where to keep your vehicle data.",
+      "server": "My server",
+      "serverDescription": "Connect to your Ikrive instance.",
+      "local": "On this phone",
+      "localDescription": "No server: the data is only kept on this device.",
+      "comingSoon": "Coming soon"
+    },
+    "server": {
+      "title": "My server",
+      "subtitle": "Type the address of your Ikrive instance.",
+      "url": "Server address",
+      "connect": "Connect",
+      "checking": "Checking…",
+      "back": "Back",
+      "invalid": "Type a valid web address, such as https://ikrive.example.com.",
+      "unreachable": "The server does not respond. Check the address and your connection, and that TRUSTED_ORIGINS on the server includes https://localhost.",
+      "notIkrive": "That address responds, but it is not an Ikrive server.",
+      "insecure": "Unencrypted connection: your password and token will travel in clear text. Use HTTPS or a VPN."
+    },
+    "serverLink": {
+      "label": "Server: {{server}}",
+      "change": "Change server"
+    }
   }
 }

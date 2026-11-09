@@ -675,5 +675,32 @@
       "description": "No se puede contactar con el servidor. Comprueba tu conexión.",
       "retry": "Reintentar"
     }
+  },
+  "mobile": {
+    "welcome": {
+      "title": "Cómo quieres usar Ikrive",
+      "subtitle": "Elige dónde guardar los datos de tus vehículos.",
+      "server": "Mi servidor",
+      "serverDescription": "Conéctate a tu instancia de Ikrive.",
+      "local": "En este teléfono",
+      "localDescription": "Sin servidor: los datos solo se guardan en este dispositivo.",
+      "comingSoon": "Próximamente"
+    },
+    "server": {
+      "title": "Mi servidor",
+      "subtitle": "Escribe la dirección de tu instancia de Ikrive.",
+      "url": "Dirección del servidor",
+      "connect": "Conectar",
+      "checking": "Comprobando…",
+      "back": "Volver",
+      "invalid": "Escribe una dirección web válida, como https://ikrive.example.com.",
+      "unreachable": "El servidor no responde. Comprueba la dirección y tu conexión, y que TRUSTED_ORIGINS en el servidor incluya https://localhost.",
+      "notIkrive": "Esa dirección responde, pero no es un servidor de Ikrive.",
+      "insecure": "Conexión sin cifrar: tu contraseña y el token viajarán en claro. Usa HTTPS o una VPN."
+    },
+    "serverLink": {
+      "label": "Servidor: {{server}}",
+      "change": "Cambiar servidor"
+    }
   }
 }

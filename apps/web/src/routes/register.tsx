@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AuthLayout } from '@/features/auth/auth-layout';
 import { meQuery } from '@/features/auth/queries';
+import { requireServer } from '@/features/mobile/require-server';
 import { RouteErrorScreen } from '@/features/pwa/route-error';
 import { authClient } from '@/lib/auth-client';
 
@@ -21,6 +22,7 @@ type RegisterForm = z.infer<typeof registerSchema>;
 
 export const Route = createFileRoute('/register')({
   beforeLoad: async ({ context }) => {
+    requireServer();
     if (await context.queryClient.ensureQueryData(meQuery)) throw redirect({ to: '/' });
   },
   component: RegisterPage,

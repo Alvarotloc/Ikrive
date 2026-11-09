@@ -4,7 +4,7 @@ import viteConfig from './vite.config.ts';
 // Two projects that inherit the app's Vite config (aliases, React plugin):
 // pure logic (`*.test.ts`) runs in Node; components (`*.test.tsx`) run in jsdom with Testing Library.
 export default mergeConfig(
-  viteConfig,
+  viteConfig({ mode: 'test', command: 'serve' }),
   defineConfig({
     test: {
       projects: [

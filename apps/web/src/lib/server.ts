@@ -26,7 +26,8 @@ export function setServerUrl(url: string | null): void {
   setSessionToken(null);
 }
 
-function normalizeServerUrl(url: string): string {
+/** `url` as it is stored: origin + path, without trailing slashes, query or hash. Throws a `TypeError` unless it is http(s). */
+export function normalizeServerUrl(url: string): string {
   let parsed: URL;
   try {
     parsed = new URL(url);
