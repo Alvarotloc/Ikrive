@@ -2,8 +2,12 @@ import type { Attachment } from '@ikrive/shared';
 import { Download } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
+import { ApiImage } from '@/components/api-image';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogTitle } from '@/components/ui/dialog';
+import { saveApiFile } from '@/lib/api-files';
+import { isServerMode } from '@/lib/server';
 import { inlineUrl } from './attachments';
 
 type ViewedAttachment = Pick<Attachment, 'url' | 'originalName'>;
@@ -59,7 +63,7 @@ function ViewerBody({ attachment }: { attachment: ViewedAttachment }) {
             {t('maintenance.attachments.viewerError')}
           </p>
         ) : (
-          <img
+          <ApiImage
             src={inlineUrl(attachment.url)}
             alt={name}
             onError={() => setFailed(true)}
@@ -71,12 +75,30 @@ function ViewerBody({ attachment }: { attachment: ViewedAttachment }) {
         <DialogClose asChild>
           <Button variant="ghost">{t('maintenance.attachments.close')}</Button>
         </DialogClose>
-        <Button asChild variant="outline">
-          <a href={attachment.url} download>
+        {isServerMode() ? (
+          // Server mode has no cookie: the original is fetched with the token (`api-files`).
+          <Button
+            type="button"
+            variant="outline"
+            onClick={async () => {
+              try {
+                await saveApiFile(attachment.url, name);
+              } catch {
+                toast.error(t('common.fileError'));
+              }
+            }}
+          >
             <Download aria-hidden />
             {t('maintenance.attachments.download')}
-          </a>
-        </Button>
+          </Button>
+        ) : (
+          <Button asChild variant="outline">
+            <a href={attachment.url} download>
+              <Download aria-hidden />
+              {t('maintenance.attachments.download')}
+            </a>
+          </Button>
+        )}
       </DialogFooter>
     </>
   );

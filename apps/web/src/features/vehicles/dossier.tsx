@@ -2,6 +2,7 @@ import type { Vehicle } from '@ikrive/shared';
 import { Car, Motorbike, Truck, Van } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ApiImage } from '@/components/api-image';
 import { Badge } from '@/components/ui/badge';
 import { useFormat } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -64,7 +65,9 @@ export function VehiclePhoto({
 }) {
   const Icon = typeIcons[vehicle.type];
   if (vehicle.photoUrl) {
-    return <img src={vehicle.photoUrl} alt="" className={cn('object-cover', className)} loading="lazy" />;
+    return (
+      <ApiImage src={vehicle.photoUrl} alt="" className={cn('object-cover', className)} loading="lazy" />
+    );
   }
   return (
     <div className={cn('grid place-items-center bg-accent text-accent-foreground', className)}>

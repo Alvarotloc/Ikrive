@@ -16,7 +16,9 @@ import {
 } from '@/components/ui/dialog';
 import { vehicleTitle } from '@/features/vehicles/display';
 import { ApiError } from '@/lib/api-client';
+import { saveApiFile } from '@/lib/api-files';
 import { useFormat } from '@/lib/format';
+import { isServerMode } from '@/lib/server';
 import { IMPORT_ACCEPT, importErrorKey } from './import';
 import { EXPORT_URL, useImportData } from './queries';
 
@@ -40,8 +42,12 @@ const matchedByKey = (matchedBy: ImportedVehicleMatch['matchedBy']) =>
       ? 'dataPortability.matchingVehicles.fields.vin'
       : 'dataPortability.matchingVehicles.fields.plate';
 
+/** File name of the export if the response had no `Content-Disposition` (the API always sends one). */
+const EXPORT_FALLBACK_NAME = 'ikrive-export.zip';
+
 /**
- * Settings card «Tus datos»: downloads the export with a plain link (streamed by the browser) and
+ * Settings card «Tus datos»: downloads the export with a plain link (streamed by the browser; in server
+ * mode, fetched with the token since there is no cookie) and
  * imports a zip after a confirmation, showing the summary of what was added.
  */
 export function DataPortabilitySection() {
@@ -75,12 +81,29 @@ export function DataPortabilitySection() {
       <CardContent className="grid gap-5">
         <div className="grid justify-items-start gap-1.5">
           <div className="flex flex-wrap gap-2">
-            <Button asChild variant="outline">
-              <a href={EXPORT_URL} download>
+            {isServerMode() ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={async () => {
+                  try {
+                    await saveApiFile(EXPORT_URL, EXPORT_FALLBACK_NAME);
+                  } catch {
+                    toast.error(t('common.fileError'));
+                  }
+                }}
+              >
                 <Download aria-hidden />
                 {t('dataPortability.export')}
-              </a>
-            </Button>
+              </Button>
+            ) : (
+              <Button asChild variant="outline">
+                <a href={EXPORT_URL} download>
+                  <Download aria-hidden />
+                  {t('dataPortability.export')}
+                </a>
+              </Button>
+            )}
             <input
               ref={input}
               type="file"

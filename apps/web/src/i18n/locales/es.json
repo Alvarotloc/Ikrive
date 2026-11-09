@@ -116,7 +116,8 @@
     "cancel": "Cancelar",
     "delete": "Eliminar",
     "edit": "Editar",
-    "copy": "Copiar"
+    "copy": "Copiar",
+    "fileError": "No se ha podido abrir el archivo"
   },
   "validation": {
     "required": "Este campo es obligatorio.",

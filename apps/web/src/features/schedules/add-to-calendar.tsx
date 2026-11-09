@@ -21,6 +21,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { downloadIcs } from '@/features/calendar/actions';
 import { vehicleTitle } from '@/features/vehicles/display';
 import { useFormat } from '@/lib/format';
+import { getServerUrl } from '@/lib/server';
 import { cn } from '@/lib/utils';
 
 const toLocale = (language: string): Locale =>
@@ -51,7 +52,8 @@ export function AddToCalendarMenu({ schedule, vehicle }: AddToCalendarMenuProps)
   const event = scheduleCalendarEvent({
     schedule,
     vehicle: { id: vehicle.id, name: vehicleTitle(vehicle) },
-    baseUrl: window.location.origin,
+    // The web of the server (server mode, e.g. in the mobile app) or this one: a link that works elsewhere.
+    baseUrl: getServerUrl() ?? window.location.origin,
     locale: toLocale(i18n.language),
     distanceUnit: format.distanceUnit,
   });
