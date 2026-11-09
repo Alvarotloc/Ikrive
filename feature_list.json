@@ -885,6 +885,56 @@
       "status": "done"
     },
     {
+      "id": 56,
+      "name": "ci-workflow-permissions",
+      "phase": "8",
+      "title": "Permisos mínimos en el workflow de CI",
+      "description": "ci.yml no declara un bloque permissions a nivel de workflow, así que los jobs check, e2e, docker y android heredan los permisos por defecto del GITHUB_TOKEN. Además dorny/paths-filter está fijado por tag (@v3) y no por SHA. Aviso del reviewer en Gate 2 de #51.",
+      "acceptance": [
+        "ci.yml declara permissions: contents: read a nivel de workflow; los jobs que necesiten más (changes con pull-requests: read) lo declaran en su propio bloque",
+        "dorny/paths-filter está fijado por SHA completo de commit, con un comentario indicando la versión (# v3.x.y)",
+        "Un test de apps/mobile (o del harness) comprueba que ci.yml tiene el bloque permissions de nivel superior y que dorny/paths-filter usa un SHA de 40 caracteres",
+        "CI pasa en verde en el PR (check, e2e, docker y, si aplica, android)",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
+      "status": "done"
+    },
+    {
+      "id": 57,
+      "name": "data-dir-not-writable",
+      "phase": "8",
+      "title": "Error claro si DATA_DIR no es escribible",
+      "description": "Si la carpeta de datos montada (p. ej. ./data creada por Docker como root) no es escribible por el usuario del contenedor (node, uid 1000), la API cae con SQLITE_CANTOPEN y el contenedor se reinicia en bucle sin decir por qué. Detectado al probar #51 en el móvil.",
+      "acceptance": [
+        "Al arrancar, antes de abrir la base de datos, la API comprueba que DATA_DIR existe (o puede crearse) y es escribible por el proceso",
+        "Si no lo es, el proceso termina con código distinto de 0 y un único mensaje de log claro que incluye la ruta, el uid/gid del proceso y cómo arreglarlo (sudo chown -R 1000:1000 data), en lugar de la traza de SQLITE_CANTOPEN",
+        "La comprobación vive en una función de apps/api con tests: carpeta escribible → sigue; carpeta inexistente creable → la crea; carpeta sin permiso de escritura → error con el mensaje",
+        "docs/self-hosting.md explica, en la instalación con Docker Compose, que la carpeta data debe pertenecer al uid 1000 (o crearse antes con mkdir data) y qué mensaje se verá si no",
+        "El smoke test de Docker sigue pasando",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
+      "status": "pending"
+    },
+    {
+      "id": 58,
+      "name": "dependabot-actions",
+      "phase": "8",
+      "title": "Dependabot para las GitHub Actions y acciones fijadas por SHA",
+      "description": "Todas las acciones de .github/workflows/ (actions/*, docker/*, pnpm/*, dorny/*) quedan fijadas por SHA completo, y Dependabot mantiene esos SHA al día con un PR semanal agrupado. Solo el ecosistema github-actions; npm y Docker quedan fuera. Avisos del reviewer en Gate 2 de #56, decidido por el humano.",
+      "acceptance": [
+        ".github/dependabot.yml declara el ecosistema github-actions en el directorio / con schedule semanal y un grupo que reúne todas las actualizaciones en un único PR",
+        "Todo uses: de ci.yml y release.yml (actions/checkout, actions/setup-node, actions/setup-java, actions/upload-artifact, pnpm/action-setup, docker/*, dorny/paths-filter) usa un SHA de 40 hex resuelto del tag que usaba (sin subir de versión mayor), con un comentario # vX.Y.Z",
+        "Un test (apps/mobile/test/) recorre todos los workflows y falla si algún uses: externo no está fijado por SHA o le falta el comentario de versión",
+        "Un test comprueba que dependabot.yml tiene github-actions, schedule semanal y un grupo",
+        "CI pasa en verde en el PR",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
+      "status": "pending"
+    },
+    {
       "id": 55,
       "name": "mobile-native-files",
       "phase": "8",
