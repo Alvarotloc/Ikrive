@@ -476,3 +476,13 @@
 - **Tests:** API 336, web 348, shared 119, e2e 6. `pnpm harness --full` en verde.
 - **Revisión:** APPROVED a la primera (`progress/review_pre-release-polish.md`). Avisos: el subtítulo de la tarjeta se trunca a 1280 px; sin captura de la tarjeta en oscuro; matrículas de `/odometer` y de la ficha sin tocar.
 - **Gate 2:** merge aprobado, con orden explícita de crear y subir el tag `v0.1.0` tras el merge.
+
+## 2026-11-09 — #49 mobile-auth-api
+
+- **Rama:** `feat/mobile-auth-api` (SDD, spec en `specs/mobile-auth-api/`, 20 R / 23 T). Solo `apps/api` y docs; sin cambios en BD, shared, web ni Docker.
+- **Gate 1:** aprobado sin cambios: `TRUSTED_ORIGINS` con `capacitor://localhost,https://localhost` por defecto (vacía = ningún origen); CORS sin credenciales y solo en `/api/*`; token firmado y crudo aceptados; vida del token = la de la sesión; preflight de origen no permitido → 404.
+- **Durante la implementación:** Better Auth 1.7.7 salta la comprobación de origen con `NODE_ENV=test`; el humano elige fijar `advanced.disableOriginCheck: false` (sin efecto en producción) y que el helper `signUp` use el `BASE_URL` de la app (design › «Comprobación de origen en tests», T19a).
+- **Cambios:** plugin `bearer()` de Better Auth; `TRUSTED_ORIGINS` validada con zod en `config.ts` y añadida a `trustedOrigins`; `plugins/cors.ts` con `@fastify/cors` y `delegator` (solo `/api/*` y orígenes de la lista, `exposedHeaders` `set-auth-token`/`content-disposition`); `isApiRequest` en `lib/http.ts`; el puente de auth no copia `access-control-*`; doc en `self-hosting.md` y `.env.example`.
+- **Tests:** API 358, web 348, shared 119, e2e 6. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED a la primera (`progress/review_mobile-auth-api.md`). En Gate 2 el humano pide el test del 429 con CORS (T22) y la línea de doc sobre qué orígenes dejar; segunda pasada APPROVED. Descartados: `Vary: Origin` para orígenes no listados y `set-auth-token` en la web (respuestas `private`, sin impacto). Pendientes: login sin cabecera `Origin` (HTTP nativo) no lo limita la lista, a tener en cuenta en #51; el comentario de `app.ts:92` sobre el orden CORS/rate limit ya no es necesario.
+- **Gate 2:** merge aprobado.

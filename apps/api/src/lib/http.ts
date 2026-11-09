@@ -13,3 +13,6 @@ export function contentDisposition(
   );
   return `${disposition}; filename="${fallback}"; filename*=UTF-8''${encoded}`;
 }
+
+/** Whether a request URL belongs to the API (as opposed to the SPA and its static files). */
+export const isApiRequest = (url: string) => url.startsWith('/api/');
