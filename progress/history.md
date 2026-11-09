@@ -505,3 +505,12 @@
 - **Revisión:** primera pasada CHANGES_REQUESTED (faltaban instrucciones de prueba en el móvil); segunda APPROVED. Prueba en el móvil con la APK de CI (PR #39) contra un servidor real: todo OK salvo «hola mundo» en `/server`, que daba «no responde» porque Chromium acepta `https://hola mundo`. `normalizeServerUrl` rechaza ahora espacios y hosts no válidos (DNS/IPv4/IPv6); tercera review APPROVED y nueva prueba en el móvil OK.
 - **Pendientes:** sin tag hasta #55; `ci.yml` sin bloque `permissions`; `allowBackup="true"` (a `false` en #55); tests de ejemplo de la plantilla de Capacitor; `dorny/paths-filter` fijado por tag y no por SHA; el timeout de 10 s de `checkServer` sin test; `VALID_HOST` rechaza hostnames con `_`. En la prueba, `./data` propiedad de root hacía fallar el contenedor (`SQLITE_CANTOPEN`): candidato a mejora de docs o arranque.
 - **Gate 2:** merge aprobado (PR #39, lo integra el humano en GitHub).
+
+## 2026-11-09 — #56 ci-workflow-permissions
+
+- **Rama:** `feat/ci-workflow-permissions` (`sdd: false`, sin spec ni Gate 1). Avisos del reviewer en Gate 2 de #51.
+- **Cambios:** `ci.yml` con `permissions: contents: read` de nivel superior (`changes` mantiene su `pull-requests: read`; ningún otro job necesita más: artefactos y caché `gha` usan el token de runtime, `docker` no hace push); `dorny/paths-filter` fijado a `0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3.0.4` (mismo commit que `v3`); test `apps/mobile/test/ci-workflow.test.mjs`; `release-workflow.test.mjs` ya no espera `@v3`.
+- **Tests:** API 358, web 403, más los `node:test` de `apps/mobile`. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED a la primera (`progress/review_ci-workflow-permissions.md`). En Gate 2 el humano pide acotar el test del job `changes` a su propio bloque; segunda pasada APPROVED (8 mutaciones).
+- **Pendientes:** `paths-filter` v4 y fijar el resto de acciones por SHA pasan a #58 `dependabot-actions` (Dependabot semanal y agrupado, solo `github-actions`), por delante de #55.
+- **Gate 2:** merge aprobado.

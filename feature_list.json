@@ -898,7 +898,7 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": false,
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 57,
@@ -912,6 +912,23 @@
         "La comprobación vive en una función de apps/api con tests: carpeta escribible → sigue; carpeta inexistente creable → la crea; carpeta sin permiso de escritura → error con el mensaje",
         "docs/self-hosting.md explica, en la instalación con Docker Compose, que la carpeta data debe pertenecer al uid 1000 (o crearse antes con mkdir data) y qué mensaje se verá si no",
         "El smoke test de Docker sigue pasando",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
+      "status": "pending"
+    },
+    {
+      "id": 58,
+      "name": "dependabot-actions",
+      "phase": "8",
+      "title": "Dependabot para las GitHub Actions y acciones fijadas por SHA",
+      "description": "Todas las acciones de .github/workflows/ (actions/*, docker/*, pnpm/*, dorny/*) quedan fijadas por SHA completo, y Dependabot mantiene esos SHA al día con un PR semanal agrupado. Solo el ecosistema github-actions; npm y Docker quedan fuera. Avisos del reviewer en Gate 2 de #56, decidido por el humano.",
+      "acceptance": [
+        ".github/dependabot.yml declara el ecosistema github-actions en el directorio / con schedule semanal y un grupo que reúne todas las actualizaciones en un único PR",
+        "Todo uses: de ci.yml y release.yml (actions/checkout, actions/setup-node, actions/setup-java, actions/upload-artifact, pnpm/action-setup, docker/*, dorny/paths-filter) usa un SHA de 40 hex resuelto del tag que usaba (sin subir de versión mayor), con un comentario # vX.Y.Z",
+        "Un test (apps/mobile/test/) recorre todos los workflows y falla si algún uses: externo no está fijado por SHA o le falta el comentario de versión",
+        "Un test comprueba que dependabot.yml tiene github-actions, schedule semanal y un grupo",
+        "CI pasa en verde en el PR",
         "pnpm harness --full pasa en verde"
       ],
       "sdd": false,
