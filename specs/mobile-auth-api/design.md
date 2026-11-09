@@ -26,12 +26,13 @@ Comprobado en un prototipo (scratchpad, Better Auth 1.7.7): login con `origin: c
 | api | `apps/api/package.json` | dependencia `@fastify/cors` (JS puro: va en el bundle de tsup, **no** en `RUNTIME_EXTERNALS`) |
 | api | `apps/api/src/config.ts` | `TRUSTED_ORIGINS` (ver Tipos) |
 | api | `apps/api/src/lib/http.ts` | exporta `isApiRequest(url)` (se mueve desde `app.ts`, que lo reutiliza) |
-| api | `apps/api/src/auth.ts` | `plugins: [bearer()]`; `trustedOrigins: [BASE_URL, ...devOrigins, ...config.TRUSTED_ORIGINS]` |
+| api | `apps/api/src/auth.ts` | `plugins: [bearer()]`; `trustedOrigins: [BASE_URL, ...devOrigins, ...config.TRUSTED_ORIGINS]`; `advanced: { disableOriginCheck: false }` (ver «Comprobación de origen en tests») |
 | api | `apps/api/src/plugins/cors.ts` (nuevo) | `fp` que registra `@fastify/cors` con `delegator` (ver abajo) |
 | api | `apps/api/src/plugins/auth.ts` | el puente ignora las cabeceras `access-control-*` de la respuesta de Better Auth |
 | api | `apps/api/src/app.ts` | `await app.register(corsPlugin, { origins: config.TRUSTED_ORIGINS })` justo antes de `rateLimit`; usa `isApiRequest` de `lib/http.ts` |
 | docs | `docs/self-hosting.md` | fila de `TRUSTED_ORIGINS` en la tabla; en «Exponer a internet», «El resto de la API exige sesión (cookie o token de la app)» |
 | docs | `.env.example` | `# TRUSTED_ORIGINS=capacitor://localhost,https://localhost` comentada con una línea de explicación |
+| test | `apps/api/test/helpers.ts` | `signUp` envía como `origin` el `BASE_URL` de la app (no un `http://localhost:3000` fijo) |
 | test | `apps/api/test/config.test.ts` (nuevo), `apps/api/test/mobile-auth.test.ts` (nuevo) | ver `tasks.md` |
 
 Sin cambios en BD, `packages/shared`, web ni Docker.
@@ -78,6 +79,10 @@ await app.register(cors, {
 - `vary: Origin` lo añade el plugin cuando el origen es dinámico (R14).
 - Peticiones sin `Origin` (la web en el mismo origen, `curl`, el feed iCal) no cambian.
 - `@fastify/cors` registra `OPTIONS *` oculto; cubre también `/api/auth/*`, que el puente no atiende.
+
+## Comprobación de origen en tests
+
+Better Auth 1.7.7 desactiva la comprobación de origen (y CSRF) cuando `NODE_ENV=test` salvo que `advanced.disableOriginCheck` esté definido (`context/create-context.mjs`: `skipOriginCheck = disableOriginCheck ?? isTest()`). Sin fijarlo, R19 no se puede verificar y R18 pasaría sin probar nada. Se fija `disableOriginCheck: false` explícitamente: en producción es el valor que ya tenía, y en tests la suite valida el origen como en producción. Como consecuencia, el helper `signUp` de los tests debe usar el `BASE_URL` de cada app de test (p. ej. `client-config.test.ts` crea la app con `BASE_URL=https://ikrive.example.com`).
 
 ## Contrato HTTP
 
