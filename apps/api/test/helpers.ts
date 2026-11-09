@@ -29,17 +29,21 @@ export async function createTestApp(
   runMigrations(db);
   const app = await buildApp({ config, db, fetch, logStream });
   await app.ready();
+  baseUrls.set(app, config.BASE_URL);
   return { app, db, dataDir };
 }
 
 type TestApp = Awaited<ReturnType<typeof createTestApp>>['app'];
+
+/** BASE_URL of each test app: Better Auth only accepts sign-ups whose `origin` is a trusted one. */
+const baseUrls = new WeakMap<object, string>();
 
 /** Signs up a user and returns the session cookie header to authenticate later requests. */
 export async function signUp(app: TestApp, email = 'ada@example.com', name = 'Ada') {
   const response = await app.inject({
     method: 'POST',
     url: '/api/auth/sign-up/email',
-    headers: { origin: 'http://localhost:3000' },
+    headers: { origin: baseUrls.get(app) ?? TEST_BASE_URL },
     payload: { email, name, password: 'correct-horse-battery' },
   });
   const cookie = response.cookies.map((c) => `${c.name}=${c.value}`).join('; ');
