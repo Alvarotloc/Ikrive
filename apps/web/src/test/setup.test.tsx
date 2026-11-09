@@ -29,7 +29,8 @@ describe('component test setup', () => {
     expect(error).toBeNull();
     expect(data).toEqual({ success: true });
     const urls = fetchMock.mock.calls.map(([input]) => String(input instanceof Request ? input.url : input));
-    expect(urls).toEqual([`${location.origin}/api/auth/sign-out`]);
+    // Same-origin mode: `apiFetch` sends the relative `/api/…` path.
+    expect(urls).toEqual(['/api/auth/sign-out']);
     expect(takeUnmockedRequests()).toEqual([]);
   });
 });

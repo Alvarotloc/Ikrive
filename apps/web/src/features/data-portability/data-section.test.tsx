@@ -4,11 +4,18 @@ import {
   DUPLICATE_IMPORT_PROBLEM_TYPE,
   type Problem,
 } from '@ikrive/shared';
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import { Toaster, toast } from 'sonner';
-import { afterEach, describe, expect, it, type Mock } from 'vitest';
+import { afterEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { queryKeys } from '@/lib/query-keys';
-import { createTestQueryClient, type MockRoutes, mockApi, renderWithProviders } from '@/test/render';
+import {
+  createTestQueryClient,
+  type MockRoutes,
+  mockApi,
+  mockObjectUrls,
+  renderWithProviders,
+  setServerMode,
+} from '@/test/render';
 import { DataPortabilitySection } from './data-section';
 
 const IMPORT = '/me/import';
@@ -269,5 +276,43 @@ describe('DataPortabilitySection', () => {
     expect(await screen.findByText('Datos importados')).toBeInTheDocument();
     expect(screen.queryByText('Revisa estos vehículos: puede que ya los tuvieras')).not.toBeInTheDocument();
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('server mode: downloads the export with the token', async () => {
+    setServerMode('https://ikrive.example.com', 'secret-token');
+    mockObjectUrls();
+    const clicked: HTMLAnchorElement[] = [];
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+      clicked.push(this);
+    });
+    const { user, fetchMock } = setup({
+      'GET /me/export': {
+        body: new Blob([new Uint8Array([0x50, 0x4b])], { type: 'application/zip' }),
+        headers: { 'content-disposition': 'attachment; filename="ikrive-export-2026-11-09.zip"' },
+      },
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Descargar mis datos' }));
+
+    await waitFor(() => expect(clicked).toHaveLength(1));
+    expect(clicked[0]).toHaveAttribute('download', 'ikrive-export-2026-11-09.zip');
+    expect(clicked[0]).toHaveAttribute('href', 'blob:1');
+    const request = fetchMock.mock.calls
+      .map(([input, init]) => new Request(String(input), init))
+      .find((r) => r.url.endsWith('/me/export'));
+    expect(request?.url).toBe('https://ikrive.example.com/api/me/export');
+    expect(request?.headers.get('authorization')).toBe('Bearer secret-token');
+    expect(screen.queryByRole('link', { name: 'Descargar mis datos' })).not.toBeInTheDocument();
+  });
+
+  it('server mode: shows an error toast when the export fails', async () => {
+    setServerMode('https://ikrive.example.com', 'secret-token');
+    const { user } = setup({
+      'GET /me/export': { status: 500, body: { type: 'about:blank', title: 'Error', status: 500 } },
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Descargar mis datos' }));
+
+    expect(await screen.findByText('No se ha podido abrir el archivo')).toBeInTheDocument();
   });
 });
