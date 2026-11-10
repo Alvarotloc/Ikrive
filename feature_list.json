@@ -932,7 +932,7 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": false,
-      "status": "in_progress"
+      "status": "done"
     },
     {
       "id": 55,
