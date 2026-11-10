@@ -1,8 +1,13 @@
 import { DEFAULT_USER_SETTINGS, type MaintenanceSchedule } from '@ikrive/shared';
-import { screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { screen, waitFor } from '@testing-library/react';
+import { Toaster, toast } from 'sonner';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mockApi, renderWithProviders, setServerMode } from '@/test/render';
 import { AddToCalendarMenu } from './add-to-calendar';
+
+/** The native side of the file seam: only `download.ts` loads it, and only in the native app. */
+const nativeFiles = vi.hoisted(() => ({ saveFile: vi.fn(), openFile: vi.fn() }));
+vi.mock('@/lib/native-files', () => nativeFiles);
 
 const schedule = (overrides: Partial<MaintenanceSchedule> = {}): MaintenanceSchedule => ({
   id: 's1',
@@ -28,7 +33,12 @@ const vehicle = { id: 'v1', name: null, make: 'Renault', model: 'Clio' };
 
 function setup(value = schedule()) {
   mockApi({ 'GET /settings': { body: DEFAULT_USER_SETTINGS } });
-  return renderWithProviders(<AddToCalendarMenu schedule={value} vehicle={vehicle} />);
+  return renderWithProviders(
+    <>
+      <Toaster />
+      <AddToCalendarMenu schedule={value} vehicle={vehicle} />
+    </>,
+  );
 }
 
 const trigger = () => screen.getByRole('button', { name: 'Añadir «Cambio de aceite» al calendario' });
@@ -37,6 +47,13 @@ const trigger = () => screen.getByRole('button', { name: 'Añadir «Cambio de ac
 const paramsOf = (href: string | null) => Object.fromEntries(new URL(href ?? '').searchParams);
 
 describe('AddToCalendarMenu', () => {
+  afterEach(() => {
+    // Sonner keeps toasts in a module-level store and replays the active ones to every new Toaster.
+    toast.dismiss();
+    vi.unstubAllEnvs();
+    nativeFiles.saveFile.mockReset();
+  });
+
   it('offers Google, Outlook and .ics', async () => {
     const { user } = setup();
     expect(trigger()).not.toHaveAttribute('aria-disabled');
@@ -120,6 +137,40 @@ describe('AddToCalendarMenu', () => {
     expect(downloads).toHaveLength(1);
     expect(downloads[0]?.download).toBe('cambio-de-aceite-renault-clio.ics');
     expect(downloads[0]?.getAttribute('href')).toBe('blob:ikrive/1');
+  });
+
+  it('native: saves the .ics with its name', async () => {
+    vi.stubEnv('MODE', 'native');
+    setServerMode('https://ikrive.example.com', 'secret-token');
+    nativeFiles.saveFile.mockResolvedValue(undefined);
+    const downloads: HTMLAnchorElement[] = [];
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+      downloads.push(this);
+    });
+    const { user } = setup();
+
+    await user.click(trigger());
+    await user.click(await screen.findByRole('menuitem', { name: 'Descargar .ics' }));
+
+    await waitFor(() => expect(nativeFiles.saveFile).toHaveBeenCalledTimes(1));
+    const [name, blob] = nativeFiles.saveFile.mock.calls[0] ?? [];
+    expect(name).toBe('cambio-de-aceite-renault-clio.ics');
+    expect(blob.type).toBe('text/calendar;charset=utf-8');
+    expect(await blob.text()).toContain('UID:schedule-s1@ikrive');
+    expect(downloads).toHaveLength(0);
+    expect(screen.queryByText('No se ha podido abrir el archivo')).not.toBeInTheDocument();
+  });
+
+  it('shows an error toast when the .ics cannot be saved', async () => {
+    vi.stubEnv('MODE', 'native');
+    setServerMode('https://ikrive.example.com', 'secret-token');
+    nativeFiles.saveFile.mockRejectedValue(new Error('No space left'));
+    const { user } = setup();
+
+    await user.click(trigger());
+    await user.click(await screen.findByRole('menuitem', { name: 'Descargar .ics' }));
+
+    expect(await screen.findByText('No se ha podido abrir el archivo')).toBeInTheDocument();
   });
 
   it('explains why a schedule without date cannot be added', async () => {

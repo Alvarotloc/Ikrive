@@ -21,8 +21,6 @@ test('documents install, CORS and the iPhone alternative', () => {
   // iPhone: the PWA from Safari.
   assert.match(doc, /iPhone/);
   assert.match(doc, /Añadir a pantalla de inicio/);
-  // Known limitation until mobile-native-files.
-  assert.match(doc, /mobile-native-files/);
   // Signing secrets of the release workflow.
   for (const secret of [
     'ANDROID_KEYSTORE_BASE64',
@@ -35,4 +33,13 @@ test('documents install, CORS and the iPhone alternative', () => {
   // Linked from the self-hosting guide and the README.
   assert.match(read('docs/self-hosting.md'), /\(mobile\.md#cors-trusted_origins\)/);
   assert.match(read('README.md'), /\(docs\/mobile\.md\)/);
+});
+
+test('documents native files and no longer lists them as a limitation', () => {
+  const doc = read('docs/mobile.md');
+  assert.doesNotMatch(doc, /mobile-native-files/);
+  assert.doesNotMatch(doc, /aún no funcionan descargar/);
+  // Download = the share sheet; open a PDF = the system viewer.
+  assert.match(doc, /compartir/);
+  assert.match(doc, /visor/);
 });
