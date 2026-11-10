@@ -1017,7 +1017,7 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
-      "status": "pending"
+      "status": "in_progress"
     },
     {
       "id": 53,
@@ -1048,6 +1048,22 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 62,
+      "name": "native-notification-open-link",
+      "phase": "8",
+      "title": "Abrir el aviso al tocar la notificación del teléfono",
+      "description": "Decisión a validar 3 de #52 (Gate 1). En la app móvil, tocar una notificación local solo abre la app. Debería navegar al link del aviso y marcarlo como leído, usando localNotificationActionPerformed de @capacitor/local-notifications.",
+      "acceptance": [
+        "En la app móvil, tocar una notificación local de un aviso abre la app en el link de ese aviso",
+        "El aviso queda marcado como leído",
+        "Si el link no existe o la sesión ha caducado, la app abre la pantalla por defecto sin errores",
+        "Un test cubre el manejo de la acción con el plugin mockeado",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
       "status": "pending"
     }
   ]
