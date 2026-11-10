@@ -48,14 +48,22 @@ No hay app para iOS. Abre tu instancia en **Safari**, pulsa **Compartir › Aña
 
 ## Ficheros
 
-- **Descargar** (una factura, el export en zip de «Descargar mis datos», el `.ics` de «Añadir al calendario» o el informe de venta) abre la **hoja de compartir** de Android con el fichero y su nombre: desde ella lo guardas en Archivos o Drive, lo envías por correo o mensajería, etc. Si la cierras sin elegir nada, no pasa nada.
+- **Descargar** (una factura, el export en zip de «Descargar mis datos» o el informe de venta) abre la **hoja de compartir** de Android con el fichero y su nombre: desde ella lo guardas en Archivos o Drive, lo envías por correo o mensajería, etc. Si la cierras sin elegir nada, no pasa nada.
 - **Abrir una factura PDF** la muestra con el **visor** de PDF del sistema, fuera de la app; al volver, la app sigue donde estaba. Hace falta tener instalada una app que lea PDF (Google Drive, el visor del fabricante…); si no hay ninguna, la app avisa con «No se ha podido abrir el archivo».
 
 La app no pide permisos de almacenamiento: los ficheros se preparan en su caché, que Android vacía cuando necesita espacio.
 
+## Calendario y notificaciones
+
+- **Calendario del teléfono.** En una regla de mantenimiento, «Añadir al calendario» ofrece Google Calendar, Outlook (se abren en el navegador) y **Calendario del teléfono** en lugar de «Descargar .ics». Esta última abre la pantalla de nuevo evento de tu app de calendario con el evento de día completo ya relleno (título, descripción y enlace a la ficha del vehículo); eliges la cuenta y guardas. La app no pide permisos de calendario. Si no hay ninguna app de calendario, avisa con «No se ha podido abrir el calendario del teléfono».
+- **Notificaciones.** La primera vez que entras con tu cuenta, la app pide permiso para mostrar notificaciones (Android 13 o posterior) una sola vez. Con el permiso concedido, cada aviso nuevo de la campana sale también como notificación de Android, sin repetirse; los avisos que ya tenías al instalarla no se notifican. Tocar la notificación abre la app.
+- **Ajustes › Notificaciones del teléfono** muestra el estado del permiso. Si aún no lo has decidido, el botón «Permitir notificaciones» lo vuelve a pedir; si lo denegaste, actívalo en *Ajustes › Aplicaciones › Ikrive › Notificaciones* de Android. Sin permiso la app funciona igual y los avisos siguen en la campana.
+- **Solo con la app abierta.** Las notificaciones salen de la consulta periódica de la campana (cada 60 s), así que llegan mientras la app está abierta o en la primera consulta al volver a abrirla. Para recibir los avisos con la app cerrada, añade un canal en *Ajustes › Canales de notificación* (ntfy, Gotify, Apprise o webhook): los envía el servidor aunque el móvil no tenga la app abierta.
+
 ## Limitaciones conocidas
 
-- Sin modo «En este teléfono», notificaciones del sistema ni calendario nativo.
+- Sin modo «En este teléfono».
+- Las notificaciones del teléfono solo llegan con la app abierta (ver [Calendario y notificaciones](#calendario-y-notificaciones)); con la app cerrada, usa los canales de notificación.
 - La pantalla de arranque es la de Capacitor.
 
 ## Publicar una versión (mantenedores)
