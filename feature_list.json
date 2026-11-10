@@ -1017,7 +1017,7 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
-      "status": "in_progress"
+      "status": "done"
     },
     {
       "id": 53,
@@ -1061,6 +1061,21 @@
         "El aviso queda marcado como leído",
         "Si el link no existe o la sesión ha caducado, la app abre la pantalla por defecto sin errores",
         "Un test cubre el manejo de la acción con el plugin mockeado",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
+      "status": "pending"
+    },
+    {
+      "id": 63,
+      "name": "notifications-cache-per-user",
+      "phase": "8",
+      "title": "Caché de avisos por usuario",
+      "description": "Aviso 2 del reviewer en Gate 2 de #52. Si la sesión caduca sin pasar por useLogout y otra cuenta inicia sesión antes del gcTime (5 min), notificationsQuery puede servir la página de la cuenta anterior; en la app, DeviceNotificationsSync la procesaría con el userId nuevo (notificaciones de otra cuenta o corte ajeno). Arreglo: clave de query por usuario o queryClient.clear() al iniciar sesión.",
+      "acceptance": [
+        "Tras iniciar sesión con otra cuenta en el mismo dispositivo, la campana y DeviceNotificationsSync no usan avisos en caché de la cuenta anterior",
+        "En la app, no se muestran notificaciones del sistema de avisos de otra cuenta ni se guarda un corte ajeno",
+        "Un test cubre el cambio de cuenta sin pasar por useLogout",
         "pnpm harness --full pasa en verde"
       ],
       "sdd": false,

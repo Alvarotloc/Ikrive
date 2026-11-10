@@ -551,3 +551,13 @@
 - **Revisión:** APPROVED a la primera (`progress/review_dependabot-major-updates.md`). La nota corrige el acceptance: `docker` y `e2e` sí corren en los PR; lo que no corre es `release.yml` (login/metadata de Docker, GHCR, firma de la APK).
 - **Pendientes:** `android` solo corre si el PR toca `ci.yml` (cubierto por la regla de la nota).
 - **Gate 2:** merge aprobado (PR para que lo integre el humano).
+
+## 2026-11-10 — #52 mobile-native-calendar-notifications
+
+- **Rama:** `feat/mobile-native-calendar-notifications` (SDD, spec en `specs/mobile-native-calendar-notifications/`, 23 R / 20 T). Exploración previa en `progress/explore_mobile-native-calendar-notifications_{calendar,notifications}.md`. Solo `apps/web`, `apps/mobile` y docs; sin cambios en API, BD ni shared.
+- **Gate 1:** aprobado sin cambios. La decisión a validar 3 (tocar la notificación abre el aviso) pasa al backlog como #62 `native-notification-open-link`.
+- **Cambios:** `lib/native-calendar.ts` (`createEventWithPrompt` de `@ebarooni/capacitor-calendar` 8.10.0, intent `ACTION_INSERT` sin permisos, día completo de medianoche local a medianoche local); en la app el menú ofrece Google, Outlook y «Calendario del teléfono» (sin `.ics`). `lib/native-notifications.ts` (`@capacitor/local-notifications` 8.3.1, entrega inmediata con `isExactNotification: false`); deduplicación pura en `features/notifications/device-notifications.ts` (estado `{since, seen}` por usuario en `localStorage`, primer arranque sin notificar, id FNV-1a de 31 bits); `DeviceNotificationsSync` en `AppLayout` y tarjeta «Notificaciones del teléfono» en ajustes, ambos solo con `isNativeApp()`; permiso pedido una vez. Manifest sin `SCHEDULE_EXACT_ALARM` (`tools:node="remove"`); `cap sync` de los `.gradle`; `docs/mobile.md` con «Calendario y notificaciones» y la limitación «solo con la app abierta».
+- **Tests:** API 368, web 449, shared 119, mobile 27, e2e 6. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED a la primera (`progress/review_mobile-native-calendar-notifications.md`). APK local no generada (falta JDK 21): el humano pasa la checklist de `progress/impl_mobile-native-calendar-notifications.md` con el artefacto `ikrive-debug-apk` del PR (vigilar el evento de día completo en Google Calendar; plan B `endDate = startDate`).
+- **Pendientes:** #62 `native-notification-open-link` y #63 `notifications-cache-per-user` (caché de avisos de otra cuenta tras caducar la sesión), añadidas al backlog. Sin test explícito de StrictMode.
+- **Gate 2:** «merge» del humano → PR para probar la APK; lo integra el humano en GitHub.
