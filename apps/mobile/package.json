@@ -9,8 +9,11 @@
     "test": "node --test"
   },
   "dependencies": {
+    "@capacitor-community/file-opener": "8.0.1",
     "@capacitor/android": "8.6.0",
-    "@capacitor/core": "8.6.0"
+    "@capacitor/core": "8.6.0",
+    "@capacitor/filesystem": "8.1.5",
+    "@capacitor/share": "8.0.3"
   },
   "devDependencies": {
     "@capacitor/cli": "8.6.0"
