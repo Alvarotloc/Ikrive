@@ -1,5 +1,7 @@
 # Keeps the SHA-pinned actions of .github/workflows/ up to date (and their `# vX.Y.Z` comments).
 # Only GitHub Actions: npm and Docker dependencies are updated by hand.
+# Minor and patch updates land together in one grouped PR; each major update gets its own PR
+# (one per action and version) so its changelog can be reviewed on its own.
 version: 2
 updates:
   - package-ecosystem: github-actions
@@ -10,3 +12,6 @@ updates:
       github-actions:
         patterns:
           - '*'
+        update-types:
+          - minor
+          - patch
