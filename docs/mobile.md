@@ -46,9 +46,15 @@ La app acepta servidores `http://` porque en una LAN es habitual no tener certif
 
 No hay app para iOS. Abre tu instancia en **Safari**, pulsa **Compartir › Añadir a pantalla de inicio** y se instala como app (PWA) con su icono, a pantalla completa y con la caché sin conexión. Usa la sesión normal de la web, sin `TRUSTED_ORIGINS`.
 
+## Ficheros
+
+- **Descargar** (una factura, el export en zip de «Descargar mis datos», el `.ics` de «Añadir al calendario» o el informe de venta) abre la **hoja de compartir** de Android con el fichero y su nombre: desde ella lo guardas en Archivos o Drive, lo envías por correo o mensajería, etc. Si la cierras sin elegir nada, no pasa nada.
+- **Abrir una factura PDF** la muestra con el **visor** de PDF del sistema, fuera de la app; al volver, la app sigue donde estaba. Hace falta tener instalada una app que lea PDF (Google Drive, el visor del fabricante…); si no hay ninguna, la app avisa con «No se ha podido abrir el archivo».
+
+La app no pide permisos de almacenamiento: los ficheros se preparan en su caché, que Android vacía cuando necesita espacio.
+
 ## Limitaciones conocidas
 
-- **Ficheros:** en la APK aún no funcionan descargar o abrir facturas, el export en zip ni el `.ics` de «Añadir al calendario» (el navegador de la app no descarga `blob:`). Usa la web para eso. Llegará con la feature `mobile-native-files`, y hasta entonces no se publica ninguna APK en las Releases.
 - Sin modo «En este teléfono», notificaciones del sistema ni calendario nativo.
 - La pantalla de arranque es la de Capacitor.
 
