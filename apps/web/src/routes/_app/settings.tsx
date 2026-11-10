@@ -25,7 +25,9 @@ import { calendarFeedQuery } from '@/features/calendar-feed/queries';
 import { DataPortabilitySection } from '@/features/data-portability/data-section';
 import { NotificationChannelsSection } from '@/features/notification-channels/channels-section';
 import { notificationChannelsQuery } from '@/features/notification-channels/queries';
+import { DeviceNotificationsSection } from '@/features/notifications/device-notifications-section';
 import { settingsQuery, useUpdateSettings } from '@/features/settings/queries';
+import { isNativeApp } from '@/lib/platform';
 import { applyTheme, getStoredTheme, type Theme } from '@/lib/theme';
 
 /** `00:00` … `23:00`: the same text in every language. */
@@ -163,6 +165,7 @@ function SettingsPage() {
       <Suspense>
         <NotificationChannelsSection />
       </Suspense>
+      {isNativeApp() && <DeviceNotificationsSection />}
       <Suspense>
         <CalendarFeedSection />
       </Suspense>

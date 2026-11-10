@@ -428,6 +428,8 @@
       "google": "Google Calendar",
       "outlook": "Outlook",
       "ics": "Download .ics",
+      "device": "Phone calendar",
+      "deviceError": "Could not open the phone calendar",
       "noDate": "This schedule cannot be added to a calendar because it has no date: it is only due by distance and there are not enough readings yet to estimate when."
     }
   },
@@ -485,6 +487,15 @@
     "errors": {
       "urlCredentials": "Do not put a username or password in the URL: use the token field."
     }
+  },
+  "deviceNotifications": {
+    "title": "Phone notifications",
+    "description": "New notifications show up as Android notifications while the app is open. To get them with the app closed, add a notification channel.",
+    "checking": "Checking the permission…",
+    "granted": "On: new notifications will show up on this phone.",
+    "prompt": "Off: the app is not allowed to show notifications yet.",
+    "allow": "Allow notifications",
+    "denied": "Off: the permission is denied. To turn them on, go to Settings › Apps › Ikrive › Notifications."
   },
   "calendarFeed": {
     "title": "Calendar",
