@@ -523,3 +523,12 @@
 - **Revisión:** APPROVED a la primera (`progress/review_data-dir-not-writable.md`).
 - **Pendientes:** `jobs/cli.ts` y `db/migrate.ts` sin la guarda (fuera de alcance); los tests de permisos se saltan como root (CI no corre como root).
 - **Gate 2:** merge aprobado.
+
+## 2026-11-10 — #58 dependabot-actions
+
+- **Rama:** `feat/dependabot-actions` (`sdd: false`, sin spec ni Gate 1). Avisos del reviewer en Gate 2 de #56.
+- **Cambios:** `.github/dependabot.yml` (solo `github-actions`, `/`, semanal, grupo `github-actions` con `'*'`); los 30 `uses:` de `ci.yml` y `release.yml` fijados por SHA de 40 hex con `# vX.Y.Z` (11 acciones, misma mayor: checkout/setup-node v4.4.0, setup-java v4.9.1, upload-artifact v4.6.2, pnpm/action-setup v4.3.0, setup-qemu v3.7.0, setup-buildx v3.12.0, build-push v6.19.2, login v3.7.0, metadata v5.10.0, paths-filter v3.0.4); test `apps/mobile/test/actions-pinning.test.mjs`.
+- **Tests:** API 368, web 403, shared 119, e2e 6, mobile 22. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED a la primera (`progress/review_dependabot-actions.md`); SHA verificados de forma independiente con `gh api`.
+- **Pendientes:** el test solo valida el formato (no la correspondencia SHA↔tag) y no admite `uses:` entre comillas ni `docker://`.
+- **Gate 2:** merge aprobado.
