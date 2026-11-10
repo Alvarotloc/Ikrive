@@ -13,6 +13,10 @@ import {
 } from '@/test/render';
 import { MaintenanceAttachmentsDialog } from './maintenance-attachments';
 
+/** The native side of the file seam: only `download.ts` loads it, and only in the native app. */
+const nativeFiles = vi.hoisted(() => ({ saveFile: vi.fn(), openFile: vi.fn() }));
+vi.mock('@/lib/native-files', () => nativeFiles);
+
 const BASE = '/vehicles/v1/maintenance/r1/attachments';
 
 const attachment = (overrides: Partial<Attachment>): Attachment => ({
@@ -470,5 +474,83 @@ describe('MaintenanceAttachmentsDialog', () => {
 
     expect(await screen.findByText('No se ha podido abrir el archivo')).toBeInTheDocument();
     expect(clicked).toHaveLength(0);
+  });
+
+  describe('in the native app', () => {
+    /** The native build in server mode, as the APK always is after choosing a server. */
+    function setupNative(routes: MockRoutes) {
+      vi.stubEnv('MODE', 'native');
+      nativeFiles.saveFile.mockResolvedValue(undefined);
+      nativeFiles.openFile.mockResolvedValue(undefined);
+      return setupServerMode(routes);
+    }
+
+    afterEach(() => {
+      vi.unstubAllEnvs();
+      nativeFiles.saveFile.mockReset();
+      nativeFiles.openFile.mockReset();
+    });
+
+    it('native: saves an invoice with its original name', async () => {
+      const { user, clicked } = setupNative({
+        [`GET ${BASE}`]: { body: [image, pdf] },
+        [`GET ${BASE}/a1/thumbnail`]: jpeg(),
+        [`GET ${BASE}/a1`]: jpeg(),
+        [`GET ${BASE}/a2`]: {
+          body: new Blob(['%PDF-1.7'], { type: 'application/pdf' }),
+          headers: { 'content-disposition': 'attachment; filename="factura-taller.pdf"' },
+        },
+      });
+
+      // From the card: the `Content-Disposition` name.
+      await user.click(await screen.findByRole('button', { name: 'Descargar «factura.pdf»' }));
+      await waitFor(() => expect(nativeFiles.saveFile).toHaveBeenCalledTimes(1));
+      const [name, blob] = nativeFiles.saveFile.mock.calls[0] ?? [];
+      expect(name).toBe('factura-taller.pdf');
+      expect(await blob.text()).toBe('%PDF-1.7');
+
+      // From the viewer: without a `Content-Disposition`, the original name.
+      await user.click(screen.getByRole('button', { name: 'Ver «ticket.jpg»' }));
+      const viewer = await screen.findByRole('dialog', { name: 'ticket.jpg' });
+      await user.click(within(viewer).getByRole('button', { name: 'Descargar' }));
+      await waitFor(() => expect(nativeFiles.saveFile).toHaveBeenCalledTimes(2));
+      expect(nativeFiles.saveFile.mock.calls[1]?.[0]).toBe('ticket.jpg');
+
+      expect(clicked).toHaveLength(0);
+      expect(nativeFiles.openFile).not.toHaveBeenCalled();
+      expect(screen.queryByText('No se ha podido abrir el archivo')).not.toBeInTheDocument();
+    });
+
+    it('native: opens a PDF with the system viewer', async () => {
+      const { user, clicked } = setupNative({
+        [`GET ${BASE}`]: { body: [pdf] },
+        [`GET ${BASE}/a2`]: { body: new Blob(['%PDF-1.7'], { type: 'application/pdf' }) },
+      });
+
+      await user.click(
+        await screen.findByRole('button', { name: 'Abrir «factura.pdf» en una pestaña nueva' }),
+      );
+
+      await waitFor(() => expect(nativeFiles.openFile).toHaveBeenCalledTimes(1));
+      const [name, blob] = nativeFiles.openFile.mock.calls[0] ?? [];
+      expect(name).toBe('factura.pdf');
+      expect(blob.type).toBe('application/pdf');
+      expect(await blob.text()).toBe('%PDF-1.7');
+      expect(clicked).toHaveLength(0);
+    });
+
+    it('native: shows an error toast when opening fails', async () => {
+      const { user } = setupNative({
+        [`GET ${BASE}`]: { body: [pdf] },
+        [`GET ${BASE}/a2`]: { body: new Blob(['%PDF-1.7'], { type: 'application/pdf' }) },
+      });
+      nativeFiles.openFile.mockRejectedValue(new Error('No app to open this file'));
+
+      await user.click(
+        await screen.findByRole('button', { name: 'Abrir «factura.pdf» en una pestaña nueva' }),
+      );
+
+      expect(await screen.findByText('No se ha podido abrir el archivo')).toBeInTheDocument();
+    });
   });
 });

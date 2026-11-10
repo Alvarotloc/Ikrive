@@ -119,6 +119,9 @@
     "copy": "Copy",
     "fileError": "The file could not be opened"
   },
+  "files": {
+    "shareTitle": "Save or share"
+  },
   "validation": {
     "required": "This field is required.",
     "minLength_one": "Must be at least {{count}} character long.",

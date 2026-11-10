@@ -26,7 +26,7 @@ export function useDownloadSaleReport(
   return useMutation({
     mutationFn: async (options: SaleReportOptions) => {
       const { blob, fileName } = await api.download(saleReportPath(vehicle.id, options));
-      downloadBlob(fileName ?? saleReportFileName(vehicleTitle(vehicle), todayIso()), blob);
+      await downloadBlob(fileName ?? saleReportFileName(vehicleTitle(vehicle), todayIso()), blob);
     },
     // On the mutation, not on `mutate()`: those callbacks are dropped if the dialog closes mid-request.
     onError,

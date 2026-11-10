@@ -174,7 +174,7 @@ function AttachmentCard({
       ) : serverMode ? (
         <button
           type="button"
-          onClick={fileAction(() => openApiFile(inlineUrl(attachment.url)))}
+          onClick={fileAction(() => openApiFile(inlineUrl(attachment.url), name))}
           aria-label={openPdfLabel}
           className={cardActionClassName}
         >

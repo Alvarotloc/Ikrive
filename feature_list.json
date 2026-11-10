@@ -953,6 +953,37 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
+      "status": "done"
+    },
+    {
+      "id": 59,
+      "name": "native-open-pdf-label",
+      "phase": "8",
+      "title": "Etiqueta accesible del PDF en la app",
+      "description": "Aviso del reviewer en Gate 2 de #55. En la app móvil, el botón que abre un PDF adjunto anuncia «Abrir … en una pestaña nueva» (maintenance.attachments.openPdf), pero desde #55 lo abre el visor del sistema.",
+      "acceptance": [
+        "En la app móvil, el aria-label del botón de abrir un PDF adjunto indica que se abre con el visor del sistema; en la web sigue diciendo «en una pestaña nueva»",
+        "Todos los textos están en es.json y en.json",
+        "Un test de componente cubre la etiqueta en la web y en la app",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
+      "status": "pending"
+    },
+    {
+      "id": 60,
+      "name": "pwa-precache-skip-native",
+      "phase": "8",
+      "title": "Excluir los chunks nativos del precache de la PWA",
+      "description": "Aviso del reviewer en Gate 2 de #55. El build web emite los chunks de lib/native-files.ts y de los plugins de Capacitor (~18 KB) y el service worker los precachea aunque la web nunca los carga. El reviewer desaconseja un patrón como web-*.js (puede coincidir con chunks propios) y propone darles un prefijo propio con chunkFileNames y excluirlo en features/pwa/config.ts.",
+      "acceptance": [
+        "Los chunks de lib/native-files.ts y de los plugins de Capacitor salen del build web con un prefijo propio",
+        "El precache del service worker de la PWA no incluye esos chunks y sigue incluyendo el resto",
+        "El build nativo (--mode native) no cambia de comportamiento",
+        "Un test comprueba la exclusión en la configuración de la PWA",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
       "status": "pending"
     },
     {

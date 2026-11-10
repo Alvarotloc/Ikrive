@@ -37,3 +37,15 @@ test('reads the version from Gradle properties', () => {
 test('keeps CapacitorHttp off: requests leave from the WebView with its Origin', () => {
   assert.notEqual(config.plugins?.CapacitorHttp?.enabled, true);
 });
+
+test("declares the web's Capacitor plugins with the same versions", () => {
+  const web = JSON.parse(read('../web/package.json')).dependencies;
+  const mobile = JSON.parse(read('package.json')).dependencies;
+  const plugins = Object.keys(web).filter(
+    (name) => /^@capacitor(-community)?\//.test(name) && name !== '@capacitor/core',
+  );
+  for (const name of ['@capacitor/filesystem', '@capacitor/share', '@capacitor-community/file-opener']) {
+    assert.ok(plugins.includes(name), `${name} missing from apps/web`);
+  }
+  for (const name of plugins) assert.equal(mobile[name], web[name], `${name} version in apps/mobile`);
+});

@@ -1,5 +1,16 @@
-/** Saves `blob` as a file named `fileName` through a temporary `<a download>`. */
-export function downloadBlob(fileName: string, blob: Blob) {
+import { isNativeApp } from './platform';
+
+/**
+ * Saves `blob` as a file named `fileName`. Web: through a temporary `<a download>`. Native app (where
+ * that does nothing): written to the app cache and offered in the system share sheet (`native-files.ts`,
+ * loaded only there). Rejects if the native side fails; closing the share sheet is not a failure.
+ */
+export async function downloadBlob(fileName: string, blob: Blob): Promise<void> {
+  if (isNativeApp()) {
+    const { saveFile } = await import('./native-files');
+    return saveFile(fileName, blob);
+  }
+  // No `await` before the click: the browser must still see it as part of the user's gesture.
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
@@ -12,10 +23,15 @@ export function downloadBlob(fileName: string, blob: Blob) {
 }
 
 /**
- * Opens `blob` in a new tab (e.g. a PDF with the browser's viewer) through a temporary
- * `<a target="_blank">`, without a `window.opener`.
+ * Opens `blob` (e.g. a PDF). Web: in a new tab with the browser's viewer, through a temporary
+ * `<a target="_blank">` without a `window.opener`; `fileName` is not used. Native app: written to the app
+ * cache as `fileName` and opened with the system app of its MIME type. Rejects if the native side fails.
  */
-export function openBlob(blob: Blob) {
+export async function openBlob(blob: Blob, fileName: string): Promise<void> {
+  if (isNativeApp()) {
+    const { openFile } = await import('./native-files');
+    return openFile(fileName, blob);
+  }
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;

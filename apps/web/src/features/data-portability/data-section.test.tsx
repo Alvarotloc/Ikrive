@@ -18,6 +18,10 @@ import {
 } from '@/test/render';
 import { DataPortabilitySection } from './data-section';
 
+/** The native side of the file seam: only `download.ts` loads it, and only in the native app. */
+const nativeFiles = vi.hoisted(() => ({ saveFile: vi.fn(), openFile: vi.fn() }));
+vi.mock('@/lib/native-files', () => nativeFiles);
+
 const IMPORT = '/me/import';
 
 const summary: DataImportSummary = {
@@ -314,5 +318,52 @@ describe('DataPortabilitySection', () => {
     await user.click(screen.getByRole('button', { name: 'Descargar mis datos' }));
 
     expect(await screen.findByText('No se ha podido abrir el archivo')).toBeInTheDocument();
+  });
+
+  describe('in the native app', () => {
+    afterEach(() => {
+      vi.unstubAllEnvs();
+      nativeFiles.saveFile.mockReset();
+    });
+
+    const exportRoute: MockRoutes = {
+      'GET /me/export': {
+        body: new Blob([new Uint8Array([0x50, 0x4b])], { type: 'application/zip' }),
+        headers: { 'content-disposition': 'attachment; filename="ikrive-export-2026-11-09.zip"' },
+      },
+    };
+
+    it('native: saves the export zip with its name', async () => {
+      vi.stubEnv('MODE', 'native');
+      setServerMode('https://ikrive.example.com', 'secret-token');
+      nativeFiles.saveFile.mockResolvedValue(undefined);
+      const clicked: HTMLAnchorElement[] = [];
+      vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+        clicked.push(this);
+      });
+      const { user } = setup(exportRoute);
+
+      await user.click(screen.getByRole('button', { name: 'Descargar mis datos' }));
+
+      await waitFor(() => expect(nativeFiles.saveFile).toHaveBeenCalledTimes(1));
+      const [name, blob] = nativeFiles.saveFile.mock.calls[0] ?? [];
+      expect(name).toBe('ikrive-export-2026-11-09.zip');
+      expect(blob.type).toBe('application/zip');
+      expect(new Uint8Array(await blob.arrayBuffer())).toEqual(new Uint8Array([0x50, 0x4b]));
+      expect(clicked).toHaveLength(0);
+      expect(screen.queryByText('No se ha podido abrir el archivo')).not.toBeInTheDocument();
+    });
+
+    it('native: shows an error toast when saving the export fails', async () => {
+      vi.stubEnv('MODE', 'native');
+      setServerMode('https://ikrive.example.com', 'secret-token');
+      nativeFiles.saveFile.mockRejectedValue(new Error('No space left'));
+      const { user } = setup(exportRoute);
+
+      await user.click(screen.getByRole('button', { name: 'Descargar mis datos' }));
+
+      expect(await screen.findByText('No se ha podido abrir el archivo')).toBeInTheDocument();
+      expect(nativeFiles.saveFile).toHaveBeenCalledTimes(1);
+    });
   });
 });

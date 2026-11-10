@@ -4,7 +4,7 @@
  */
 import { downloadBlob } from '@/lib/download';
 
-/** Downloads `text` as an iCalendar file named `filename`. */
-export function downloadIcs(filename: string, text: string) {
-  downloadBlob(filename, new Blob([text], { type: 'text/calendar;charset=utf-8' }));
+/** Downloads `text` as an iCalendar file named `filename` (the share sheet in the native app). */
+export function downloadIcs(filename: string, text: string): Promise<void> {
+  return downloadBlob(filename, new Blob([text], { type: 'text/calendar;charset=utf-8' }));
 }
