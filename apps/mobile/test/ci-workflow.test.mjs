@@ -26,11 +26,12 @@ test('the changes job declares the extra pull-requests: read it needs', () => {
   assert.match(changes[1], /^ {4}permissions:\n {6}contents: read\n {6}pull-requests: read\n/m);
 });
 
+// Any major version is allowed: the protection is the SHA pin and reviewing each Dependabot PR.
 test('dorny/paths-filter is pinned by full commit SHA with its version', () => {
   const uses = [...ci.matchAll(/uses: dorny\/paths-filter@(\S+)(.*)/g)];
   assert.ok(uses.length > 0, 'ci.yml uses dorny/paths-filter');
   for (const [, ref, comment] of uses) {
     assert.match(ref, /^[0-9a-f]{40}$/);
-    assert.match(comment, /^ # v3\.\d+\.\d+$/);
+    assert.match(comment, /^ # v\d+\.\d+\.\d+$/);
   }
 });
