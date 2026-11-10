@@ -532,3 +532,13 @@
 - **Revisión:** APPROVED a la primera (`progress/review_dependabot-actions.md`); SHA verificados de forma independiente con `gh api`.
 - **Pendientes:** el test solo valida el formato (no la correspondencia SHA↔tag) y no admite `uses:` entre comillas ni `docker://`.
 - **Gate 2:** merge aprobado.
+
+## 2026-11-10 — #55 mobile-native-files
+
+- **Rama:** `feat/mobile-native-files` (SDD, spec en `specs/mobile-native-files/`, 16 R / 16 T). Solo `apps/web`, `apps/mobile` y docs; sin cambios en API, BD ni shared.
+- **Gate 1:** aprobado con un cambio: T15 ya no pide al implementer probar en el móvil; genera la APK solo si hay SDK y deja una checklist manual para el humano.
+- **Cambios:** `lib/native-files.ts` (Filesystem en `Directory.Cache` + Share para «descargar», FileOpener para «abrir»; `safeFileName`, `blobToBase64`, cancelar la hoja no es error), cargado con `import()` solo si `isNativeApp()`; `downloadBlob`/`openBlob` async; `openApiFile(url, fallbackName)`; toast `common.fileError` en el `.ics`; `files.shareTitle` en es/en; plugins `@capacitor/filesystem` 8.1.5, `@capacitor/share` 8.0.3, `@capacitor-community/file-opener` 8.0.1 (y `@capacitor/core` 8.6.0 en web) con las mismas versiones en web y mobile; `cap sync` de los `.gradle`; `docs/mobile.md` con sección «Ficheros».
+- **Tests:** API 368, web 423, más los `node:test` de `apps/mobile`. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED a la primera (`progress/review_mobile-native-files.md`). Lo nativo solo se ha probado con plugins simulados: APK local no generada (falta JDK 21); el humano pasa la checklist de `progress/impl_mobile-native-files.md` con el artefacto `ikrive-debug-apk` del PR (incluido un PDF con espacios/acentos en el nombre).
+- **Pendientes:** #59 `native-open-pdf-label` (aria-label «pestaña nueva» en la app) y #60 `pwa-precache-skip-native` (chunks nativos en el precache de la PWA), añadidas al backlog.
+- **Gate 2:** «merge» del humano → PR para probar la APK; lo integra el humano en GitHub.
