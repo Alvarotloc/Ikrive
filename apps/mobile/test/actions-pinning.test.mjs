@@ -27,13 +27,29 @@ test('every external action in the workflows is pinned by full SHA with its vers
   assert.ok(external > 0, 'the workflows use external actions');
 });
 
-test('dependabot keeps the github-actions up to date weekly in a single grouped PR', () => {
+test('dependabot keeps the github-actions up to date weekly', () => {
   const dependabot = readFileSync(resolve(github, 'dependabot.yml'), 'utf8');
   assert.match(dependabot, /^version: 2$/m);
   const ecosystems = [...dependabot.matchAll(/package-ecosystem: (\S+)/g)].map((match) => match[1]);
   assert.deepEqual(ecosystems, ['github-actions']);
   assert.match(dependabot, /^ {4}directory: \/$/m);
   assert.match(dependabot, /^ {4}schedule:\n {6}interval: weekly$/m);
-  // One group whose pattern matches every action: all updates land in the same PR.
-  assert.match(dependabot, /^ {4}groups:\n {6}[\w-]+:\n {8}patterns:\n {10}- '\*'$/m);
+});
+
+test('dependabot groups minor and patch updates and leaves majors in their own PRs', () => {
+  const dependabot = readFileSync(resolve(github, 'dependabot.yml'), 'utf8');
+  // The `groups:` block: every line indented deeper than the key, up to the next key at its level.
+  const block = /^ {4}groups:\n((?: {6,}.*\n?)+)/m.exec(dependabot);
+  assert.ok(block, 'dependabot.yml has a groups block');
+  const groups = [...block[1].matchAll(/^ {6}([\w-]+):$/gm)].map((match) => match[1]);
+  // A single group: anything it does not take (the majors) gets one PR per action and version.
+  assert.deepEqual(groups, ['github-actions']);
+  assert.match(block[1], /^ {8}patterns:\n {10}- '\*'$/m);
+  const types = /^ {8}update-types:\n((?: {10}- .*\n?)+)/m.exec(block[1]);
+  assert.ok(types, 'the group limits its update-types');
+  const updateTypes = types[1]
+    .trim()
+    .split('\n')
+    .map((line) => line.replace(/^\s*- /, '').replace(/['"]/g, ''));
+  assert.deepEqual(updateTypes.sort(), ['minor', 'patch']);
 });

@@ -987,6 +987,22 @@
       "status": "pending"
     },
     {
+      "id": 61,
+      "name": "dependabot-major-updates",
+      "phase": "8",
+      "title": "Dependabot: versiones mayores aparte",
+      "description": "Detectado con el PR #43 de Dependabot (11 acciones, todas de versión mayor en un solo PR). El test de #56 (apps/mobile/test/ci-workflow.test.mjs) exige dorny/paths-filter en v3 y bloquea cualquier actualización mayor legítima; la protección real es el pin por SHA (test de #58) y la revisión del PR. Además, el grupo único de .github/dependabot.yml mezcla mayores con menores y parches.",
+      "acceptance": [
+        "Los tests de apps/mobile siguen exigiendo dorny/paths-filter fijado por SHA de 40 hex con comentario # vX.Y.Z, pero sin fijar la versión mayor",
+        ".github/dependabot.yml separa las actualizaciones de github-actions en un grupo para minor/patch y deja las mayores fuera de él (un PR por acción y versión mayor)",
+        "Un test comprueba la configuración de grupos de dependabot.yml",
+        "docs o CONTRIBUTING explican brevemente cómo tratar los PRs de Dependabot (menores: integrar si CI pasa; mayores: revisar el changelog y los jobs que no corren en el PR, como docker, e2e y release)",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
+      "status": "done"
+    },
+    {
       "id": 52,
       "name": "mobile-native-calendar-notifications",
       "phase": "8",

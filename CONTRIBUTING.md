@@ -48,6 +48,13 @@ La interfaz sigue la identidad de la landing (ikrive.com). Los tokens están en 
 
 Las features nuevas siguen el flujo de [docs/sdd.md](docs/sdd.md): se añaden a `feature_list.json`, se especifican en `specs/<name>/` (requirements en EARS, design y tasks), se implementan en una rama `feat/<name>` y se integran en `main` con un merge `--no-ff` tras la revisión. Con Claude Code, el arnés (`AGENTS.md`, `.claude/agents/`, hooks) automatiza el flujo y para en las dos aprobaciones humanas.
 
+### PRs de Dependabot
+
+Dependabot (`.github/dependabot.yml`) solo actualiza las GitHub Actions, fijadas por SHA con su `# vX.Y.Z`. Las versiones menores y los parches llegan juntos en un PR agrupado; cada versión mayor, en un PR propio por acción.
+
+- **Menores y parches:** intégralos si CI pasa.
+- **Mayores:** lee el changelog de la acción (cambios de inputs, de versión de Node, de comportamiento por defecto) y comprueba los jobs que la usan. En el PR corren `check`, `e2e`, `docker` (construye la imagen sin publicarla) y `android`, pero `release.yml` solo corre al etiquetar una versión: las acciones que solo usa él (`docker/login-action`, `docker/metadata-action`, la publicación en GHCR y la firma del APK) no se prueban hasta el próximo tag. Si el job que la usa no se ha ejecutado o no cubre el cambio, revísalo a mano antes de integrar.
+
 ## Tests
 
 - Unitarios para la lógica pura (`packages/shared` y `apps/web/src/features/**`, `*.test.ts`). Corren en Node.

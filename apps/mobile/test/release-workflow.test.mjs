@@ -76,7 +76,7 @@ test('ci android job only runs when mobile, web, the lockfile or the workflow ch
   for (const path of ['apps/mobile/**', 'apps/web/**', 'pnpm-lock.yaml', '.github/workflows/ci.yml']) {
     assert.ok(changes.includes(`- '${path}'`), path);
   }
-  assert.match(changes, /uses: dorny\/paths-filter@[0-9a-f]{40} # v3\.\d+\.\d+\n/);
+  assert.match(changes, /uses: dorny\/paths-filter@[0-9a-f]{40} # v\d+\.\d+\.\d+\n/);
   assert.match(changes, /android: \$\{\{ steps\.filter\.outputs\.android \}\}/);
   assert.match(ciAndroid, /\n {4}needs: changes\n/);
   assert.match(ciAndroid, /\n {4}if: needs\.changes\.outputs\.android == 'true'\n/);

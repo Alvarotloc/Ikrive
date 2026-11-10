@@ -542,3 +542,12 @@
 - **Revisión:** APPROVED a la primera (`progress/review_mobile-native-files.md`). Lo nativo solo se ha probado con plugins simulados: APK local no generada (falta JDK 21); el humano pasa la checklist de `progress/impl_mobile-native-files.md` con el artefacto `ikrive-debug-apk` del PR (incluido un PDF con espacios/acentos en el nombre).
 - **Pendientes:** #59 `native-open-pdf-label` (aria-label «pestaña nueva» en la app) y #60 `pwa-precache-skip-native` (chunks nativos en el precache de la PWA), añadidas al backlog.
 - **Gate 2:** «merge» del humano → PR para probar la APK; lo integra el humano en GitHub.
+
+## 2026-11-10 — #61 dependabot-major-updates
+
+- **Rama:** `feat/dependabot-major-updates` (`sdd: false`, sin spec ni Gate 1). Detectado con el PR #43 de Dependabot (11 acciones con versión mayor en un solo PR; fallaba el test que exigía `paths-filter` v3). El humano cierra el #43.
+- **Cambios:** `.github/dependabot.yml` con `update-types: [minor, patch]` en el grupo `github-actions` (las mayores salen en PRs individuales); `ci-workflow.test.mjs` y `release-workflow.test.mjs` aceptan cualquier mayor (SHA de 40 hex + `# vX.Y.Z`); test nuevo de la agrupación en `actions-pinning.test.mjs`; sección «PRs de Dependabot» en `CONTRIBUTING.md`.
+- **Tests:** `pnpm harness --full` en verde.
+- **Revisión:** APPROVED a la primera (`progress/review_dependabot-major-updates.md`). La nota corrige el acceptance: `docker` y `e2e` sí corren en los PR; lo que no corre es `release.yml` (login/metadata de Docker, GHCR, firma de la APK).
+- **Pendientes:** `android` solo corre si el PR toca `ci.yml` (cubierto por la regla de la nota).
+- **Gate 2:** merge aprobado (PR para que lo integre el humano).
