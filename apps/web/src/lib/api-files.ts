@@ -45,11 +45,14 @@ export function useApiFileSrc(url: string): { src: string | undefined; isError: 
 /** Server mode: fetches `url` with the token and saves it with its `Content-Disposition` name, or `fallbackName`. */
 export async function saveApiFile(url: string, fallbackName: string): Promise<void> {
   const { blob, fileName } = await api.downloadUrl(url);
-  downloadBlob(fileName ?? fallbackName, blob);
+  await downloadBlob(fileName ?? fallbackName, blob);
 }
 
-/** Server mode: fetches `url` with the token and opens it in a new tab. */
-export async function openApiFile(url: string): Promise<void> {
-  const { blob } = await api.downloadUrl(url);
-  openBlob(blob);
+/**
+ * Server mode: fetches `url` with the token and opens it (a new tab on the web, the system viewer in the
+ * native app) with its `Content-Disposition` name, or `fallbackName`.
+ */
+export async function openApiFile(url: string, fallbackName: string): Promise<void> {
+  const { blob, fileName } = await api.downloadUrl(url);
+  await openBlob(blob, fileName ?? fallbackName);
 }

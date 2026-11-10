@@ -119,6 +119,9 @@
     "copy": "Copiar",
     "fileError": "No se ha podido abrir el archivo"
   },
+  "files": {
+    "shareTitle": "Guardar o compartir"
+  },
   "validation": {
     "required": "Este campo es obligatorio.",
     "minLength_one": "Debe tener al menos {{count}} carácter.",

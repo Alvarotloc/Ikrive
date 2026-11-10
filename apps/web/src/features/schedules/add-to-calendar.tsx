@@ -10,6 +10,7 @@ import {
 } from '@ikrive/shared';
 import { CalendarPlus, Download } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -98,7 +99,11 @@ export function AddToCalendarMenu({ schedule, vehicle }: AddToCalendarMenuProps)
           </a>
         </DropdownMenuItem>
         <DropdownMenuItem
-          onSelect={() => downloadIcs(`${slug(event.title)}.ics`, toICalendar([event], { now: new Date() }))}
+          onSelect={() => {
+            downloadIcs(`${slug(event.title)}.ics`, toICalendar([event], { now: new Date() })).catch(() =>
+              toast.error(t('common.fileError')),
+            );
+          }}
         >
           <Download aria-hidden />
           {t('schedules.calendar.ics')}
