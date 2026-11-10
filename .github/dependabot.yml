@@ -1,0 +1,12 @@
+# Keeps the SHA-pinned actions of .github/workflows/ up to date (and their `# vX.Y.Z` comments).
+# Only GitHub Actions: npm and Docker dependencies are updated by hand.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns:
+          - '*'
