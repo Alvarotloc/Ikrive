@@ -1,13 +1,19 @@
-import { DEFAULT_USER_SETTINGS, type MaintenanceSchedule } from '@ikrive/shared';
+import { DEFAULT_USER_SETTINGS, type MaintenanceSchedule, scheduleCalendarEvent } from '@ikrive/shared';
 import { screen, waitFor } from '@testing-library/react';
 import { Toaster, toast } from 'sonner';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mockApi, renderWithProviders, setServerMode } from '@/test/render';
 import { AddToCalendarMenu } from './add-to-calendar';
 
-/** The native side of the file seam: only `download.ts` loads it, and only in the native app. */
-const nativeFiles = vi.hoisted(() => ({ saveFile: vi.fn(), openFile: vi.fn() }));
-vi.mock('@/lib/native-files', () => nativeFiles);
+/**
+ * The phone calendar: only `features/calendar/actions.ts` loads it, and only in the native app. `loaded`
+ * turns true the first time it is imported (then it stays in the module cache: web tests go first).
+ */
+const nativeCalendar = vi.hoisted(() => ({ loaded: false, createDeviceEvent: vi.fn() }));
+vi.mock('@/lib/native-calendar', () => {
+  nativeCalendar.loaded = true;
+  return { createDeviceEvent: nativeCalendar.createDeviceEvent };
+});
 
 const schedule = (overrides: Partial<MaintenanceSchedule> = {}): MaintenanceSchedule => ({
   id: 's1',
@@ -51,10 +57,10 @@ describe('AddToCalendarMenu', () => {
     // Sonner keeps toasts in a module-level store and replays the active ones to every new Toaster.
     toast.dismiss();
     vi.unstubAllEnvs();
-    nativeFiles.saveFile.mockReset();
+    nativeCalendar.createDeviceEvent.mockReset();
   });
 
-  it('offers Google, Outlook and .ics', async () => {
+  it('web: offers Google, Outlook and .ics without loading the native calendar', async () => {
     const { user } = setup();
     expect(trigger()).not.toHaveAttribute('aria-disabled');
 
@@ -62,6 +68,7 @@ describe('AddToCalendarMenu', () => {
 
     const items = await screen.findAllByRole('menuitem');
     expect(items.map((item) => item.textContent)).toEqual(['Google Calendar', 'Outlook', 'Descargar .ics']);
+    expect(nativeCalendar.loaded).toBe(false);
   });
 
   it('links Google and Outlook in a new tab', async () => {
@@ -139,38 +146,60 @@ describe('AddToCalendarMenu', () => {
     expect(downloads[0]?.getAttribute('href')).toBe('blob:ikrive/1');
   });
 
-  it('native: saves the .ics with its name', async () => {
+  it('native: offers the phone calendar instead of the .ics', async () => {
     vi.stubEnv('MODE', 'native');
     setServerMode('https://ikrive.example.com', 'secret-token');
-    nativeFiles.saveFile.mockResolvedValue(undefined);
-    const downloads: HTMLAnchorElement[] = [];
-    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
-      downloads.push(this);
-    });
     const { user } = setup();
 
     await user.click(trigger());
-    await user.click(await screen.findByRole('menuitem', { name: 'Descargar .ics' }));
 
-    await waitFor(() => expect(nativeFiles.saveFile).toHaveBeenCalledTimes(1));
-    const [name, blob] = nativeFiles.saveFile.mock.calls[0] ?? [];
-    expect(name).toBe('cambio-de-aceite-renault-clio.ics');
-    expect(blob.type).toBe('text/calendar;charset=utf-8');
-    expect(await blob.text()).toContain('UID:schedule-s1@ikrive');
-    expect(downloads).toHaveLength(0);
-    expect(screen.queryByText('No se ha podido abrir el archivo')).not.toBeInTheDocument();
+    const items = await screen.findAllByRole('menuitem');
+    expect(items.map((item) => item.textContent)).toEqual([
+      'Google Calendar',
+      'Outlook',
+      'Calendario del teléfono',
+    ]);
+    expect(screen.queryByRole('menuitem', { name: 'Descargar .ics' })).not.toBeInTheDocument();
   });
 
-  it('shows an error toast when the .ics cannot be saved', async () => {
+  it('native: adds the schedule event to the phone calendar', async () => {
     vi.stubEnv('MODE', 'native');
     setServerMode('https://ikrive.example.com', 'secret-token');
-    nativeFiles.saveFile.mockRejectedValue(new Error('No space left'));
+    nativeCalendar.createDeviceEvent.mockResolvedValue(undefined);
+    const downloads = vi.spyOn(HTMLAnchorElement.prototype, 'click');
     const { user } = setup();
 
     await user.click(trigger());
-    await user.click(await screen.findByRole('menuitem', { name: 'Descargar .ics' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Calendario del teléfono' }));
 
-    expect(await screen.findByText('No se ha podido abrir el archivo')).toBeInTheDocument();
+    await waitFor(() => expect(nativeCalendar.createDeviceEvent).toHaveBeenCalledTimes(1));
+    const expected = scheduleCalendarEvent({
+      schedule: schedule(),
+      vehicle: { id: 'v1', name: 'Renault Clio' },
+      baseUrl: 'https://ikrive.example.com',
+      locale: 'es',
+      distanceUnit: 'km',
+    });
+    expect(nativeCalendar.createDeviceEvent).toHaveBeenCalledWith(expected);
+    expect(nativeCalendar.createDeviceEvent.mock.calls[0]?.[0]).toMatchObject({
+      date: '2026-03-10',
+      title: 'Cambio de aceite · Renault Clio',
+      description: expect.stringContaining('https://ikrive.example.com/vehicles/v1'),
+    });
+    expect(downloads).not.toHaveBeenCalled();
+    expect(screen.queryByText('No se ha podido abrir el calendario del teléfono')).not.toBeInTheDocument();
+  });
+
+  it('native: shows an error toast when the phone calendar fails', async () => {
+    vi.stubEnv('MODE', 'native');
+    setServerMode('https://ikrive.example.com', 'secret-token');
+    nativeCalendar.createDeviceEvent.mockRejectedValue(new Error('No Activity found to handle Intent'));
+    const { user } = setup();
+
+    await user.click(trigger());
+    await user.click(await screen.findByRole('menuitem', { name: 'Calendario del teléfono' }));
+
+    expect(await screen.findByText('No se ha podido abrir el calendario del teléfono')).toBeInTheDocument();
   });
 
   it('explains why a schedule without date cannot be added', async () => {

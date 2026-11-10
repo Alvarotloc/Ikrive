@@ -42,10 +42,28 @@ test("declares the web's Capacitor plugins with the same versions", () => {
   const web = JSON.parse(read('../web/package.json')).dependencies;
   const mobile = JSON.parse(read('package.json')).dependencies;
   const plugins = Object.keys(web).filter(
-    (name) => /^@capacitor(-community)?\//.test(name) && name !== '@capacitor/core',
+    (name) => /^@(capacitor(-community)?|ebarooni)\//.test(name) && name !== '@capacitor/core',
   );
-  for (const name of ['@capacitor/filesystem', '@capacitor/share', '@capacitor-community/file-opener']) {
+  for (const name of [
+    '@capacitor/filesystem',
+    '@capacitor/share',
+    '@capacitor-community/file-opener',
+    '@capacitor/local-notifications',
+    '@ebarooni/capacitor-calendar',
+  ]) {
     assert.ok(plugins.includes(name), `${name} missing from apps/web`);
   }
   for (const name of plugins) assert.equal(mobile[name], web[name], `${name} version in apps/mobile`);
+});
+
+test('removes the exact alarm permission and declares no calendar permissions', () => {
+  const manifest = read('android/app/src/main/AndroidManifest.xml');
+  assert.match(manifest, /<manifest\b[^>]*\bxmlns:tools="http:\/\/schemas\.android\.com\/tools"/);
+  // @capacitor/local-notifications declares it; the manifest merger drops it from the APK.
+  assert.match(
+    manifest,
+    /<uses-permission\s+android:name="android\.permission\.SCHEDULE_EXACT_ALARM"\s+tools:node="remove"\s*\/>/,
+  );
+  // The phone calendar opens the system new-event screen: no calendar permissions.
+  assert.doesNotMatch(manifest, /READ_CALENDAR|WRITE_CALENDAR/);
 });
