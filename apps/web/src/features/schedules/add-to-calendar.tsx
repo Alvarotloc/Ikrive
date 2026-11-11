@@ -19,9 +19,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { downloadIcs } from '@/features/calendar/actions';
+import { addToDeviceCalendar, downloadIcs } from '@/features/calendar/actions';
 import { vehicleTitle } from '@/features/vehicles/display';
 import { useFormat } from '@/lib/format';
+import { isNativeApp } from '@/lib/platform';
 import { getServerUrl } from '@/lib/server';
 import { cn } from '@/lib/utils';
 
@@ -43,8 +44,9 @@ interface AddToCalendarMenuProps {
 }
 
 /**
- * «Add to calendar» for one schedule: Google Calendar, Outlook or an `.ics` download. Without a next
- * due date the button stays pressable (a real `disabled` shows nothing on phones) and explains why.
+ * «Add to calendar» for one schedule: Google Calendar, Outlook and an `.ics` download (in the native app,
+ * the phone calendar instead of the `.ics`). Without a next due date the button stays pressable (a real
+ * `disabled` shows nothing on phones) and explains why.
  */
 export function AddToCalendarMenu({ schedule, vehicle }: AddToCalendarMenuProps) {
   const { t, i18n } = useTranslation();
@@ -98,16 +100,27 @@ export function AddToCalendarMenu({ schedule, vehicle }: AddToCalendarMenuProps)
             {t('schedules.calendar.outlook')}
           </a>
         </DropdownMenuItem>
-        <DropdownMenuItem
-          onSelect={() => {
-            downloadIcs(`${slug(event.title)}.ics`, toICalendar([event], { now: new Date() })).catch(() =>
-              toast.error(t('common.fileError')),
-            );
-          }}
-        >
-          <Download aria-hidden />
-          {t('schedules.calendar.ics')}
-        </DropdownMenuItem>
+        {isNativeApp() ? (
+          <DropdownMenuItem
+            onSelect={() => {
+              addToDeviceCalendar(event).catch(() => toast.error(t('schedules.calendar.deviceError')));
+            }}
+          >
+            <CalendarPlus aria-hidden />
+            {t('schedules.calendar.device')}
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem
+            onSelect={() => {
+              downloadIcs(`${slug(event.title)}.ics`, toICalendar([event], { now: new Date() })).catch(() =>
+                toast.error(t('common.fileError')),
+              );
+            }}
+          >
+            <Download aria-hidden />
+            {t('schedules.calendar.ics')}
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

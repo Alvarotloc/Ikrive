@@ -43,3 +43,17 @@ test('documents native files and no longer lists them as a limitation', () => {
   assert.match(doc, /compartir/);
   assert.match(doc, /visor/);
 });
+
+test('documents the phone calendar and local notifications', () => {
+  const doc = read('docs/mobile.md');
+  // No longer a known limitation.
+  assert.doesNotMatch(doc, /notificaciones del sistema/);
+  assert.doesNotMatch(doc, /calendario nativo/);
+  assert.match(doc, /## Calendario y notificaciones/);
+  assert.match(doc, /Calendario del teléfono/);
+  assert.match(doc, /Permitir notificaciones/);
+  // Only while the app is open; with it closed, the notification channels.
+  assert.match(doc, /app abierta/);
+  assert.match(doc, /canales/);
+  for (const channel of ['ntfy', 'Gotify', 'Apprise', 'webhook']) assert.ok(doc.includes(channel), channel);
+});

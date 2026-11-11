@@ -428,6 +428,8 @@
       "google": "Google Calendar",
       "outlook": "Outlook",
       "ics": "Descargar .ics",
+      "device": "Calendario del teléfono",
+      "deviceError": "No se ha podido abrir el calendario del teléfono",
       "noDate": "No se puede añadir al calendario porque esta regla no tiene fecha: solo vence por kilómetros y todavía no hay lecturas suficientes para estimar cuándo."
     }
   },
@@ -485,6 +487,15 @@
     "errors": {
       "urlCredentials": "No pongas usuario ni contraseña en la URL: usa el campo token."
     }
+  },
+  "deviceNotifications": {
+    "title": "Notificaciones del teléfono",
+    "description": "Los avisos nuevos salen como notificaciones de Android mientras la app está abierta. Para recibirlos con la app cerrada, añade un canal de notificación.",
+    "checking": "Comprobando el permiso…",
+    "granted": "Activadas: los avisos nuevos se mostrarán en este teléfono.",
+    "prompt": "Desactivadas: la app todavía no tiene permiso para mostrar notificaciones.",
+    "allow": "Permitir notificaciones",
+    "denied": "Desactivadas: el permiso está denegado. Para activarlas, ve a Ajustes › Aplicaciones › Ikrive › Notificaciones."
   },
   "calendarFeed": {
     "title": "Calendario",

@@ -1,8 +1,27 @@
 import { DEFAULT_USER_SETTINGS, type Me, type UserSettings } from '@ikrive/shared';
 import { screen, waitFor, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
-import { mockApi, mockMediaQuery } from '@/test/render';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { mockApi, mockMediaQuery, setServerMode } from '@/test/render';
 import { renderApp } from '@/test/render-app';
+
+/**
+ * The phone notifications: only the layout and the settings card load it, and only in the native app.
+ * `loaded` turns true the first time it is imported (then it stays in the module cache: web tests go first).
+ */
+const native = vi.hoisted(() => ({
+  loaded: false,
+  getNotificationPermission: vi.fn(),
+  requestNotificationPermission: vi.fn(),
+  showNotifications: vi.fn(),
+}));
+vi.mock('@/lib/native-notifications', () => {
+  native.loaded = true;
+  return {
+    getNotificationPermission: native.getNotificationPermission,
+    requestNotificationPermission: native.requestNotificationPermission,
+    showNotifications: native.showNotifications,
+  };
+});
 
 const me: Me = { id: 'u1', name: 'Ana', email: 'ana@example.com', role: 'user' };
 
@@ -26,6 +45,11 @@ async function renderSettings() {
 }
 
 describe('settings page', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    native.getNotificationPermission.mockReset();
+  });
+
   it('saves the reminder hour', async () => {
     const { user, saved } = await renderSettings();
 
@@ -103,5 +127,27 @@ describe('settings page', () => {
     expect(link).toHaveAttribute('href', '/api/me/export');
     expect(link).toHaveAttribute('download');
     expect(screen.getByRole('button', { name: 'Importar datos' })).toBeInTheDocument();
+  });
+
+  it('web: hides the phone notifications card and never loads the native module', async () => {
+    await renderSettings();
+
+    expect(await screen.findByRole('heading', { name: 'Tus datos' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Notificaciones del teléfono' })).not.toBeInTheDocument();
+    expect(native.loaded).toBe(false);
+  });
+
+  it('native: shows the phone notifications card', async () => {
+    vi.stubEnv('MODE', 'native');
+    setServerMode('https://ikrive.example.com', 'secret-token');
+    // Already asked on an earlier launch: the layout does not ask again.
+    localStorage.setItem('ikrive.notificationPermissionAsked', '2026-11-09T08:00:00.000Z');
+    native.getNotificationPermission.mockResolvedValue('granted');
+    await renderSettings();
+
+    expect(await screen.findByRole('heading', { name: 'Notificaciones del teléfono' })).toBeInTheDocument();
+    expect(await screen.findByText(/^Activadas/)).toBeInTheDocument();
+    expect(native.loaded).toBe(true);
+    expect(native.requestNotificationPermission).not.toHaveBeenCalled();
   });
 });
