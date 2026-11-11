@@ -21,6 +21,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { openApiFile, saveApiFile } from '@/lib/api-files';
+import { isNativeApp } from '@/lib/platform';
 import { isServerMode } from '@/lib/server';
 import { AttachmentPicker } from './attachment-picker';
 import { AttachmentViewer } from './attachment-viewer';
@@ -149,7 +150,10 @@ function AttachmentCard({
       <FileText aria-hidden className="size-10" />
     </span>
   );
-  const openPdfLabel = t('maintenance.attachments.openPdf', { name });
+  // The app opens PDFs with the system viewer (`native-files.ts`), not in a new tab.
+  const openPdfLabel = isNativeApp()
+    ? t('maintenance.attachments.openPdfNative', { name })
+    : t('maintenance.attachments.openPdf', { name });
   const downloadLabel = t('maintenance.attachments.downloadLabel', { name });
   const downloadClassName = 'absolute top-3 left-3 size-9 bg-card/90 text-foreground shadow-sm hover:bg-card';
 

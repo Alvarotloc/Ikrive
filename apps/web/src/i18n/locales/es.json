@@ -332,6 +332,7 @@
       "deleteDescription": "Se borrará el fichero de la factura. No se puede deshacer.",
       "view": "Ver «{{name}}»",
       "openPdf": "Abrir «{{name}}» en una pestaña nueva",
+      "openPdfNative": "Abrir «{{name}}» con el visor del sistema",
       "download": "Descargar",
       "downloadLabel": "Descargar «{{name}}»",
       "viewerError": "No se ha podido cargar la imagen.",

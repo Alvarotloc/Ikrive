@@ -332,6 +332,7 @@
       "deleteDescription": "The invoice file will be erased. This can't be undone.",
       "view": "View “{{name}}”",
       "openPdf": "Open “{{name}}” in a new tab",
+      "openPdfNative": "Open “{{name}}” with the system viewer",
       "download": "Download",
       "downloadLabel": "Download “{{name}}”",
       "viewerError": "The image couldn't be loaded.",
