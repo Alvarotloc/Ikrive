@@ -579,3 +579,12 @@
 - **Tests:** los tests nativos de `maintenance-attachments.test.tsx` buscan la etiqueta nueva y comprueban que no hay botón con «pestaña nueva»; los web siguen exigiendo «pestaña nueva». Web 450, API 368. `pnpm harness --full` en verde.
 - **Revisión:** APPROVED a la primera (`progress/review_native-open-pdf-label.md`). Aviso no bloqueante: la comprobación negativa solo mira `button` (en nativo siempre es botón).
 - **Gate 2:** «merge» del humano → PR; lo integra el humano en GitHub.
+
+## 2026-11-11 — #60 pwa-precache-skip-native
+
+- **Rama:** `feat/pwa-precache-skip-native` (`sdd: false`, sin spec ni Gate 1). Aviso del reviewer en Gate 2 de #55; el humano amplía el alcance a todo el código exclusivo de la app (`native-calendar` y `native-notifications` de #52).
+- **Cambios:** `features/pwa/config.ts` con `NATIVE_CHUNKS_DIR = 'assets/native/'`, `nativeChunkFileNames` (un chunk va a `assets/native/` solo si todos sus módulos son `lib/native-{files,calendar,notifications}.ts` o paquetes `@capacitor`, `@capacitor-community` y `@ebarooni`) y `globIgnores: ['assets/native/**']`; `vite.config.ts` aplica `chunkFileNames` solo fuera de `--mode native`. Carpeta en vez de prefijo de nombre (ningún chunk propio puede coincidir).
+- **Verificación:** 8 chunks (~36 kB) en `assets/native/`; precache de 94 a 86 entradas (1823 → 1788 KiB); build nativo idéntico (`diff -r`). Web 454, API 368. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED a la primera (`progress/review_pwa-precache-skip-native.md`), con el build reproducido.
+- **Pendientes:** #64 `native-chunks-guard` (test que detecte módulos nativos no listados y regla «la web no importa Capacitor de forma estática»), añadida al backlog.
+- **Gate 2:** «merge» del humano → PR; lo integra el humano en GitHub.
