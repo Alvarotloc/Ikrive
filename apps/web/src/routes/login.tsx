@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { AuthLayout } from '@/features/auth/auth-layout';
 import { meQuery } from '@/features/auth/queries';
 import { signInErrorKey } from '@/features/auth/sign-in-error';
+import { startSession } from '@/features/auth/start-session';
 import { requireServer } from '@/features/mobile/require-server';
 import { ServerLink } from '@/features/mobile/server-link';
 import { RouteErrorScreen } from '@/features/pwa/route-error';
@@ -38,8 +39,7 @@ function LoginPage() {
     setError(null);
     const { error } = await authClient.signIn.email(values);
     if (error) return setError(t(signInErrorKey(error)));
-    // ensureQueryData would return the cached anonymous result, so fetch the new session explicitly.
-    await queryClient.fetchQuery({ ...meQuery, staleTime: 0 });
+    await startSession(queryClient);
     await navigate({ to: '/' });
   });
 

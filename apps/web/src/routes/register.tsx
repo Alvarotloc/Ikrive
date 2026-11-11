@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AuthLayout } from '@/features/auth/auth-layout';
 import { meQuery } from '@/features/auth/queries';
+import { startSession } from '@/features/auth/start-session';
 import { requireServer } from '@/features/mobile/require-server';
 import { RouteErrorScreen } from '@/features/pwa/route-error';
 import { authClient } from '@/lib/auth-client';
@@ -40,8 +41,7 @@ function RegisterPage() {
     setError(null);
     const { error } = await authClient.signUp.email(values);
     if (error) return setError(error.message ?? t('common.error'));
-    // ensureQueryData would return the cached anonymous result, so fetch the new session explicitly.
-    await queryClient.fetchQuery({ ...meQuery, staleTime: 0 });
+    await startSession(queryClient);
     await navigate({ to: '/' });
   });
 
