@@ -10,7 +10,7 @@
 
 - [x] T4 — `apps/web/src/lib/native-calendar.ts`: `calendarPromptOptions` y `createDeviceEvent` según `design.md`. Cubre: R3, R4.
 - [x] T5 — `apps/web/src/features/calendar/actions.ts`: `addToDeviceCalendar(event)` con `await import('@/lib/native-calendar')`. `apps/web/src/features/schedules/add-to-calendar.tsx`: en la app, item «Calendario del teléfono» en lugar del `.ics`, con toast `schedules.calendar.deviceError` si falla; en la web, sin cambios. Cubre: R1, R2, R3, R5.
-- [x] T6 — Test unitario `apps/web/src/lib/native-calendar.test.ts` (con `vi.mock('@ebarooni/capacitor-calendar')`): `builds all-day options from local midnight to the next local midnight`, `opens the system new-event screen with the title and description`, `rejects when the plugin fails`. Cubre: R3, R4.
+- [x] T6 — Test unitario `apps/web/src/lib/native-calendar.test.ts` (con `vi.mock('@ebarooni/capacitor-calendar')`): `builds all-day options that start and end at the local midnight of the event day`, `opens the system new-event screen with the title and description`, `rejects when the plugin fails`. Cubre: R3, R4.
 - [x] T7 — En `apps/web/src/features/schedules/add-to-calendar.test.tsx` (con `vi.mock('@/lib/native-calendar')` y un flag `loaded`): `web: offers Google, Outlook and .ics without loading the native calendar`, `native: offers the phone calendar instead of the .ics`, `native: adds the schedule event to the phone calendar` (afirma el `CalendarEvent` de `scheduleCalendarEvent`), `native: shows an error toast when the phone calendar fails`. Sustituir los tests nativos del `.ics` de #55 que ya no aplican. Cubre: R1, R2, R3, R5.
 
 ## Notificaciones: lógica y módulo nativo

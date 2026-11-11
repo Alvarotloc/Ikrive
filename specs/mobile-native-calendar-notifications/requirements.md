@@ -16,7 +16,7 @@ MIENTRAS se ejecuta la app nativa, el menú «Añadir al calendario» DEBE mostr
 CUANDO el usuario elige «Calendario del teléfono», el sistema DEBE abrir la pantalla de nuevo evento del calendario del sistema con el título y la descripción del evento de `scheduleCalendarEvent` de `packages/shared`, de día completo.
 
 ## R4
-`calendarPromptOptions(event)` DEBE devolver `isAllDay: true`, `startDate` = medianoche local de `event.date` y `endDate` = medianoche local del día siguiente (en milisegundos).
+`calendarPromptOptions(event)` DEBE devolver `isAllDay: true`, `startDate` = medianoche local de `event.date` y `endDate` = `startDate` (en milisegundos), para que la app de calendario muestre el evento en un solo día.
 
 ## R5
 SI abrir el calendario del sistema falla ENTONCES el sistema DEBE mostrar un toast de error `schedules.calendar.deviceError`.
