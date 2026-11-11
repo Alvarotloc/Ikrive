@@ -527,9 +527,11 @@ describe('MaintenanceAttachmentsDialog', () => {
         [`GET ${BASE}/a2`]: { body: new Blob(['%PDF-1.7'], { type: 'application/pdf' }) },
       });
 
+      // The label announces the system viewer, not a new tab.
       await user.click(
-        await screen.findByRole('button', { name: 'Abrir «factura.pdf» en una pestaña nueva' }),
+        await screen.findByRole('button', { name: 'Abrir «factura.pdf» con el visor del sistema' }),
       );
+      expect(screen.queryByRole('button', { name: /pestaña nueva/ })).not.toBeInTheDocument();
 
       await waitFor(() => expect(nativeFiles.openFile).toHaveBeenCalledTimes(1));
       const [name, blob] = nativeFiles.openFile.mock.calls[0] ?? [];
@@ -547,7 +549,7 @@ describe('MaintenanceAttachmentsDialog', () => {
       nativeFiles.openFile.mockRejectedValue(new Error('No app to open this file'));
 
       await user.click(
-        await screen.findByRole('button', { name: 'Abrir «factura.pdf» en una pestaña nueva' }),
+        await screen.findByRole('button', { name: 'Abrir «factura.pdf» con el visor del sistema' }),
       );
 
       expect(await screen.findByText('No se ha podido abrir el archivo')).toBeInTheDocument();
