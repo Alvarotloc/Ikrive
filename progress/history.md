@@ -562,3 +562,12 @@
 - **Pendientes:** #62 `native-notification-open-link` y #63 `notifications-cache-per-user` (caché de avisos de otra cuenta tras caducar la sesión), añadidas al backlog. Sin test explícito de StrictMode.
 - **Gate 2:** «merge» del humano → PR para probar la APK; lo integra el humano en GitHub.
 - **Reapertura en Gate 2 (2026-11-11):** el punto 7 de la checklist falló (evento de día completo del 24 al 25 en Google Calendar, que trata `END_TIME` del intent como inclusivo). Plan B del diseño: `endDate = startDate` en `lib/native-calendar.ts`; R4, decisión 2 y riesgo actualizados; tests con zonas horarias, cambio de hora y fin de mes/año. Reviewer: APPROVED. Pendiente: repetir el punto 7 con la nueva APK del PR (y, si se puede, en otra app de calendario por si muestra duración cero).
+
+## 2026-11-11 — #63 notifications-cache-per-user
+
+- **Rama:** `feat/notifications-cache-per-user` (`sdd: false`, sin spec ni Gate 1). Aviso 2 del reviewer en Gate 2 de #52.
+- **Cambios:** `features/auth/start-session.ts` (`startSession(queryClient)`: `queryClient.clear()` + `fetchQuery(meQuery)`), usado tras el sign-in (`routes/login.tsx`) y el sign-up (`routes/register.tsx`). Vacía toda la caché de datos de usuario (avisos, vehículos, ajustes…), igual que `useLogout` y `useChangeServer`.
+- **Tests:** test nuevo en `login-page.test.tsx` (sesión de Ana caducada sin `useLogout`, entra Berta en la app nativa: ni su vehículo ni su aviso, `showNotifications` y el corte `deviceNotifications.u2` solo con datos de Berta); falla sin el arreglo. Web 450, API 368. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED a la primera (`progress/review_notifications-cache-per-user.md`). Avisos no bloqueantes: el registro no tiene test propio; la campana se cubre de forma indirecta (comparte `notificationsQuery`).
+- **Pendientes:** fuera de alcance, en la web con varias pestañas un cambio de cuenta en otra pestaña no vacía la caché de la abierta (no afecta a la app nativa).
+- **Gate 2:** «merge» del humano → PR; lo integra el humano en GitHub.
