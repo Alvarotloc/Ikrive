@@ -69,3 +69,37 @@ Ninguno bloqueante.
 ## Cambios requeridos
 
 Ninguno.
+
+---
+
+## Reapertura en Gate 2 (2026-11-11)
+
+**Veredicto:** APPROVED
+
+Alcance revisado: solo los cambios sin commitear (`git diff`) del arreglo del punto 7 de la checklist manual: un evento de día completo salía del 24 al 25 en Google Calendar.
+
+### Trazabilidad requirements ↔ tests
+- R4 (actualizado): [x] `apps/web/src/lib/native-calendar.test.ts` › `builds all-day options that start and end at the local midnight of the event day`. Afirma valores exactos: en America/New_York, `endDate` = `startDate` = `2026-03-10T04:00Z`; en Europe/Madrid, `endDate === startDate`. También cubre los días del cambio de hora (29-03 a `2026-03-28T23:00Z` y 30-03 a `2026-03-29T22:00Z`, con offsets distintos) y los fines de mes y de año (31-12, 31-01, 28-02): inicio y fin caen a las 00:00 locales del mismo día. Con el código anterior el test fallaría, así que discrimina bien.
+- R3: [x] `opens the system new-event screen with the title and description` espera ahora `endDate` = `startDate` en la llamada a `createEventWithPrompt`.
+- Resto de R<n>: sin cambios respecto a la review anterior.
+
+### Tasks
+- T6: [x], con el nuevo nombre del test. El resto sigue `[x]`.
+
+### Checkpoints
+- C1: [x] El arnés pasa en verde, solo #52 está `in_progress` y la rama es `feat/mobile-native-calendar-notifications`.
+- C2: [x] R4 sigue en EARS (un solo `DEBE`). La decisión 2, el riesgo, `tasks.md` y la tabla de `impl` son coherentes con el código.
+- C3: [x] El diff toca solo `lib/native-calendar.ts`, su test, el spec y `progress/`/`feature_list.json` (cambio de estado). Quitar el parámetro `days` de `localMidnight` es una consecuencia directa del cambio, no un refactor ajeno.
+- C4: [x] No aplica fuera de la web; no hay textos nuevos.
+- C5: [x] Sin `any`, `@ts-ignore` ni restos de depuración, y las fechas siguen como `YYYY-MM-DD`.
+- C6: [x] `pnpm harness --full` en verde (web 449, api 368). No hay cambios de UI, así que no hacen falta capturas.
+- C7: [x] Bitácora en `progress/current.md` y sección «Reapertura en Gate 2» en `impl`.
+
+### Hallazgos
+Ninguno. Comprobado en el plugin (`CreateEventWithPromptInput.kt` de `@ebarooni/capacitor-calendar` 8.10.0): `endDate` se pasa tal cual a `EXTRA_EVENT_END_TIME` junto con `EXTRA_EVENT_ALL_DAY`, así que el cambio llega al intent como describe el diseño. `docs/mobile.md` no menciona el fin del evento, así que no hay que tocarlo.
+
+### Avisos para el humano (no bloquean)
+- Ningún test automático puede verificar el arreglo: solo se confirma repitiendo el punto 7 de la checklist con la nueva APK de CI. Si se puede, pruébalo también en otra app de calendario por el riesgo residual que recoge `design.md` (un evento de duración cero).
+
+### Cambios requeridos
+Ninguno.

@@ -41,7 +41,7 @@ Rama `feat/mobile-native-calendar-notifications`, sin commits. T1–T20 marcadas
 | R1 | `apps/web/src/features/schedules/add-to-calendar.test.tsx` › `web: offers Google, Outlook and .ics without loading the native calendar` (también `downloads an .ics file`) |
 | R2 | `add-to-calendar.test.tsx` › `native: offers the phone calendar instead of the .ics` |
 | R3 | `add-to-calendar.test.tsx` › `native: adds the schedule event to the phone calendar`; `apps/web/src/lib/native-calendar.test.ts` › `opens the system new-event screen with the title and description` |
-| R4 | `native-calendar.test.ts` › `builds all-day options from local midnight to the next local midnight` (America/New_York, Europe/Madrid, cambio de hora, fin de año) |
+| R4 | `native-calendar.test.ts` › `builds all-day options that start and end at the local midnight of the event day` (America/New_York, Europe/Madrid, cambio de hora, fin de mes y de año) |
 | R5 | `add-to-calendar.test.tsx` › `native: shows an error toast when the phone calendar fails`; `native-calendar.test.ts` › `rejects when the plugin fails` |
 | R6 | `apps/web/src/features/settings/settings-page.test.tsx` › `web: hides the phone notifications card and never loads the native module` (layout + ajustes con `renderApp`) |
 | R7 | `apps/web/src/features/notifications/device-notifications-sync.test.tsx` › `asks for the permission once on first launch`, `does not ask again on later launches`; `apps/web/src/lib/native-notifications.test.ts` › `maps the plugin permission states`, `requests the permission` |
@@ -104,3 +104,25 @@ Rama `feat/mobile-native-calendar-notifications`, sin commits. T1–T20 marcadas
 - **`showNotifications([])` no llama al plugin.** El componente ya no lo invoca sin avisos nuevos; es una salvaguarda.
 - **`docs/mobile.md` › «Ficheros»** ya no menciona el `.ics` de «Añadir al calendario», porque en la app esa opción ya no existe. Es un ajuste de texto dentro de la misma tarea T18.
 - Sin cambios en la API, la BD ni `packages/shared`.
+
+## Reapertura en Gate 2 (2026-11-11)
+
+**Motivo:** punto 7 de la checklist manual con la APK debug de CI. «Calendario del teléfono» en una regla que vence el 24 abría Google Calendar con un evento de día completo del 24 al 25. Google Calendar trata `END_TIME` del intent `ACTION_INSERT` como inclusivo en los eventos de día completo, así que el fin exclusivo (medianoche del día siguiente, como `toICalendar`) añadía un día. Se aplica el plan B del riesgo «Fechas de día completo» de `design.md`.
+
+**Cambios:**
+
+- `apps/web/src/lib/native-calendar.ts`: `calendarPromptOptions` devuelve `endDate` = `startDate` (medianoche local de `event.date`). `localMidnight` pierde el parámetro `days`, que ya no se usa. El JSDoc explica el motivo.
+- `apps/web/src/lib/native-calendar.test.ts`: el test pasa a llamarse `builds all-day options that start and end at the local midnight of the event day`. Comprueba America/New_York (zona UTC−), Europe/Madrid, los días alrededor del cambio de hora (29 y 30 de marzo, con offsets distintos) y los finales de mes y de año (31-12, 31-01, 28-02): inicio y fin caen a las 00:00 locales del mismo día, nunca del siguiente. `opens the system new-event screen…` espera ahora el mismo `endDate` que `startDate`.
+- `specs/mobile-native-calendar-notifications/requirements.md`: R4 pasa a decir `endDate` = `startDate`.
+- `specs/mobile-native-calendar-notifications/design.md`: la decisión 2 recoge el cambio y deja la versión inicial como descartada, con el motivo. El riesgo queda como materializado, con el riesgo residual (otra app de calendario que espere un fin exclusivo podría mostrar un evento de duración cero; se revisa en el punto 7).
+- `specs/mobile-native-calendar-notifications/tasks.md` (T6) y la tabla de trazabilidad de este archivo: nuevo nombre del test de R4.
+- El punto 7 de la checklist manual no cambia: ya exige «en el día correcto (uno solo)». El humano tiene que repetirlo con la nueva APK de CI.
+
+**`pnpm harness --full`:**
+
+```
+[OK]    pnpm lint
+[OK]    pnpm typecheck
+[OK]    pnpm test          web 449 · api 368 (+ shared, mobile, e2e unit en verde)
+[OK]    Arnés en verde.
+```
