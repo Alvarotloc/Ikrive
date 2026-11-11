@@ -4,7 +4,7 @@ import { tanstackRouter } from '@tanstack/router-plugin/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
-import { pwaManifest, pwaWorkbox } from './src/features/pwa/config.ts';
+import { nativeChunkFileNames, pwaManifest, pwaWorkbox } from './src/features/pwa/config.ts';
 
 // `--mode native` is the build of the Android app (`build:native`, `isNativeApp()`): no PWA in it.
 export default defineConfig(({ mode }) => ({
@@ -24,6 +24,9 @@ export default defineConfig(({ mode }) => ({
       disable: mode === 'native',
     }),
   ],
+  // Web build only: the native-only chunks get their own folder so the SW does not precache them
+  // (`pwaWorkbox.globIgnores`). The native build keeps Vite's default names.
+  build: mode === 'native' ? {} : { rolldownOptions: { output: { chunkFileNames: nativeChunkFileNames } } },
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   server: {
     port: 5173,

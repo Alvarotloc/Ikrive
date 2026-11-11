@@ -20,9 +20,39 @@ export const pwaManifest: Partial<ManifestOptions> = {
 /** Paths the SW must never answer: every API request, public report PDFs included. */
 export const API_PATH = /^\/api\//;
 
-/** Workbox `generateSW` options: precache the app shell and serve `index.html` for SPA navigations. */
+/**
+ * Folder of the web build where the chunks of the native-only code go (`nativeChunkFileNames`). The other
+ * chunks are written straight into `assets/`, so no chunk of the web can land here by its name.
+ */
+export const NATIVE_CHUNKS_DIR = 'assets/native/';
+
+/**
+ * Modules that only the native app runs: the `lib/native-*.ts` loaded through `import()` when
+ * `isNativeApp()` and the Capacitor packages they import (core and plugins, web fallbacks included).
+ */
+const NATIVE_ONLY_MODULES = [
+  /\/src\/lib\/native-(files|calendar|notifications)\.ts$/,
+  /\/node_modules\/(@capacitor|@capacitor-community|@ebarooni)\//,
+];
+
+const isNativeOnlyModule = (id: string) => NATIVE_ONLY_MODULES.some((pattern) => pattern.test(id));
+
+/**
+ * `chunkFileNames` of the web build: a chunk made only of native-only modules goes to
+ * `NATIVE_CHUNKS_DIR`, any other chunk (even one that mixes both) keeps Vite's default name.
+ */
+export function nativeChunkFileNames(chunk: { moduleIds: readonly string[] }): string {
+  const nativeOnly = chunk.moduleIds.length > 0 && chunk.moduleIds.every(isNativeOnlyModule);
+  return nativeOnly ? `${NATIVE_CHUNKS_DIR}[name]-[hash].js` : 'assets/[name]-[hash].js';
+}
+
+/**
+ * Workbox `generateSW` options: precache the app shell and serve `index.html` for SPA navigations. The
+ * native-only chunks are left out: the web never requests them.
+ */
 export const pwaWorkbox: VitePWAOptions['workbox'] = {
   globPatterns: ['**/*.{js,css,html,woff2,png,ico,webmanifest}'],
+  globIgnores: [`${NATIVE_CHUNKS_DIR}**`],
   navigateFallback: 'index.html',
   navigateFallbackDenylist: [API_PATH],
   cleanupOutdatedCaches: true,

@@ -975,16 +975,16 @@
       "name": "pwa-precache-skip-native",
       "phase": "8",
       "title": "Excluir los chunks nativos del precache de la PWA",
-      "description": "Aviso del reviewer en Gate 2 de #55. El build web emite los chunks de lib/native-files.ts y de los plugins de Capacitor (~18 KB) y el service worker los precachea aunque la web nunca los carga. El reviewer desaconseja un patrón como web-*.js (puede coincidir con chunks propios) y propone darles un prefijo propio con chunkFileNames y excluirlo en features/pwa/config.ts.",
+      "description": "Aviso del reviewer en Gate 2 de #55, ampliado tras #52. El build web emite los chunks del código exclusivo de la app (lib/native-files.ts, lib/native-calendar.ts, lib/native-notifications.ts y los plugins de Capacitor que cargan) y el service worker los precachea aunque la web nunca los carga. El reviewer desaconseja un patrón como web-*.js (puede coincidir con chunks propios) y propone darles un prefijo propio con chunkFileNames y excluirlo en features/pwa/config.ts.",
       "acceptance": [
-        "Los chunks de lib/native-files.ts y de los plugins de Capacitor salen del build web con un prefijo propio",
+        "Los chunks de todo el código exclusivo de la app (lib/native-files.ts, lib/native-calendar.ts, lib/native-notifications.ts y los plugins de Capacitor) salen del build web con un prefijo propio",
         "El precache del service worker de la PWA no incluye esos chunks y sigue incluyendo el resto",
         "El build nativo (--mode native) no cambia de comportamiento",
         "Un test comprueba la exclusión en la configuración de la PWA",
         "pnpm harness --full pasa en verde"
       ],
       "sdd": false,
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 61,
@@ -1080,6 +1080,20 @@
       ],
       "sdd": false,
       "status": "done"
+    },
+    {
+      "id": 64,
+      "name": "native-chunks-guard",
+      "phase": "8",
+      "title": "Vigilar la lista de código exclusivo de la app",
+      "description": "Avisos 2 y 3 del reviewer en Gate 2 de #60. NATIVE_ONLY_MODULES (apps/web/src/features/pwa/config.ts) se mantiene a mano: un lib/native-<nuevo>.ts o un plugin de un scope nuevo (como @ebarooni) volvería a precachearse sin avisar. Y si la web importara Capacitor de forma estática, su chunk podría acabar en assets/native/ y no estar disponible offline.",
+      "acceptance": [
+        "Un test recorre src/lib/native-*.ts y las dependencies de apps/mobile/package.json (salvo @capacitor/android y @capacitor/cli) y falla si nativeChunkFileNames no manda alguno a assets/native/",
+        "Queda documentado (JSDoc de NATIVE_ONLY_MODULES y CONTRIBUTING.md) que la web no importa Capacitor ni lib/native-* de forma estática",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
+      "status": "pending"
     }
   ]
 }
