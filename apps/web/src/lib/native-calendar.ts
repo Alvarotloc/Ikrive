@@ -11,16 +11,17 @@
 import { CapacitorCalendar } from '@ebarooni/capacitor-calendar';
 import type { CalendarEvent } from '@ikrive/shared';
 
-/** Local midnight of a `YYYY-MM-DD` date, `days` later, in milliseconds. */
-function localMidnight(date: string, days = 0): number {
+/** Local midnight of a `YYYY-MM-DD` date, in milliseconds. */
+function localMidnight(date: string): number {
   const [year, month, day] = date.split('-').map(Number);
-  return new Date(year ?? 1970, (month ?? 1) - 1, (day ?? 1) + days).getTime();
+  return new Date(year ?? 1970, (month ?? 1) - 1, day ?? 1).getTime();
 }
 
 /**
- * Options of the system «new event» screen: all day, from the local midnight of `event.date` to the next
- * one (exclusive end, as in `toICalendar`). Android edit screens read all-day times in the local zone, so
- * the UTC midnight would land on the previous day in UTC− zones.
+ * Options of the system «new event» screen: all day, starting and ending at the local midnight of
+ * `event.date`. Google Calendar treats the intent's `END_TIME` as inclusive for all-day events, so the next
+ * midnight (the exclusive end of `toICalendar`) would show the event on two days. Android edit screens read
+ * all-day times in the local zone, so the UTC midnight would land on the previous day in UTC− zones.
  */
 export function calendarPromptOptions(event: CalendarEvent): {
   title: string;
@@ -29,12 +30,13 @@ export function calendarPromptOptions(event: CalendarEvent): {
   startDate: number;
   endDate: number;
 } {
+  const startDate = localMidnight(event.date);
   return {
     title: event.title,
     description: event.description,
     isAllDay: true,
-    startDate: localMidnight(event.date),
-    endDate: localMidnight(event.date, 1),
+    startDate,
+    endDate: startDate,
   };
 }
 
