@@ -571,3 +571,11 @@
 - **Revisión:** APPROVED a la primera (`progress/review_notifications-cache-per-user.md`). Avisos no bloqueantes: el registro no tiene test propio; la campana se cubre de forma indirecta (comparte `notificationsQuery`).
 - **Pendientes:** fuera de alcance, en la web con varias pestañas un cambio de cuenta en otra pestaña no vacía la caché de la abierta (no afecta a la app nativa).
 - **Gate 2:** «merge» del humano → PR; lo integra el humano en GitHub.
+
+## 2026-11-11 — #59 native-open-pdf-label
+
+- **Rama:** `feat/native-open-pdf-label` (`sdd: false`, sin spec ni Gate 1). Aviso del reviewer en Gate 2 de #55.
+- **Cambios:** `maintenance-attachments.tsx` usa `maintenance.attachments.openPdfNative` («Abrir «{{name}}» con el visor del sistema» / "Open “{{name}}” with the system viewer") cuando `isNativeApp()`; en la web sigue `openPdf` («en una pestaña nueva»). Era la única etiqueta que mencionaba una pestaña nueva.
+- **Tests:** los tests nativos de `maintenance-attachments.test.tsx` buscan la etiqueta nueva y comprueban que no hay botón con «pestaña nueva»; los web siguen exigiendo «pestaña nueva». Web 450, API 368. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED a la primera (`progress/review_native-open-pdf-label.md`). Aviso no bloqueante: la comprobación negativa solo mira `button` (en nativo siempre es botón).
+- **Gate 2:** «merge» del humano → PR; lo integra el humano en GitHub.
