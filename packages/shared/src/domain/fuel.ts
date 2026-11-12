@@ -33,3 +33,21 @@ export function resolveFuelPrices({ quantity, totalPrice, pricePerUnit }: FuelPr
   if (pricePerUnit !== undefined) return { totalPrice: round(quantity * pricePerUnit, 2), pricePerUnit };
   throw new Error('Either the total price or the price per unit is required');
 }
+
+/**
+ * Prices of an edited fuel log. Both sent: kept as they are. One sent: the other one is recomputed
+ * from the resulting quantity. Only the quantity sent: the total is kept and the price per unit
+ * recomputed. Neither: nothing changes (`{}`).
+ */
+export function editedFuelPrices(
+  stored: { quantity: number; totalPrice: number },
+  { quantity, totalPrice, pricePerUnit }: { quantity?: number; totalPrice?: number; pricePerUnit?: number },
+): { totalPrice?: number; pricePerUnit?: number } {
+  if (totalPrice !== undefined && pricePerUnit !== undefined) return { totalPrice, pricePerUnit };
+  const resulting = quantity ?? stored.quantity;
+  if (totalPrice !== undefined) return resolveFuelPrices({ quantity: resulting, totalPrice });
+  if (pricePerUnit !== undefined) return resolveFuelPrices({ quantity: resulting, pricePerUnit });
+  if (quantity !== undefined)
+    return resolveFuelPrices({ quantity: resulting, totalPrice: stored.totalPrice });
+  return {};
+}

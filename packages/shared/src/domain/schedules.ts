@@ -104,3 +104,45 @@ export function computeScheduleDue(
 
   return { nextDueDate, nextDueDateEstimated, nextDueOdometer, status };
 }
+
+/**
+ * New last done values of the schedule a maintenance record fulfils: the record's date and odometer,
+ * or null when the record is older than the schedule's last done date (an older one does not move it).
+ */
+export function scheduleLastDoneUpdate(
+  schedule: { lastDoneDate: string },
+  record: { date: string; odometer: number | null },
+): { date: string; odometer: number | null } | null {
+  return record.date >= schedule.lastDoneDate ? { date: record.date, odometer: record.odometer } : null;
+}
+
+/**
+ * Last done values of a new schedule. Without a last done date or odometer, each one starts at the
+ * vehicle purchase or, when the vehicle has none, at today and the latest reading. A `null` odometer
+ * in the input is kept.
+ */
+export function scheduleDefaults(
+  input: { lastDoneDate?: string; lastDoneOdometer?: number | null },
+  vehicle: { purchaseDate: string | null; purchaseOdometer: number | null },
+  readings: readonly OdometerPoint[],
+  today: string,
+): { lastDoneDate: string; lastDoneOdometer: number | null } {
+  return {
+    lastDoneDate: input.lastDoneDate ?? vehicle.purchaseDate ?? today,
+    lastDoneOdometer:
+      input.lastDoneOdometer !== undefined
+        ? input.lastDoneOdometer
+        : (vehicle.purchaseOdometer ?? latestOdometerReading(readings)?.value ?? null),
+  };
+}
+
+/** Whether an edited schedule still has an interval in months or distance. */
+export function hasIntervalAfterUpdate(
+  schedule: { intervalMonths: number | null; intervalDistance: number | null },
+  input: { intervalMonths?: number | null; intervalDistance?: number | null },
+): boolean {
+  const intervalMonths = input.intervalMonths === undefined ? schedule.intervalMonths : input.intervalMonths;
+  const intervalDistance =
+    input.intervalDistance === undefined ? schedule.intervalDistance : input.intervalDistance;
+  return intervalMonths != null || intervalDistance != null;
+}
