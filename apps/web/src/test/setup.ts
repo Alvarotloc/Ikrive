@@ -26,6 +26,9 @@ const { default: i18n } = await import('@/i18n');
 // is still imported here, before any test, as a safeguard: should it ever keep the `fetch` it sees on
 // import again, it would get the deferred one and not the `mockApi` stub of the first test that loads it.
 await import('@/lib/auth-client');
+const { setDataSource } = await import('@/lib/data-source');
+const { httpDataSource } = await import('@/lib/data-source/http');
+const { forgetLocalDataSource } = await import('@/features/mobile/local-mode');
 
 // Component tests always run in Spanish, whatever the machine's locale.
 await i18n.changeLanguage('es');
@@ -39,8 +42,11 @@ afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
-  // Back to same-origin mode (no server URL nor token) for the next test.
+  // Back to same-origin mode (no server URL nor token, no local mode flag) for the next test, with the
+  // HTTP `DataSource` and without the local database a test may have opened.
   localStorage.clear();
+  setDataSource(httpDataSource);
+  forgetLocalDataSource();
   const unmocked = takeUnmockedRequests();
   if (unmocked.length > 0) throw new Error(unmocked.join('\n'));
 });
