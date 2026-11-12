@@ -10,7 +10,6 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "job": "tsx --env-file-if-exists=../../.env src/job.ts",
-    "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --env-file-if-exists=../../.env src/db/migrate.ts"
   },
   "dependencies": {
@@ -38,12 +37,12 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@ikrive/db": "workspace:*",
     "@ikrive/shared": "workspace:*",
     "@types/better-sqlite3": "^9.6.0",
     "@types/react": "^19.3.0",
     "@types/yauzl": "^3.4.0",
     "@types/yazl": "^3.3.1",
-    "drizzle-kit": "^0.31.11",
     "tsup": "^8.5.1",
     "tsx": "^4.23.15",
     "unpdf": "^2.1.0"
