@@ -228,7 +228,10 @@ Los enums ya están definidos en `packages/shared/src/enums.ts`.
 #### Etapa 2: «En este teléfono»
 - **`web-data-layer` (#53):** la web accede a los datos a través de una interfaz (HTTP o local) en lugar de llamar a `api` desde cada `queries.ts`. Las reglas que hoy solo están en la API y que el modo local necesita (p. ej. la sincronización del odómetro con mantenimientos y repostajes) pasan a `packages/shared`. Sin cambios visibles.
 - **`mobile-local-mode` (#54):** datos en SQLite en el dispositivo, sin cuenta ni servidor, con la misma interfaz de #53. Paso del modo local a un servidor con el zip de export/import de la fase 7.
-- **Pendiente de decidir antes de la etapa 2:** qué hace el modo local sin los jobs del servidor (recordatorios y aviso de km) y sin los enlaces públicos (informe y feed iCal), y si se ofrece el paso inverso (servidor → teléfono).
+- **Decisiones de la etapa 2** (2026-11-12):
+  - **Recordatorios y aviso de km sin jobs:** se calculan al abrir la app o volver a primer plano, con funciones puras de `packages/shared` (las mismas reglas que los jobs del servidor), se guardan en la bandeja local y se muestran con las notificaciones locales de #52.
+  - **Enlaces públicos:** el modo local oculta «compartir enlace» del informe y el feed iCal; quedan la descarga del PDF del informe y «Añadir al calendario» nativo.
+  - **Paso inverso (servidor → teléfono):** no por ahora; solo local → servidor con el zip de export/import.
 
 ## Diseño
 
