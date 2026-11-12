@@ -1,15 +1,16 @@
 import {
   AVERAGE_WINDOW_DAYS,
   addDays,
-  computeScheduleDue,
   DEFAULT_USER_SETTINGS,
+  isReminderTime,
   type OdometerPoint,
-  type ScheduleStatus,
+  reminderDedupeKey,
+  scheduleReminderNotification,
+  todayIn,
 } from '@ikrive/shared';
 import { Cron } from 'croner';
 import type { FastifyBaseLogger } from 'fastify';
 import type { Db } from '../db/client';
-import { hourIn, todayIn } from '../lib/dates';
 import type { NotificationDispatcher } from '../modules/notification-channels/dispatcher';
 import { createNotificationsRepository, type NewNotificationRow } from '../modules/notifications/repository';
 import { createSchedulesRepository } from '../modules/schedules/repository';
@@ -18,27 +19,8 @@ import { createVehiclesRepository } from '../modules/vehicles/repository';
 /** Every hour on the hour: each user is notified in the first run from their reminder hour. */
 export const REMINDERS_CRON = '0 * * * *';
 
-interface ReminderOwner {
-  timezone: string;
-  reminderHour: number;
-}
-
-/** True once the owner's local hour has reached their reminder hour (until midnight). */
-export function isReminderTime(owner: ReminderOwner, now: Date): boolean {
-  return hourIn(owner.timezone, now) >= owner.reminderHour;
-}
-
-/**
- * One key per schedule, status and period: running again does not notify twice, becoming overdue
- * or doing the maintenance (new `lastDone*`) does. Editing the intervals does not.
- */
-export function reminderDedupeKey(
-  scheduleId: string,
-  status: Exclude<ScheduleStatus, 'ok'>,
-  rule: { lastDoneDate: string; lastDoneOdometer: number | null },
-): string {
-  return `schedule:${scheduleId}:${status}:${rule.lastDoneDate}:${rule.lastDoneOdometer ?? ''}`;
-}
+// Moved to `@ikrive/shared`; re-exported for the job's callers.
+export { isReminderTime, reminderDedupeKey };
 
 /**
  * Creates an in-app notification for every due soon or overdue schedule of an active vehicle whose
@@ -87,18 +69,13 @@ export async function runReminders({
 
   const rows: NewNotificationRow[] = [];
   for (const rule of rules) {
-    const { status } = computeScheduleDue(rule, readingsByVehicle.get(rule.vehicleId) ?? [], rule.today);
-    if (status === 'ok') continue;
-    rows.push({
-      userId: rule.ownerId,
-      vehicleId: rule.vehicleId,
-      type: `schedule_${status}`,
-      title: rule.title,
-      body: rule.vehicleName ?? `${rule.vehicleMake} ${rule.vehicleModel}`,
-      link: `/vehicles/${rule.vehicleId}`,
-      dedupeKey: reminderDedupeKey(rule.id, status, rule),
-      createdAt: now,
-    });
+    const draft = scheduleReminderNotification(
+      rule,
+      { id: rule.vehicleId, name: rule.vehicleName, make: rule.vehicleMake, model: rule.vehicleModel },
+      readingsByVehicle.get(rule.vehicleId) ?? [],
+      rule.today,
+    );
+    if (draft) rows.push({ ...draft, userId: rule.ownerId, createdAt: now });
   }
 
   // The in-app notifications are stored before any network I/O: a channel cannot undo them.

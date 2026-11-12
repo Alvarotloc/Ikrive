@@ -1,15 +1,17 @@
 import {
   type CreateFuelLog,
+  editedFuelPrices,
   type FuelLog,
-  findOdometerConflict,
-  resolveFuelPrices,
+  fuelReadingChange,
+  odometerConflictMessage,
+  todayIn,
   type UpdateFuelLog,
+  validateOdometerWrite,
 } from '@ikrive/shared';
-import { todayIn } from '../../lib/dates';
 import { BadRequestError, ConflictError, NotFoundError } from '../../lib/errors';
 import type { SettingsService } from '../settings/service';
 import type { VehiclesRepository } from '../vehicles/repository';
-import type { FuelLogRow, FuelLogsRepository, ReadingChange } from './repository';
+import type { FuelLogRow, FuelLogsRepository } from './repository';
 
 interface FuelLogsServiceDeps {
   repo: FuelLogsRepository;
@@ -20,20 +22,6 @@ interface FuelLogsServiceDeps {
 const toDto = (row: FuelLogRow): FuelLog => {
   const { odometerReadingId: _odometerReadingId, createdAt, updatedAt, ...fields } = row;
   return { ...fields, createdAt: createdAt.toISOString(), updatedAt: updatedAt.toISOString() };
-};
-
-/**
- * Prices of an edited log. Both sent: kept as they are. One sent: the other one is recomputed from
- * the resulting quantity. Only the quantity sent: the total is kept and the price per unit recomputed.
- * Neither: the stored prices are left untouched.
- */
-const editedPrices = (log: FuelLogRow, { quantity, totalPrice, pricePerUnit }: UpdateFuelLog) => {
-  if (totalPrice !== undefined && pricePerUnit !== undefined) return { totalPrice, pricePerUnit };
-  const resulting = quantity ?? log.quantity;
-  if (totalPrice !== undefined) return resolveFuelPrices({ quantity: resulting, totalPrice });
-  if (pricePerUnit !== undefined) return resolveFuelPrices({ quantity: resulting, pricePerUnit });
-  if (quantity !== undefined) return resolveFuelPrices({ quantity: resulting, totalPrice: log.totalPrice });
-  return {};
 };
 
 export function createFuelLogsService({ repo, vehicles, settings }: FuelLogsServiceDeps) {
@@ -59,16 +47,15 @@ export function createFuelLogsService({ repo, vehicles, settings }: FuelLogsServ
     { date, odometer }: { date: string; odometer: number },
     ownReadingId: string | null = null,
   ) => {
-    if (date > todayIn(settings.get(userId).timezone)) {
-      throw new BadRequestError('The fuel log date cannot be in the future');
-    }
-    const others = vehicles.listReadings(vehicleId).filter((reading) => reading.id !== ownReadingId);
-    const conflict = findOdometerConflict(others, { date, value: odometer });
-    if (conflict) {
-      throw new ConflictError(
-        `The odometer cannot go backwards: there is a reading of ${conflict.value} on ${conflict.date}`,
-      );
-    }
+    const error = validateOdometerWrite({
+      readings: vehicles.listReadings(vehicleId),
+      ownReadingId,
+      date,
+      odometer,
+      today: todayIn(settings.get(userId).timezone),
+    });
+    if (error?.kind === 'future_date') throw new BadRequestError('The fuel log date cannot be in the future');
+    if (error?.kind === 'conflict') throw new ConflictError(odometerConflictMessage(error.conflict));
   };
 
   return {
@@ -92,13 +79,8 @@ export function createFuelLogsService({ repo, vehicles, settings }: FuelLogsServ
       const date = input.date ?? log.date;
       const odometer = input.odometer ?? log.odometer;
       validate(userId, vehicleId, { date, odometer }, log.odometerReadingId);
-
-      // A log that somehow lost its reading gets it back on its next date or odometer change.
-      const reading: ReadingChange =
-        date !== log.date || odometer !== log.odometer
-          ? { kind: 'upsert', date, value: odometer }
-          : { kind: 'keep' };
-      return toDto(repo.update(log, { ...input, ...editedPrices(log, input) }, reading));
+      const reading = fuelReadingChange(log, input);
+      return toDto(repo.update(log, { ...input, ...editedFuelPrices(log, input) }, reading));
     },
 
     remove(userId: string, vehicleId: string, logId: string) {

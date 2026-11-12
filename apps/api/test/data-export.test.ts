@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { createReadStream, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { Readable } from 'node:stream';
-import { type DataExport, dataExportSchema } from '@ikrive/shared';
+import { type DataExport, dataExportSchema, todayIn } from '@ikrive/shared';
 import { eq } from 'drizzle-orm';
 import sharp from 'sharp';
 import { describe, expect, it, vi } from 'vitest';
@@ -16,7 +16,6 @@ import {
   session,
   vehicles,
 } from '../src/db/schema';
-import { todayIn } from '../src/lib/dates';
 import { createFileStorage } from '../src/lib/storage';
 import { APP_VERSION } from '../src/lib/version';
 import { createDataExportRepository } from '../src/modules/data-export/repository';

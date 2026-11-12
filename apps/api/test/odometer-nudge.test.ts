@@ -1,3 +1,4 @@
+import { isoWeekOf, weekdayOf } from '@ikrive/shared';
 import { asc, eq } from 'drizzle-orm';
 import Fastify from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
@@ -9,7 +10,6 @@ import {
   runOdometerNudge,
   startOdometerNudgeJob,
 } from '../src/jobs/odometer-nudge.job';
-import { isoWeekOf, weekdayOf } from '../src/lib/dates';
 import { createVehiclesRepository } from '../src/modules/vehicles/repository';
 import { createTestApp, createTestDispatcher, signUp } from './helpers';
 

@@ -1,3 +1,4 @@
+import type { ReadingChange } from '@ikrive/shared';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import type { Db } from '../../db/client';
 import { attachments, maintenanceRecords, maintenanceSchedules, odometerReadings } from '../../db/schema';
@@ -17,9 +18,6 @@ export interface ScheduleLastDone {
   date: string;
   odometer: number | null;
 }
-
-/** What to do with the record's linked odometer reading when it is edited. */
-export type ReadingChange = { kind: 'keep' } | { kind: 'remove' } | ({ kind: 'upsert' } & MaintenanceReading);
 
 export function createMaintenanceRepository(db: Db) {
   const markScheduleDone = (tx: Pick<Db, 'update'>, lastDone?: ScheduleLastDone) => {

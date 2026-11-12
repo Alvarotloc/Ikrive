@@ -1,3 +1,4 @@
+import type { ReadingChange } from '@ikrive/shared';
 import { and, desc, eq } from 'drizzle-orm';
 import type { Db } from '../../db/client';
 import { fuelLogs, odometerReadings } from '../../db/schema';
@@ -15,7 +16,7 @@ export interface FuelReading {
  * What to do with the log's linked odometer reading when it is edited. There is no `remove`: the
  * odometer of a fuel log cannot be cleared.
  */
-export type ReadingChange = { kind: 'keep' } | ({ kind: 'upsert' } & FuelReading);
+type FuelReadingChange = Extract<ReadingChange, { kind: 'keep' | 'upsert' }>;
 
 export function createFuelLogsRepository(db: Db) {
   return {
@@ -54,7 +55,7 @@ export function createFuelLogsRepository(db: Db) {
     update(
       log: FuelLogRow,
       changes: Omit<Partial<NewFuelLogRow>, 'odometerReadingId'>,
-      reading: ReadingChange,
+      reading: FuelReadingChange,
     ) {
       return db.transaction((tx) => {
         let odometerReadingId = log.odometerReadingId;

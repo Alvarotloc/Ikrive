@@ -1,14 +1,18 @@
 import {
+  archivedAtAfterUpdate,
   type CreateOdometerReading,
   type CreateVehicle,
-  findOdometerConflict,
+  canDeleteOdometerReading,
+  initialOdometerReading,
   type OdometerReading,
+  odometerConflictMessage,
+  todayIn,
   type UpdateVehicle,
   type Vehicle,
   type VehicleListQuery,
-  type VehicleStatus,
+  validateOdometerWrite,
+  vehicleStatus,
 } from '@ikrive/shared';
-import { todayIn } from '../../lib/dates';
 import { BadRequestError, ConflictError, NotFoundError } from '../../lib/errors';
 import { toWebpPhoto } from '../../lib/images';
 import type { FileStorage } from '../../lib/storage';
@@ -24,9 +28,6 @@ interface VehiclesServiceDeps {
 }
 
 const PHOTO_FOLDER = 'vehicles';
-
-const statusOf = (row: VehicleRow): VehicleStatus =>
-  row.soldAt ? 'sold' : row.archivedAt ? 'archived' : 'active';
 
 /** The photo key is random, so its file name doubles as a cache-busting version. */
 const photoUrlOf = (row: VehicleRow) =>
@@ -46,7 +47,7 @@ export function createVehiclesService({ repo, storage, settings, attachments }: 
       archivedAt: archivedAt?.toISOString() ?? null,
       createdAt: createdAt.toISOString(),
       updatedAt: updatedAt.toISOString(),
-      status: statusOf(row),
+      status: vehicleStatus(row),
       photoUrl: photoUrlOf(row),
       odometer: latest ? { value: latest.value, date: latest.date } : null,
     };
@@ -72,18 +73,14 @@ export function createVehiclesService({ repo, storage, settings, attachments }: 
 
     create(userId: string, input: CreateVehicle): Vehicle {
       const { currentOdometer, ...fields } = input;
-      const firstReading =
-        currentOdometer == null
-          ? undefined
-          : { date: today(userId), value: currentOdometer, source: 'manual' as const };
+      const firstReading = initialOdometerReading(currentOdometer, today(userId));
       return toDto(repo.create({ ...fields, ownerId: userId }, firstReading));
     },
 
     update(userId: string, id: string, input: UpdateVehicle): Vehicle {
       const current = requireOwned(userId, id);
       const { archived, ...changes } = input;
-      const archivedAt =
-        archived === undefined ? undefined : archived ? (current.archivedAt ?? new Date()) : null;
+      const archivedAt = archivedAtAfterUpdate(current.archivedAt, archived, new Date());
       return toDto(repo.update(id, { ...changes, archivedAt }));
     },
 
@@ -124,13 +121,16 @@ export function createVehiclesService({ repo, storage, settings, attachments }: 
 
     addReading(userId: string, vehicleId: string, reading: CreateOdometerReading): OdometerReading {
       requireOwned(userId, vehicleId);
-      if (reading.date > today(userId)) throw new BadRequestError('The reading date cannot be in the future');
-      const conflict = findOdometerConflict(repo.listReadings(vehicleId), reading);
-      if (conflict) {
-        throw new ConflictError(
-          `The odometer cannot go backwards: there is a reading of ${conflict.value} on ${conflict.date}`,
-        );
+      const error = validateOdometerWrite({
+        readings: repo.listReadings(vehicleId),
+        date: reading.date,
+        odometer: reading.value,
+        today: today(userId),
+      });
+      if (error?.kind === 'future_date') {
+        throw new BadRequestError('The reading date cannot be in the future');
       }
+      if (error?.kind === 'conflict') throw new ConflictError(odometerConflictMessage(error.conflict));
       return readingToDto(repo.createReading({ ...reading, vehicleId, source: 'manual' }));
     },
 
@@ -138,7 +138,7 @@ export function createVehiclesService({ repo, storage, settings, attachments }: 
       requireOwned(userId, vehicleId);
       const reading = repo.findReading(vehicleId, readingId);
       if (!reading) throw new NotFoundError('Reading not found');
-      if (reading.source !== 'manual') {
+      if (!canDeleteOdometerReading(reading)) {
         throw new ConflictError('This reading belongs to another record; edit or delete that record instead');
       }
       repo.deleteReading(readingId);

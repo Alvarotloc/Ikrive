@@ -1,12 +1,13 @@
 import {
   type CreateMaintenanceSchedule,
   computeScheduleDue,
-  latestOdometerReading,
+  hasIntervalAfterUpdate,
   type MaintenanceSchedule,
   type OdometerPoint,
+  scheduleDefaults,
+  todayIn,
   type UpdateMaintenanceSchedule,
 } from '@ikrive/shared';
-import { todayIn } from '../../lib/dates';
 import { BadRequestError, NotFoundError } from '../../lib/errors';
 import type { SettingsService } from '../settings/service';
 import type { VehiclesRepository } from '../vehicles/repository';
@@ -78,11 +79,7 @@ export function createSchedulesService({ repo, vehicles, settings }: SchedulesSe
       const row = repo.create({
         ...fields,
         vehicleId,
-        lastDoneDate: lastDoneDate ?? vehicle.purchaseDate ?? today,
-        lastDoneOdometer:
-          lastDoneOdometer !== undefined
-            ? lastDoneOdometer
-            : (vehicle.purchaseOdometer ?? latestOdometerReading(readings)?.value ?? null),
+        ...scheduleDefaults({ lastDoneDate, lastDoneOdometer }, vehicle, readings, today),
       });
       return toDto(row, readings, today);
     },
@@ -94,11 +91,7 @@ export function createSchedulesService({ repo, vehicles, settings }: SchedulesSe
       input: UpdateMaintenanceSchedule,
     ): MaintenanceSchedule {
       const schedule = requireSchedule(userId, vehicleId, scheduleId);
-      const intervalMonths =
-        input.intervalMonths === undefined ? schedule.intervalMonths : input.intervalMonths;
-      const intervalDistance =
-        input.intervalDistance === undefined ? schedule.intervalDistance : input.intervalDistance;
-      if (intervalMonths == null && intervalDistance == null) {
+      if (!hasIntervalAfterUpdate(schedule, input)) {
         throw new BadRequestError('A schedule needs an interval in months or distance');
       }
       const { today, readings } = context(userId, vehicleId);
