@@ -90,56 +90,58 @@ describe('openDeviceDatabase', () => {
     expect(plugin.connection.query).not.toHaveBeenCalled();
   });
 
-  it('returns RETURNING rows', async () => {
+  it('sends RETURNING statements through query, never through the plugin emulation', async () => {
     freshPlugin();
-    plugin.connection.run.mockResolvedValue({
-      changes: {
-        changes: 2,
-        values: [
-          { id: 'r1', value: 100 },
-          { id: 'r2', value: 200 },
-        ],
-      },
+    // The plugin's `run` re-reads RETURNING rows by rowid and gets them wrong on Android: it must never see one.
+    plugin.connection.run.mockImplementation(async (sql: string, _params: unknown[], ...rest: unknown[]) => {
+      if (/returning/i.test(sql) || rest.length !== 1) throw new Error(`RETURNING through run: ${sql}`);
+      return { changes: { changes: 1 } };
     });
+    plugin.connection.query.mockImplementation(async (sql: string) => ({
+      values: sql.startsWith('insert')
+        ? [{ id: 'new', make: 'Seat' }]
+        : [
+            { id: 'r1', value: 100 },
+            { id: 'r2', value: 200 },
+          ],
+    }));
     const callback = await openDeviceDatabase();
+    const insert = 'insert into "vehicles" ("id", "make") values (?, ?) returning "id", "make"';
+    const update =
+      'update "odometer_readings" set "value" = ? where "vehicle_id" = ? returning "id", "value"';
+    const remove = 'delete from "odometer_readings" where "vehicle_id" = ? returning "id", "value"';
 
-    const result = await callback(
-      'update "odometer_readings" set "value" = ? returning "id", "value"',
-      [1],
-      'all',
-    );
-
-    expect(plugin.connection.run).toHaveBeenCalledExactlyOnceWith(
-      'update "odometer_readings" set "value" = ? returning "id", "value"',
-      [1],
-      false,
-      'all',
-    );
-    expect(result).toEqual({
+    expect(await callback(insert, ['new', 'Seat'], 'get')).toEqual({ rows: ['new', 'Seat'] });
+    expect(await callback(update, [1, 'v'], 'all')).toEqual({
       rows: [
         ['r1', 100],
         ['r2', 200],
       ],
     });
+    expect(await callback(remove, ['v'], 'all')).toEqual({
+      rows: [
+        ['r1', 100],
+        ['r2', 200],
+      ],
+    });
+
+    expect(plugin.connection.query.mock.calls).toEqual([
+      [insert, ['new', 'Seat']],
+      [update, [1, 'v']],
+      [remove, ['v']],
+    ]);
+    expect(plugin.connection.run).not.toHaveBeenCalled();
   });
 
   it('returns the first row for get', async () => {
     freshPlugin();
     plugin.connection.query
       .mockResolvedValueOnce({ values: [{ id: 'a' }, { id: 'b' }] })
-      .mockResolvedValueOnce({
-        values: [],
-      });
-    plugin.connection.run.mockResolvedValue({ changes: { changes: 1, values: [{ id: 'new' }] } });
+      .mockResolvedValueOnce({ values: [] });
     const callback = await openDeviceDatabase();
 
     expect(await callback('select "id" from "vehicles"', [], 'get')).toEqual({ rows: ['a'] });
     expect(await callback('select "id" from "vehicles" where 0', [], 'get')).toEqual({ rows: undefined });
-    expect(await callback('insert into "vehicles" ("id") values (?) returning "id"', ['new'], 'get')).toEqual(
-      {
-        rows: ['new'],
-      },
-    );
   });
 
   it('reuses an existing connection', async () => {
