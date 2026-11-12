@@ -5,7 +5,8 @@ import { mockApi, mockMediaQuery, setServerMode } from '@/test/render';
 import { renderApp } from '@/test/render-app';
 
 /**
- * The phone notifications: only the layout and the settings card load it, and only in the native app.
+ * The phone notifications: only the root and app layouts and the settings card load it, and only in the
+ * native app.
  * `loaded` turns true the first time it is imported (then it stays in the module cache: web tests go first).
  */
 const native = vi.hoisted(() => ({
@@ -13,6 +14,7 @@ const native = vi.hoisted(() => ({
   getNotificationPermission: vi.fn(),
   requestNotificationPermission: vi.fn(),
   showNotifications: vi.fn(),
+  onNotificationTap: vi.fn(async () => async () => {}),
 }));
 vi.mock('@/lib/native-notifications', () => {
   native.loaded = true;
@@ -20,6 +22,7 @@ vi.mock('@/lib/native-notifications', () => {
     getNotificationPermission: native.getNotificationPermission,
     requestNotificationPermission: native.requestNotificationPermission,
     showNotifications: native.showNotifications,
+    onNotificationTap: native.onNotificationTap,
   };
 });
 
