@@ -17,6 +17,7 @@ import {
   AlertDialogTrigger,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { isLocalMode } from '@/lib/app-mode';
 import { useFormat } from '@/lib/format';
 import { MaintenanceAttachmentsDialog } from './maintenance-attachments';
 import { MaintenanceFormDialog } from './maintenance-form';
@@ -93,10 +94,15 @@ export function MaintenanceSection({ vehicle }: { vehicle: Pick<Vehicle, 'id' | 
                       vehicleId={vehicle.id}
                       record={record}
                       onEdit={() => openForm(record)}
-                      onAttachments={() => {
-                        setAttachmentsFor(record);
-                        setAttachmentsOpen(true);
-                      }}
+                      // Invoices are not stored on the phone until #65.
+                      onAttachments={
+                        isLocalMode()
+                          ? undefined
+                          : () => {
+                              setAttachmentsFor(record);
+                              setAttachmentsOpen(true);
+                            }
+                      }
                     />
                   ))}
                 </ol>
@@ -132,7 +138,8 @@ function MaintenanceRow({
   vehicleId: string;
   record: MaintenanceRecord;
   onEdit: () => void;
-  onAttachments: () => void;
+  /** Opens the record's invoices; without it (local mode) there is no invoices button. */
+  onAttachments: (() => void) | undefined;
 }) {
   const { t } = useTranslation();
   const format = useFormat();
@@ -152,15 +159,17 @@ function MaintenanceRow({
         <span className="text-sm break-words text-muted-foreground">{details.join(' · ')}</span>
       </div>
       <div className="col-start-2 row-start-1 flex sm:col-start-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-9"
-          onClick={onAttachments}
-          aria-label={t('maintenance.attachments.open', { title: record.title })}
-        >
-          <Paperclip aria-hidden />
-        </Button>
+        {onAttachments && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-9"
+            onClick={onAttachments}
+            aria-label={t('maintenance.attachments.open', { title: record.title })}
+          >
+            <Paperclip aria-hidden />
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="icon"

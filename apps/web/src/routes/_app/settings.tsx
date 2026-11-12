@@ -27,6 +27,7 @@ import { NotificationChannelsSection } from '@/features/notification-channels/ch
 import { notificationChannelsQuery } from '@/features/notification-channels/queries';
 import { DeviceNotificationsSection } from '@/features/notifications/device-notifications-section';
 import { settingsQuery, useUpdateSettings } from '@/features/settings/queries';
+import { isLocalMode } from '@/lib/app-mode';
 import { isNativeApp } from '@/lib/platform';
 import { applyTheme, getStoredTheme, type Theme } from '@/lib/theme';
 
@@ -35,11 +36,16 @@ const REMINDER_HOURS = Array.from({ length: 24 }, (_, hour) => hour);
 const hourLabel = (hour: number) => `${String(hour).padStart(2, '0')}:00`;
 
 export const Route = createFileRoute('/_app/settings')({
+  // Local mode has no notification channels nor iCal feed: nothing to ask for.
   loader: ({ context }) =>
     Promise.all([
       context.queryClient.ensureQueryData(settingsQuery),
-      context.queryClient.ensureQueryData(notificationChannelsQuery),
-      context.queryClient.ensureQueryData(calendarFeedQuery),
+      ...(isLocalMode()
+        ? []
+        : [
+            context.queryClient.ensureQueryData(notificationChannelsQuery),
+            context.queryClient.ensureQueryData(calendarFeedQuery),
+          ]),
     ]),
   component: SettingsPage,
 });
@@ -52,6 +58,9 @@ function SettingsPage() {
   const form = useForm<UserSettings>({ resolver: zodResolver(userSettingsSchema), values: data });
   const { errors } = form.formState;
   const weekdays = t('weekdays', { returnObjects: true }) as string[];
+  // Without a server there are no reminders until #67: their preferences are hidden, but they stay in the
+  // form with their saved values, so saving the rest keeps them.
+  const local = isLocalMode();
 
   const onSubmit = form.handleSubmit(async (values) => {
     // The authenticated layout applies the saved locale; the toast already speaks it.
@@ -105,55 +114,59 @@ function SettingsPage() {
             <FormField id="timezone" label={t('settings.timezone')} error={errors.timezone?.message}>
               <Input id="timezone" {...form.register('timezone')} />
             </FormField>
-            <FormField
-              id="odometerReminderWeekday"
-              label={t('settings.odometerReminderWeekday')}
-              labelAction={
-                <InfoPopover label={t('settings.odometerReminderWeekdayInfoLabel')}>
-                  {t('settings.odometerReminderWeekdayInfo')}
-                </InfoPopover>
-              }
-            >
-              <Select
-                id="odometerReminderWeekday"
-                {...form.register('odometerReminderWeekday', {
-                  // «No avisar» is the empty option: `null`, not `NaN`.
-                  setValueAs: (value: string | number | null) =>
-                    value === '' || value === null ? null : Number(value),
-                })}
-              >
-                <option value="">{t('settings.odometerReminderOff')}</option>
-                {WEEKDAYS.map((day) => (
-                  <option key={day} value={day}>
-                    {weekdays[day]}
-                  </option>
-                ))}
-              </Select>
-            </FormField>
-            <FormField
-              id="reminderHour"
-              label={t('settings.reminderHour')}
-              labelAction={
-                <InfoPopover label={t('settings.reminderHourInfoLabel')}>
-                  {t('settings.reminderHourInfo')}
-                </InfoPopover>
-              }
-            >
-              <Select
-                id="reminderHour"
-                aria-describedby="reminderHour-hint"
-                {...form.register('reminderHour', { valueAsNumber: true })}
-              >
-                {REMINDER_HOURS.map((hour) => (
-                  <option key={hour} value={hour}>
-                    {hourLabel(hour)}
-                  </option>
-                ))}
-              </Select>
-              <p id="reminderHour-hint" className="text-sm text-muted-foreground">
-                {t('settings.reminderHourHint')}
-              </p>
-            </FormField>
+            {!local && (
+              <>
+                <FormField
+                  id="odometerReminderWeekday"
+                  label={t('settings.odometerReminderWeekday')}
+                  labelAction={
+                    <InfoPopover label={t('settings.odometerReminderWeekdayInfoLabel')}>
+                      {t('settings.odometerReminderWeekdayInfo')}
+                    </InfoPopover>
+                  }
+                >
+                  <Select
+                    id="odometerReminderWeekday"
+                    {...form.register('odometerReminderWeekday', {
+                      // «No avisar» is the empty option: `null`, not `NaN`.
+                      setValueAs: (value: string | number | null) =>
+                        value === '' || value === null ? null : Number(value),
+                    })}
+                  >
+                    <option value="">{t('settings.odometerReminderOff')}</option>
+                    {WEEKDAYS.map((day) => (
+                      <option key={day} value={day}>
+                        {weekdays[day]}
+                      </option>
+                    ))}
+                  </Select>
+                </FormField>
+                <FormField
+                  id="reminderHour"
+                  label={t('settings.reminderHour')}
+                  labelAction={
+                    <InfoPopover label={t('settings.reminderHourInfoLabel')}>
+                      {t('settings.reminderHourInfo')}
+                    </InfoPopover>
+                  }
+                >
+                  <Select
+                    id="reminderHour"
+                    aria-describedby="reminderHour-hint"
+                    {...form.register('reminderHour', { valueAsNumber: true })}
+                  >
+                    {REMINDER_HOURS.map((hour) => (
+                      <option key={hour} value={hour}>
+                        {hourLabel(hour)}
+                      </option>
+                    ))}
+                  </Select>
+                  <p id="reminderHour-hint" className="text-sm text-muted-foreground">
+                    {t('settings.reminderHourHint')}
+                  </p>
+                </FormField>
+              </>
+            )}
             <div className="sm:col-span-2">
               <Button type="submit" disabled={form.formState.isSubmitting}>
                 {t('common.save')}
@@ -162,13 +175,17 @@ function SettingsPage() {
           </form>
         </CardContent>
       </Card>
-      <Suspense>
-        <NotificationChannelsSection />
-      </Suspense>
-      {isNativeApp() && <DeviceNotificationsSection />}
-      <Suspense>
-        <CalendarFeedSection />
-      </Suspense>
+      {!local && (
+        <>
+          <Suspense>
+            <NotificationChannelsSection />
+          </Suspense>
+          {isNativeApp() && <DeviceNotificationsSection />}
+          <Suspense>
+            <CalendarFeedSection />
+          </Suspense>
+        </>
+      )}
       <Card>
         <CardHeader>
           <CardTitle>{t('settings.appearance')}</CardTitle>
@@ -194,7 +211,8 @@ function SettingsPage() {
           </FormField>
         </CardContent>
       </Card>
-      <DataPortabilitySection />
+      {/* Export and import of the local data come with #66. */}
+      {!local && <DataPortabilitySection />}
     </div>
   );
 }

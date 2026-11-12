@@ -7,6 +7,7 @@ import { vehicleTitle } from '@/features/vehicles/display';
 import { PhotoPicker } from '@/features/vehicles/photo-picker';
 import { useUpdateVehicle, vehicleQuery } from '@/features/vehicles/queries';
 import { VehicleForm } from '@/features/vehicles/vehicle-form';
+import { isLocalMode } from '@/lib/app-mode';
 
 export const Route = createFileRoute('/_app/vehicles/$vehicleId/edit')({
   loader: ({ context, params }) => context.queryClient.ensureQueryData(vehicleQuery(params.vehicleId)),
@@ -24,9 +25,12 @@ function EditVehiclePage() {
   return (
     <div className="reveal mx-auto grid w-full max-w-3xl gap-8">
       <PageHeader eyebrow={vehicleTitle(vehicle)} title={t('vehicles.editTitle')} />
-      <div className="max-w-sm">
-        <PhotoPicker vehicle={vehicle} />
-      </div>
+      {/* Photos are not stored on the phone until #65. */}
+      {!isLocalMode() && (
+        <div className="max-w-sm">
+          <PhotoPicker vehicle={vehicle} />
+        </div>
+      )}
       <VehicleForm
         vehicle={vehicle}
         onCancel={backToFile}

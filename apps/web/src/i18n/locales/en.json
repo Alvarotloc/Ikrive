@@ -8,6 +8,7 @@
     "vehicles": "Vehicles",
     "settings": "Settings",
     "logout": "Log out",
+    "leaveLocal": "Switch mode",
     "odometer": "Mileage",
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
@@ -698,8 +699,7 @@
       "server": "My server",
       "serverDescription": "Connect to your Ikrive instance.",
       "local": "On this phone",
-      "localDescription": "No server: the data is only kept on this device.",
-      "comingSoon": "Coming soon"
+      "localDescription": "No server: the data is only kept on this device."
     },
     "server": {
       "title": "My server",

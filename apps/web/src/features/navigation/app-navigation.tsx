@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, useRouter } from '@tanstack/react-router';
-import { LogOut, Menu, X } from 'lucide-react';
+import { ArrowLeftRight, LogOut, Menu, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Brand } from '@/components/brand';
@@ -8,7 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { meQuery } from '@/features/auth/queries';
 import { useLogout } from '@/features/auth/use-logout';
+import { useLeaveLocalMode } from '@/features/mobile/local-mode';
 import { NotificationBell } from '@/features/notifications/notification-bell';
+import { isLocalMode } from '@/lib/app-mode';
 import { DESKTOP_QUERY, useMediaQuery } from '@/lib/use-media-query';
 import { navItemsFor } from './nav-items';
 
@@ -23,9 +25,21 @@ function useNavItems() {
   return navItemsFor(me?.role);
 }
 
+/**
+ * How to leave the app: «Cerrar sesión» with an account, «Cambiar de modo» (back to the welcome screen,
+ * keeping the data) in local mode, which has no session.
+ */
+function useExit() {
+  const logout = useLogout();
+  const leaveLocalMode = useLeaveLocalMode();
+  return isLocalMode()
+    ? { icon: ArrowLeftRight, label: 'nav.leaveLocal', onClick: leaveLocalMode }
+    : { icon: LogOut, label: 'nav.logout', onClick: logout };
+}
+
 function Sidebar() {
   const { t } = useTranslation();
-  const logout = useLogout();
+  const exit = useExit();
   const navItems = useNavItems();
 
   return (
@@ -47,11 +61,12 @@ function Sidebar() {
         ))}
       </nav>
       <div className="flex items-center md:justify-between">
-        <Button variant="ghost" size="sm" className="px-2.5 md:justify-start md:px-3" onClick={logout}>
-          <LogOut aria-hidden />
-          <span className="hidden sm:inline">{t('nav.logout')}</span>
+        <Button variant="ghost" size="sm" className="px-2.5 md:justify-start md:px-3" onClick={exit.onClick}>
+          <exit.icon aria-hidden />
+          <span className="hidden sm:inline">{t(exit.label)}</span>
         </Button>
-        <NotificationBell />
+        {/* Notifications come from the server; local reminders arrive with #67. */}
+        {!isLocalMode() && <NotificationBell />}
       </div>
     </aside>
   );
@@ -66,7 +81,7 @@ function MobileHeader() {
         <Brand />
       </Link>
       <div className="flex items-center gap-1">
-        <NotificationBell />
+        {!isLocalMode() && <NotificationBell />}
         <MobileNavMenu />
       </div>
     </header>
@@ -76,7 +91,7 @@ function MobileHeader() {
 function MobileNavMenu() {
   const { t } = useTranslation();
   const router = useRouter();
-  const logout = useLogout();
+  const exit = useExit();
   const navItems = useNavItems();
   const [open, setOpen] = useState(false);
 
@@ -114,9 +129,9 @@ function MobileNavMenu() {
           ))}
         </nav>
         <div className="mt-2 border-t pt-3">
-          <Button variant="ghost" className="min-h-11 w-full justify-start gap-3 px-3" onClick={logout}>
-            <LogOut aria-hidden />
-            {t('nav.logout')}
+          <Button variant="ghost" className="min-h-11 w-full justify-start gap-3 px-3" onClick={exit.onClick}>
+            <exit.icon aria-hidden />
+            {t(exit.label)}
           </Button>
         </div>
       </SheetContent>

@@ -37,7 +37,7 @@ export const NATIVE_CHUNKS_DIR = 'assets/native/';
  * `apps/mobile` is not listed here, and when the web imports one of them statically.
  */
 const NATIVE_ONLY_MODULES = [
-  /\/src\/lib\/native-(files|calendar|notifications)\.ts$/,
+  /\/src\/lib\/native-(files|calendar|notifications|sqlite)\.ts$/,
   /\/node_modules\/(@capacitor|@capacitor-community|@ebarooni)\//,
 ];
 
