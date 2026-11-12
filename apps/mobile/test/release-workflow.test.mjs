@@ -71,9 +71,16 @@ test('passes the version from the tag to Gradle', () => {
   );
 });
 
-test('ci android job only runs when mobile, web, the lockfile or the workflow change', () => {
+test('ci android job only runs when mobile, web, packages/db, the lockfile or the workflow change', () => {
   const { changes, android: ciAndroid, check, e2e, docker } = ci.jobs;
-  for (const path of ['apps/mobile/**', 'apps/web/**', 'pnpm-lock.yaml', '.github/workflows/ci.yml']) {
+  // `packages/db`: the APK bundles its schema and migrations (local mode).
+  for (const path of [
+    'apps/mobile/**',
+    'apps/web/**',
+    'packages/db/**',
+    'pnpm-lock.yaml',
+    '.github/workflows/ci.yml',
+  ]) {
     assert.ok(changes.includes(`- '${path}'`), path);
   }
   assert.match(changes, /uses: dorny\/paths-filter@[0-9a-f]{40} # v\d+\.\d+\.\d+\n/);
