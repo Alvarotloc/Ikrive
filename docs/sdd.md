@@ -132,6 +132,7 @@ Los subagentes escriben en disco y solo devuelven una línea con la ruta (regla 
 | `progress/spec_<name>.md`       | spec-author      | Solo si se bloquea: preguntas para el humano       |
 | `progress/impl_<name>.md`       | implementer      | Archivos tocados, mapa `R<n> → test`, verificación |
 | `progress/review_<name>.md`     | reviewer         | Veredicto y checklist                              |
+| `progress/explore_<name>_<tema>.md` | leader       | Informe de un `Explore` (solo lectura: lo devuelve en el mensaje y el leader lo guarda) |
 | `progress/current.md`           | leader           | Estado vivo de la sesión                           |
 | `progress/history.md`           | leader           | Bitácora append-only, una entrada por feature      |
 
