@@ -79,7 +79,7 @@ ikrive/
 │   │   │   ├── server.ts         # arranque, migraciones, planificador de jobs, cierre ordenado
 │   │   │   ├── config.ts         # env validado con zod
 │   │   │   ├── auth.ts           # Better Auth (primer usuario = admin, DISABLE_SIGNUP)
-│   │   │   ├── db/ (schema/*.ts, client.ts, migrate.ts, migrations/)
+│   │   │   ├── db/ (schema.ts → re-exporta @ikrive/db, client.ts, migrate.ts)
 │   │   │   ├── plugins/ (auth, errors [RFC 7807], static-spa)
 │   │   │   ├── lib/ (errors.ts → AppError, NotFoundError…; storage.ts, images.ts, dates.ts, version.ts)
 │   │   │   ├── jobs/             # <nombre>.job.ts: run…() invocable sin planificador + start…Job() con croner
@@ -89,6 +89,7 @@ ikrive/
 │       ├── public/ (favicon.ico, logo.png, icons/, fonts/)
 │       └── src/ (routes/, features/<dominio>/, components/{ui,…}, lib/, i18n/locales/)
 ├── packages/shared/              # esquemas zod, enums y lógica de dominio pura (exporta TS directamente)
+├── packages/db/                  # esquema Drizzle (src/schema/*.ts) y migraciones SQL: API y modo local del móvil
 ├── docker/Dockerfile             # multi-stage; una imagen sirve API + SPA
 ├── docker-compose.yml, .env.example
 ├── docs/PLAN.md                  # este documento (referenciado desde CLAUDE.md)
@@ -260,9 +261,9 @@ Fuente de verdad: `apps/web/src/index.css` (tokens) y la landing en `~/dev/perso
   - Los adjuntos se guardan con nombre aleatorio y se sirven con control de acceso.
 - Conventional Commits en inglés, agrupados por tipo (`feat`, `fix`, `test`, `build`, `ci`, `docs`, `chore`).
 - Cambios en la base de datos:
-  1. Editar `apps/api/src/db/schema/`.
-  2. Ejecutar `pnpm db:generate`.
-  3. Commitear el SQL generado.
+  1. Editar `packages/db/src/schema/` (lo usan la API y el modo local del móvil).
+  2. Ejecutar `pnpm db:generate` (escribe el SQL en `packages/db/migrations/`).
+  3. Commitear el SQL generado. La API lo aplica al arrancar y la app móvil, empaquetado con Vite, al abrir su base local.
 
 ## Verificación
 

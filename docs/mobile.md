@@ -1,8 +1,6 @@
 # App móvil
 
-Ikrive tiene una app para **Android**: la misma web empaquetada con [Capacitor](https://capacitorjs.com/) en una APK. Se conecta a tu instancia («Mi servidor») con un token de sesión. En **iPhone** se usa la web instalada como PWA.
-
-> El modo «En este teléfono» (datos solo en el móvil, sin servidor) aparece como «Próximamente».
+Ikrive tiene una app para **Android**: la misma web empaquetada con [Capacitor](https://capacitorjs.com/) en una APK. Se conecta a tu instancia («Mi servidor») con un token de sesión o guarda los datos solo en el móvil («En este teléfono»). En **iPhone** se usa la web instalada como PWA.
 
 ## Instalar la APK en Android
 
@@ -42,6 +40,15 @@ Por lo mismo, si escribes la dirección de algo que no es Ikrive (el router, otr
 
 La app acepta servidores `http://` porque en una LAN es habitual no tener certificado. Pero **con `http://` la contraseña y el token de sesión viajan en claro** por la red: la app lo avisa al escribir la dirección. Usa HTTPS (proxy inverso) o una VPN siempre que el tráfico salga de tu red de confianza.
 
+## En este teléfono (sin servidor)
+
+Al abrir la app, elige **En este teléfono**: entras directamente al panel, sin cuenta, sin login y sin conexión. Los datos se guardan en una base SQLite dentro de la app (sin cifrar) y nunca salen del móvil. La app recuerda el modo: al volver a abrirla entra directamente.
+
+- **Qué funciona:** ajustes, vehículos (alta, edición, archivar, vender, borrar), lecturas de km, repostajes, mantenimientos, reglas de mantenimiento, gasto y estadísticas, con las mismas reglas que el servidor (no se puede retroceder el kilometraje, fechas futuras, etc.).
+- **Qué no está todavía:** adjuntos (facturas) y foto del vehículo, exportar e importar los datos, recordatorios y aviso de km, y el PDF del informe de venta llegarán en próximas versiones; mientras, no aparecen. Lo que solo tiene sentido con servidor tampoco: cuenta, administración de usuarios, canales de notificación, feed iCal, enlaces públicos del informe y la campana de avisos.
+- **Cambiar de modo:** el botón **Cambiar de modo** (donde estaría «Cerrar sesión») vuelve a la pantalla de inicio. Los datos del teléfono **no se borran**: al elegir otra vez «En este teléfono» siguen ahí. Conectar un servidor en «Mi servidor» apaga el modo local, pero tampoco borra esos datos.
+- **Copia de seguridad:** de momento no hay forma de sacar los datos del teléfono ni de pasarlos a un servidor (llegará con el export). Desinstalar la app o borrar sus datos en Android los elimina.
+
 ## iPhone: la PWA
 
 No hay app para iOS. Abre tu instancia en **Safari**, pulsa **Compartir › Añadir a pantalla de inicio** y se instala como app (PWA) con su icono, a pantalla completa y con la caché sin conexión. Usa la sesión normal de la web, sin `TRUSTED_ORIGINS`.
@@ -62,7 +69,7 @@ La app no pide permisos de almacenamiento: los ficheros se preparan en su caché
 
 ## Limitaciones conocidas
 
-- Sin modo «En este teléfono».
+- En el modo «En este teléfono» todavía faltan adjuntos, foto, export/import, recordatorios y el PDF del informe de venta (ver [En este teléfono](#en-este-teléfono-sin-servidor)).
 - Las notificaciones del teléfono solo llegan con la app abierta (ver [Calendario y notificaciones](#calendario-y-notificaciones)); con la app cerrada, usa los canales de notificación.
 - La pantalla de arranque es la de Capacitor.
 
@@ -101,4 +108,4 @@ pnpm --filter @ikrive/mobile exec cap sync android
 cd apps/mobile/android && ./gradlew assembleDebug  # app/build/outputs/apk/debug/app-debug.apk
 ```
 
-En cada PR que toca `apps/mobile`, `apps/web`, el lockfile o `ci.yml`, el CI compila esta APK debug y la deja como artefacto `ikrive-debug-apk`.
+En cada PR que toca `apps/mobile`, `apps/web`, `packages/db`, el lockfile o `ci.yml`, el CI compila esta APK debug y la deja como artefacto `ikrive-debug-apk`.
