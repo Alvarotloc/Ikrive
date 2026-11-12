@@ -98,3 +98,37 @@ export function markPermissionAsked(): void {
     // Storage unavailable: the permission may be asked again on the next launch.
   }
 }
+
+/**
+ * What a phone notification carries (the plugin's `extra`) so that tapping it opens its notification: the
+ * user it was shown to, the notification and its internal link.
+ */
+export interface NotificationTapData {
+  userId: string;
+  notificationId: string;
+  link: string | null;
+}
+
+export const notificationTapData = (userId: string, notification: Notification): NotificationTapData => ({
+  userId,
+  notificationId: notification.id,
+  link: notification.link,
+});
+
+/** An internal path of the app (`/vehicles/…`): never a protocol-relative (`//host`) or absolute URL. */
+const isInternalLink = (link: string) => link.startsWith('/') && !link.startsWith('//');
+
+/**
+ * The `extra` of a tapped notification, or `null` if it is not one of ours (e.g. shown by an older version
+ * of the app). A link that is not an internal path becomes `null`: the app stays on its default screen.
+ */
+export function parseNotificationTapData(extra: unknown): NotificationTapData | null {
+  if (extra === null || typeof extra !== 'object') return null;
+  const { userId, notificationId, link } = extra as Record<string, unknown>;
+  if (typeof userId !== 'string' || typeof notificationId !== 'string') return null;
+  return {
+    userId,
+    notificationId,
+    link: typeof link === 'string' && isInternalLink(link) ? link : null,
+  };
+}
