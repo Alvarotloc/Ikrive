@@ -1,33 +1,26 @@
-import type {
-  CreateOdometerReading,
-  CreateVehicleInput,
-  OdometerReading,
-  UpdateVehicleInput,
-  Vehicle,
-  VehicleListQuery,
-} from '@ikrive/shared';
+import type { CreateOdometerReading, CreateVehicleInput, UpdateVehicleInput, Vehicle } from '@ikrive/shared';
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/lib/api-client';
+import { dataSource, type VehicleListStatus } from '@/lib/data-source';
 import { queryKeys } from '@/lib/query-keys';
 
-export type VehicleListStatus = NonNullable<VehicleListQuery['status']>;
+export type { VehicleListStatus };
 
 export const vehiclesQuery = (status: VehicleListStatus = 'active') =>
   queryOptions({
     queryKey: queryKeys.vehicles.list(status),
-    queryFn: () => api.get<Vehicle[]>(`/vehicles?status=${status}`),
+    queryFn: () => dataSource().vehicles.list(status),
   });
 
 export const vehicleQuery = (id: string) =>
   queryOptions({
     queryKey: queryKeys.vehicles.detail(id),
-    queryFn: () => api.get<Vehicle>(`/vehicles/${id}`),
+    queryFn: () => dataSource().vehicles.get(id),
   });
 
 export const odometerQuery = (vehicleId: string) =>
   queryOptions({
     queryKey: queryKeys.vehicles.odometer(vehicleId),
-    queryFn: () => api.get<OdometerReading[]>(`/vehicles/${vehicleId}/odometer`),
+    queryFn: () => dataSource().odometer.list(vehicleId),
   });
 
 function useVehicleMutation<TVariables>(mutationFn: (variables: TVariables) => Promise<Vehicle>) {
@@ -42,25 +35,21 @@ function useVehicleMutation<TVariables>(mutationFn: (variables: TVariables) => P
 }
 
 export const useCreateVehicle = () =>
-  useVehicleMutation((payload: CreateVehicleInput) => api.post<Vehicle>('/vehicles', payload));
+  useVehicleMutation((payload: CreateVehicleInput) => dataSource().vehicles.create(payload));
 
 export const useUpdateVehicle = (id: string) =>
-  useVehicleMutation((changes: UpdateVehicleInput) => api.patch<Vehicle>(`/vehicles/${id}`, changes));
+  useVehicleMutation((changes: UpdateVehicleInput) => dataSource().vehicles.update(id, changes));
 
 export const useUploadVehiclePhoto = (id: string) =>
-  useVehicleMutation((file: File) => {
-    const body = new FormData();
-    body.append('file', file);
-    return api.put<Vehicle>(`/vehicles/${id}/photo`, body);
-  });
+  useVehicleMutation((file: File) => dataSource().vehicles.setPhoto(id, file));
 
 export const useRemoveVehiclePhoto = (id: string) =>
-  useVehicleMutation(() => api.delete<Vehicle>(`/vehicles/${id}/photo`));
+  useVehicleMutation(() => dataSource().vehicles.removePhoto(id));
 
 export function useDeleteVehicle(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => api.delete<void>(`/vehicles/${id}`),
+    mutationFn: () => dataSource().vehicles.remove(id),
     onSuccess: () => {
       queryClient.removeQueries({ queryKey: queryKeys.vehicles.detail(id) });
       return queryClient.invalidateQueries({ queryKey: queryKeys.vehicles.all });
@@ -71,8 +60,7 @@ export function useDeleteVehicle(id: string) {
 export function useAddOdometerReading(vehicleId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (reading: CreateOdometerReading) =>
-      api.post<OdometerReading>(`/vehicles/${vehicleId}/odometer`, reading),
+    mutationFn: (reading: CreateOdometerReading) => dataSource().odometer.add(vehicleId, reading),
     // The vehicle (current mileage) and every list showing it depend on the readings.
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.vehicles.all }),
   });
@@ -81,7 +69,7 @@ export function useAddOdometerReading(vehicleId: string) {
 export function useDeleteOdometerReading(vehicleId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (readingId: string) => api.delete<void>(`/vehicles/${vehicleId}/odometer/${readingId}`),
+    mutationFn: (readingId: string) => dataSource().odometer.remove(vehicleId, readingId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.vehicles.all }),
   });
 }

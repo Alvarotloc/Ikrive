@@ -1,4 +1,4 @@
-import { AVERAGE_WINDOW_DAYS, addDays, computeScheduleDue } from '@ikrive/shared';
+import { AVERAGE_WINDOW_DAYS, addDays, computeScheduleDue, hourIn } from '@ikrive/shared';
 import { asc, eq } from 'drizzle-orm';
 import Fastify from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
@@ -11,7 +11,6 @@ import {
   runReminders,
   startRemindersJob,
 } from '../src/jobs/reminders.job';
-import { hourIn } from '../src/lib/dates';
 import { createNotificationsRepository } from '../src/modules/notifications/repository';
 import { createVehiclesRepository } from '../src/modules/vehicles/repository';
 import { createTestApp, createTestDispatcher, signUp } from './helpers';

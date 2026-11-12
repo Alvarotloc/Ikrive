@@ -32,6 +32,7 @@ Las dependencias se conectan a mano en `src/app.ts` (composition root), así los
 
 - Rutas por fichero en `apps/web/src/routes/` (el árbol `routeTree.gen.ts` lo genera el plugin de Vite).
 - El código de cada dominio va en `src/features/<dominio>/` (queries, componentes).
+- Los `queries.ts` y `lib/client-config.ts` acceden a los datos con `dataSource()` (`src/lib/data-source/`), nunca con `api` directamente: la implementación HTTP es `http.ts` y el modo local tendrá la suya. Las query keys y las invalidaciones se quedan en los `queries.ts`. Una operación nueva se añade a `DataSource` (`types.ts`) y a `http.ts`. `no-direct-api.test.ts` falla si un `queries.ts` importa `@/lib/api-client`.
 - Los textos van siempre en `src/i18n/locales/{es,en}.json`.
 - El código exclusivo de la app nativa (Capacitor y sus plugins, `src/lib/native-*.ts`) se carga solo con `import()` tras `isNativeApp()`; nunca con un import estático (`import type` sí vale). Motivo: el build web manda esos chunks a `assets/native/`, que el service worker no precachea (`NATIVE_ONLY_MODULES` en `src/features/pwa/config.ts`). Con un import estático la web cargaría ese chunk en todas las páginas y dejaría de funcionar offline.
 - Al añadir un `lib/native-*.ts` o un plugin en `apps/mobile/package.json`, añádelo a `NATIVE_ONLY_MODULES` (y el plugin también al `package.json` de la web). `src/features/pwa/native-only.test.ts` falla si falta o si la web lo importa de forma estática.

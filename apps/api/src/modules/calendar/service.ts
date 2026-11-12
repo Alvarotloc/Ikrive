@@ -7,9 +7,9 @@ import {
   computeScheduleDue,
   type OdometerPoint,
   scheduleCalendarEvent,
+  todayIn,
   toICalendar,
 } from '@ikrive/shared';
-import { todayIn } from '../../lib/dates';
 import { NotFoundError } from '../../lib/errors';
 import { generateFeedToken, hashVerifier, parseFeedToken, verifierMatches } from '../../lib/tokens';
 import type { SchedulesRepository } from '../schedules/repository';

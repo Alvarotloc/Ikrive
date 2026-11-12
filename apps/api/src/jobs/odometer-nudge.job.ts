@@ -1,8 +1,13 @@
-import { addDays } from '@ikrive/shared';
+import {
+  isOdometerNudgeTime,
+  ODOMETER_NUDGE_DAYS,
+  odometerNudgeDedupeKey,
+  odometerNudgeNotification,
+  todayIn,
+} from '@ikrive/shared';
 import { Cron } from 'croner';
 import type { FastifyBaseLogger } from 'fastify';
 import type { Db } from '../db/client';
-import { hourIn, isoWeekOf, todayIn, weekdayOf } from '../lib/dates';
 import type { NotificationDispatcher } from '../modules/notification-channels/dispatcher';
 import { createNotificationsRepository, type NewNotificationRow } from '../modules/notifications/repository';
 import { createVehiclesRepository } from '../modules/vehicles/repository';
@@ -10,13 +15,8 @@ import { createVehiclesRepository } from '../modules/vehicles/repository';
 /** Every hour on the hour: each user is nudged in the first run of their day from their reminder hour. */
 export const ODOMETER_NUDGE_CRON = '0 * * * *';
 
-/** A vehicle is nudged when its reference date is this many days old or more. */
-export const ODOMETER_NUDGE_DAYS = 7;
-
-/** One key per user and ISO week: changing the reminder day within the week does not nudge twice. */
-export function odometerNudgeDedupeKey(userId: string, today: string): string {
-  return `odometer_nudge:${userId}:${isoWeekOf(today)}`;
-}
+// Moved to `@ikrive/shared`; re-exported for the job's callers.
+export { ODOMETER_NUDGE_DAYS, odometerNudgeDedupeKey };
 
 type NudgeVehicle = ReturnType<
   ReturnType<typeof createVehiclesRepository>['listActiveForOdometerNudge']
@@ -53,26 +53,17 @@ export async function runOdometerNudge({
   for (const [ownerId, owned] of byOwner) {
     const [first] = owned;
     if (!first) continue;
-    const { timezone, reminderHour, weekday } = first;
-    const today = todayIn(timezone, now);
-    if (weekdayOf(today) !== weekday || hourIn(timezone, now) < reminderHour) continue;
+    if (!isOdometerNudgeTime(first, now)) continue;
     evaluated++;
 
-    const threshold = addDays(today, -ODOMETER_NUDGE_DAYS);
-    const pending = owned.filter(
-      (vehicle) => (vehicle.lastReadingDate ?? todayIn(timezone, vehicle.createdAt)) <= threshold,
-    );
-    if (pending.length === 0) continue;
-    rows.push({
+    const today = todayIn(first.timezone, now);
+    const draft = odometerNudgeNotification({
       userId: ownerId,
-      vehicleId: null,
-      type: 'odometer_nudge',
-      title: pending.map((vehicle) => vehicle.name ?? `${vehicle.make} ${vehicle.model}`).join(', '),
-      body: null,
-      link: '/odometer',
-      dedupeKey: odometerNudgeDedupeKey(ownerId, today),
-      createdAt: now,
+      today,
+      timezone: first.timezone,
+      vehicles: owned,
     });
+    if (draft) rows.push({ ...draft, userId: ownerId, createdAt: now });
   }
 
   // The in-app notifications are stored before any network I/O: a channel cannot undo them.

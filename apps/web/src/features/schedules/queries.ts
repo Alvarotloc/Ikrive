@@ -1,16 +1,12 @@
-import type {
-  CreateMaintenanceScheduleInput,
-  MaintenanceSchedule,
-  UpdateMaintenanceScheduleInput,
-} from '@ikrive/shared';
+import type { CreateMaintenanceScheduleInput, UpdateMaintenanceScheduleInput } from '@ikrive/shared';
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/lib/api-client';
+import { dataSource } from '@/lib/data-source';
 import { queryKeys } from '@/lib/query-keys';
 
 export const schedulesQuery = (vehicleId: string) =>
   queryOptions({
     queryKey: queryKeys.vehicles.schedules(vehicleId),
-    queryFn: () => api.get<MaintenanceSchedule[]>(`/vehicles/${vehicleId}/schedules`),
+    queryFn: () => dataSource().schedules.list(vehicleId),
   });
 
 /** Creating or editing a schedule only changes the schedules of the vehicle. */
@@ -27,21 +23,21 @@ function useScheduleMutation<TVariables, TResult>(
 
 export const useCreateSchedule = (vehicleId: string) =>
   useScheduleMutation(vehicleId, (schedule: CreateMaintenanceScheduleInput) =>
-    api.post<MaintenanceSchedule>(`/vehicles/${vehicleId}/schedules`, schedule),
+    dataSource().schedules.create(vehicleId, schedule),
   );
 
 export const useUpdateSchedule = (vehicleId: string) =>
   useScheduleMutation(
     vehicleId,
     ({ scheduleId, changes }: { scheduleId: string; changes: UpdateMaintenanceScheduleInput }) =>
-      api.patch<MaintenanceSchedule>(`/vehicles/${vehicleId}/schedules/${scheduleId}`, changes),
+      dataSource().schedules.update(vehicleId, scheduleId, changes),
   );
 
 /** Deleting unlinks its maintenance records (`scheduleId: null`): refresh the whole vehicle. */
 export function useDeleteSchedule(vehicleId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (scheduleId: string) => api.delete<void>(`/vehicles/${vehicleId}/schedules/${scheduleId}`),
+    mutationFn: (scheduleId: string) => dataSource().schedules.remove(vehicleId, scheduleId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.vehicles.detail(vehicleId) }),
   });
 }

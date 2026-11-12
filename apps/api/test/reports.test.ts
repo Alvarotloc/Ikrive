@@ -1,5 +1,6 @@
 import { rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { todayIn } from '@ikrive/shared';
 import { eq } from 'drizzle-orm';
 import { PageSizes, PDFDocument } from 'pdf-lib';
 import sharp from 'sharp';
@@ -7,7 +8,6 @@ import { extractText } from 'unpdf';
 import { describe, expect, it } from 'vitest';
 import { loadConfig } from '../src/config';
 import { attachments } from '../src/db/schema';
-import { todayIn } from '../src/lib/dates';
 import { fitImage } from '../src/modules/reports/pdf/annexes';
 import { createTestApp, signUp } from './helpers';
 

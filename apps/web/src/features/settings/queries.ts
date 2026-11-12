@@ -1,17 +1,17 @@
-import type { UpdateUserSettings, UserSettings } from '@ikrive/shared';
+import type { UpdateUserSettings } from '@ikrive/shared';
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/lib/api-client';
+import { dataSource } from '@/lib/data-source';
 import { queryKeys } from '@/lib/query-keys';
 
 export const settingsQuery = queryOptions({
   queryKey: queryKeys.settings,
-  queryFn: () => api.get<UserSettings>('/settings'),
+  queryFn: () => dataSource().settings.get(),
 });
 
 export function useUpdateSettings() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (changes: UpdateUserSettings) => api.patch<UserSettings>('/settings', changes),
+    mutationFn: (changes: UpdateUserSettings) => dataSource().settings.update(changes),
     onSuccess: (settings) => queryClient.setQueryData(queryKeys.settings, settings),
   });
 }

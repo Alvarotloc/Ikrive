@@ -1,8 +1,8 @@
+import { todayIn, weekdayOf } from '@ikrive/shared';
 import { eq } from 'drizzle-orm';
 import { describe, expect, it, vi } from 'vitest';
 import type { Db } from '../src/db/client';
 import { notifications, vehicles } from '../src/db/schema';
-import { todayIn, weekdayOf } from '../src/lib/dates';
 import { createTestApp, signUp } from './helpers';
 
 type TestApp = Awaited<ReturnType<typeof createTestApp>>['app'];

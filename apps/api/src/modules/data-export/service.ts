@@ -5,10 +5,10 @@ import {
   type DataExport,
   dataExportSchema,
   photoExportPath,
+  todayIn,
 } from '@ikrive/shared';
 import type { FastifyBaseLogger } from 'fastify';
 import { ZipFile } from 'yazl';
-import { todayIn } from '../../lib/dates';
 import type { FileStorage } from '../../lib/storage';
 import { APP_VERSION } from '../../lib/version';
 import type { SettingsService } from '../settings/service';

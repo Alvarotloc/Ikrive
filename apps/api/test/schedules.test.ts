@@ -1,8 +1,7 @@
-import { addDays } from '@ikrive/shared';
+import { addDays, todayIn } from '@ikrive/shared';
 import { eq, sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { maintenanceRecords, maintenanceSchedules } from '../src/db/schema';
-import { todayIn } from '../src/lib/dates';
 import { createTestApp, signUp } from './helpers';
 
 type TestApp = Awaited<ReturnType<typeof createTestApp>>['app'];

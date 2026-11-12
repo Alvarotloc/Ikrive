@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { api } from './api-client';
+import { dataSource } from './data-source';
 import { downloadBlob, openBlob } from './download';
 import { getServerUrl, isServerMode } from './server';
 
@@ -24,7 +24,7 @@ export function useApiFileSrc(url: string): { src: string | undefined; isError: 
   const serverMode = isServerMode();
   const { data: blob, isError } = useQuery({
     queryKey: apiFileKey(url),
-    queryFn: async () => (await api.downloadUrl(url)).blob,
+    queryFn: async () => (await dataSource().files.get(url)).blob,
     enabled: serverMode,
     staleTime: Number.POSITIVE_INFINITY,
   });
@@ -44,7 +44,7 @@ export function useApiFileSrc(url: string): { src: string | undefined; isError: 
 
 /** Server mode: fetches `url` with the token and saves it with its `Content-Disposition` name, or `fallbackName`. */
 export async function saveApiFile(url: string, fallbackName: string): Promise<void> {
-  const { blob, fileName } = await api.downloadUrl(url);
+  const { blob, fileName } = await dataSource().files.get(url);
   await downloadBlob(fileName ?? fallbackName, blob);
 }
 
@@ -53,6 +53,6 @@ export async function saveApiFile(url: string, fallbackName: string): Promise<vo
  * native app) with its `Content-Disposition` name, or `fallbackName`.
  */
 export async function openApiFile(url: string, fallbackName: string): Promise<void> {
-  const { blob, fileName } = await api.downloadUrl(url);
+  const { blob, fileName } = await dataSource().files.get(url);
   await openBlob(blob, fileName ?? fallbackName);
 }

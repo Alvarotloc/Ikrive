@@ -3,9 +3,9 @@ import {
   type SaleReportAttachment,
   type SaleReportMaintenance,
   type SaleReportOptions,
+  todayIn,
 } from '@ikrive/shared';
 import type { FastifyBaseLogger } from 'fastify';
-import { todayIn } from '../../lib/dates';
 import { NotFoundError } from '../../lib/errors';
 import type { FileStorage } from '../../lib/storage';
 import type { AttachmentsRepository } from '../attachments/repository';

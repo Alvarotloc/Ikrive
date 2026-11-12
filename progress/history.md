@@ -605,3 +605,11 @@
 - **Tests:** `notification-tap-handler.test.tsx` (nuevo) con el módulo nativo mockeado; `native-notifications.test.ts` con el plugin mockeado; ida y vuelta del `extra`. Web 469, API 368. `pnpm harness --full` en verde.
 - **Revisión:** APPROVED a la primera (`progress/review_native-notification-open-link.md`). Avisos no bloqueantes: falta prueba en dispositivo (checklist de 4 pasos en `progress/impl_native-notification-open-link.md`); en arranque en frío el `navigate` compite con la navegación inicial; las notificaciones de versiones anteriores no llevan `extra`.
 - **Gate 2:** «merge» del humano → PR; lo integra el humano en GitHub. El humano probará la APK tras el merge.
+
+## 2026-11-12 — #53 web-data-layer
+
+- **Rama:** `feat/web-data-layer`. Etapa 2 de la fase 8. Antes del spec, el humano decidió el modo local sin servidor (recordatorios al abrir la app, enlaces públicos ocultos, sin paso servidor → teléfono); queda en `docs/PLAN.md`. Exploración en `progress/explore_web-data-layer_{web,rules}.md`.
+- **Cambios:** reglas puras en `packages/shared` (`dates`, `odometer-writes`, `vehicles`, `reminders` nuevos; `editedFuelPrices`, `scheduleLastDoneUpdate`, `scheduleDefaults`, `hasIntervalAfterUpdate`) que usan la API y los jobs; se borra `apps/api/src/lib/dates.ts`. En la web, interfaz `DataSource` (`lib/data-source/`) con `httpDataSource`; los 13 `queries.ts`, `client-config.ts` y `api-files.ts` pasan por `dataSource()` con las mismas keys e invalidaciones. Auth, cambio de servidor y el export (`EXPORT_URL`) quedan fuera hasta #54. `CONTRIBUTING.md` § Web documenta la regla.
+- **Tests:** shared 165, web 478, API 368 (los tests de la API solo cambian imports). `no-direct-api.test.ts` impide que un `queries.ts` importe el cliente de la API. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED a la primera (`progress/review_web-data-layer.md`). Avisos: una consulta extra de lecturas al guardar un mantenimiento sin km; los jobs re-exportan funciones de shared para no tocar sus tests; un fallo intermitente sin identificar en una pasada de `pnpm test`.
+- **Gate 2:** «merge» del humano → PR; lo integra el humano en GitHub. Sin prueba de la APK antes del merge (checklist de regresión dada en la sesión).

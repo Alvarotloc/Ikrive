@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, addMonths, averageDailyDistance, computeScheduleDue, type ScheduleRule } from './schedules';
+import {
+  addDays,
+  addMonths,
+  averageDailyDistance,
+  computeScheduleDue,
+  hasIntervalAfterUpdate,
+  type ScheduleRule,
+  scheduleDefaults,
+  scheduleLastDoneUpdate,
+} from './schedules';
 
 const today = '2026-06-30';
 
@@ -185,5 +194,75 @@ describe('computeScheduleDue', () => {
       nextDueOdometer: 15_000,
       status: 'ok',
     });
+  });
+});
+
+describe('scheduleLastDoneUpdate', () => {
+  const schedule = { lastDoneDate: '2026-03-01' };
+
+  it('moves last done for a newer or same-day record', () => {
+    expect(scheduleLastDoneUpdate(schedule, { date: '2026-04-01', odometer: 12_000 })).toEqual({
+      date: '2026-04-01',
+      odometer: 12_000,
+    });
+    expect(scheduleLastDoneUpdate(schedule, { date: '2026-03-01', odometer: null })).toEqual({
+      date: '2026-03-01',
+      odometer: null,
+    });
+  });
+
+  it('keeps last done for an older record', () => {
+    expect(scheduleLastDoneUpdate(schedule, { date: '2026-02-28', odometer: 12_000 })).toBeNull();
+  });
+});
+
+describe('scheduleDefaults', () => {
+  const noPurchase = { purchaseDate: null, purchaseOdometer: null };
+  const purchase = { purchaseDate: '2024-05-01', purchaseOdometer: 3_000 };
+
+  it('defaults last done to the input', () => {
+    expect(
+      scheduleDefaults({ lastDoneDate: '2026-01-01', lastDoneOdometer: 9_000 }, purchase, readings, today),
+    ).toEqual({ lastDoneDate: '2026-01-01', lastDoneOdometer: 9_000 });
+  });
+
+  it('defaults last done to the vehicle purchase', () => {
+    expect(scheduleDefaults({}, purchase, readings, today)).toEqual({
+      lastDoneDate: '2024-05-01',
+      lastDoneOdometer: 3_000,
+    });
+  });
+
+  it('defaults last done to today and the latest reading', () => {
+    expect(scheduleDefaults({}, noPurchase, readings, today)).toEqual({
+      lastDoneDate: today,
+      lastDoneOdometer: 12_400,
+    });
+    expect(scheduleDefaults({}, noPurchase, [], today)).toEqual({
+      lastDoneDate: today,
+      lastDoneOdometer: null,
+    });
+  });
+
+  it('keeps a null last done odometer from the input', () => {
+    expect(scheduleDefaults({ lastDoneOdometer: null }, purchase, readings, today)).toEqual({
+      lastDoneDate: '2024-05-01',
+      lastDoneOdometer: null,
+    });
+  });
+});
+
+describe('hasIntervalAfterUpdate', () => {
+  it('requires an interval after an update', () => {
+    const both = { intervalMonths: 12, intervalDistance: 15_000 };
+    expect(hasIntervalAfterUpdate(both, { intervalMonths: null })).toBe(true);
+    expect(hasIntervalAfterUpdate(both, { intervalMonths: null, intervalDistance: null })).toBe(false);
+    expect(
+      hasIntervalAfterUpdate({ intervalMonths: 12, intervalDistance: null }, { intervalMonths: null }),
+    ).toBe(false);
+    expect(
+      hasIntervalAfterUpdate({ intervalMonths: null, intervalDistance: null }, { intervalDistance: 5_000 }),
+    ).toBe(true);
+    expect(hasIntervalAfterUpdate({ intervalMonths: 12, intervalDistance: null }, {})).toBe(true);
   });
 });

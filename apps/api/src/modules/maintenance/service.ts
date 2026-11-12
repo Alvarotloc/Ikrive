@@ -1,24 +1,22 @@
 import {
   type CreateMaintenanceRecord,
-  findOdometerConflict,
   type MaintenanceRecord,
   type MaintenanceSpending,
+  maintenanceReadingChange,
+  odometerConflictMessage,
   roundMoney,
+  scheduleLastDoneUpdate,
+  todayIn,
   type UpdateMaintenanceRecord,
+  validateOdometerWrite,
 } from '@ikrive/shared';
-import { todayIn } from '../../lib/dates';
 import { BadRequestError, ConflictError, NotFoundError } from '../../lib/errors';
 import type { FileStorage } from '../../lib/storage';
 import type { AttachmentsRepository } from '../attachments/repository';
 import type { SchedulesRepository } from '../schedules/repository';
 import type { SettingsService } from '../settings/service';
 import type { VehiclesRepository } from '../vehicles/repository';
-import type {
-  MaintenanceRecordRow,
-  MaintenanceRepository,
-  ReadingChange,
-  ScheduleLastDone,
-} from './repository';
+import type { MaintenanceRecordRow, MaintenanceRepository, ScheduleLastDone } from './repository';
 
 interface MaintenanceServiceDeps {
   repo: MaintenanceRepository;
@@ -64,17 +62,17 @@ export function createMaintenanceService({
     { date, odometer }: { date: string; odometer?: number | null },
     ownReadingId: string | null = null,
   ) => {
-    if (date > todayIn(settings.get(userId).timezone)) {
+    const error = validateOdometerWrite({
+      readings: vehicles.listReadings(vehicleId),
+      ownReadingId,
+      date,
+      odometer,
+      today: todayIn(settings.get(userId).timezone),
+    });
+    if (error?.kind === 'future_date') {
       throw new BadRequestError('The maintenance date cannot be in the future');
     }
-    if (odometer == null) return;
-    const others = vehicles.listReadings(vehicleId).filter((reading) => reading.id !== ownReadingId);
-    const conflict = findOdometerConflict(others, { date, value: odometer });
-    if (conflict) {
-      throw new ConflictError(
-        `The odometer cannot go backwards: there is a reading of ${conflict.value} on ${conflict.date}`,
-      );
-    }
+    if (error?.kind === 'conflict') throw new ConflictError(odometerConflictMessage(error.conflict));
   };
 
   /**
@@ -88,7 +86,8 @@ export function createMaintenanceService({
     if (scheduleId == null) return undefined;
     const schedule = schedules.find(vehicleId, scheduleId);
     if (!schedule) throw new BadRequestError('Maintenance schedule not found for this vehicle');
-    return date >= schedule.lastDoneDate ? { scheduleId, date, odometer } : undefined;
+    const lastDone = scheduleLastDoneUpdate(schedule, { date, odometer });
+    return lastDone ? { scheduleId, ...lastDone } : undefined;
   };
 
   return {
@@ -131,13 +130,7 @@ export function createMaintenanceService({
       validate(userId, vehicleId, { date, odometer }, record.odometerReadingId);
       const scheduleId = input.scheduleId === undefined ? record.scheduleId : input.scheduleId;
       const lastDone = scheduleLastDone(vehicleId, { scheduleId, date, odometer });
-
-      let reading: ReadingChange = { kind: 'keep' };
-      if (input.odometer === null) {
-        reading = { kind: 'remove' };
-      } else if (odometer != null && (date !== record.date || odometer !== record.odometer)) {
-        reading = { kind: 'upsert', date, value: odometer };
-      }
+      const reading = maintenanceReadingChange(record, input);
       return toDto(repo.update(record, input, reading, lastDone));
     },
 

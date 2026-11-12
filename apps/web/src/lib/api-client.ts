@@ -1,5 +1,6 @@
 import type { Problem } from '@ikrive/shared';
 import { fileNameFromContentDisposition } from '@/features/reports/sale-report';
+import type { DownloadedFile } from './data-source/types';
 import { apiFetch } from './server';
 
 export class ApiError extends Error {
@@ -29,11 +30,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   return (response.status === 204 ? undefined : await response.json()) as T;
 }
 
-export interface DownloadedFile {
-  blob: Blob;
-  /** File name of the `Content-Disposition` header, `null` without one. */
-  fileName: string | null;
-}
+export type { DownloadedFile };
 
 /** `GET` a file by its path relative to `/api`, e.g. `/vehicles/v1/report`. */
 const download = (path: string) => downloadUrl(`/api${path}`);
