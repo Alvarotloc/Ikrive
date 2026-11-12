@@ -227,11 +227,17 @@ Los enums ya están definidos en `packages/shared/src/enums.ts`.
 
 #### Etapa 2: «En este teléfono»
 - **`web-data-layer` (#53):** la web accede a los datos a través de una interfaz (HTTP o local) en lugar de llamar a `api` desde cada `queries.ts`. Las reglas que hoy solo están en la API y que el modo local necesita (p. ej. la sincronización del odómetro con mantenimientos y repostajes) pasan a `packages/shared`. Sin cambios visibles.
-- **`mobile-local-mode` (#54):** datos en SQLite en el dispositivo, sin cuenta ni servidor, con la misma interfaz de #53. Paso del modo local a un servidor con el zip de export/import de la fase 7.
+- **Modo local**, partido en cinco features (2026-11-12):
+  - **`mobile-local-core` (#54):** datos en SQLite en el dispositivo, sin cuenta ni servidor, con una implementación local de la interfaz de #53. Ajustes, vehículos, km, repostajes, mantenimientos, planes y estadísticas. Lo que aún no existe en local se oculta.
+  - **`mobile-local-files` (#65):** adjuntos y foto del vehículo en el dispositivo, con miniaturas hechas con canvas.
+  - **`mobile-local-export` (#66):** zip de export/import de la fase 7 generado en el cliente; es el paso del modo local a un servidor.
+  - **`mobile-local-reminders` (#67):** recordatorios y aviso de km sin jobs (ver decisiones).
+  - **`mobile-local-sale-report` (#68):** PDF del informe de venta en el dispositivo.
 - **Decisiones de la etapa 2** (2026-11-12):
   - **Recordatorios y aviso de km sin jobs:** se calculan al abrir la app o volver a primer plano, con funciones puras de `packages/shared` (las mismas reglas que los jobs del servidor), se guardan en la bandeja local y se muestran con las notificaciones locales de #52.
   - **Enlaces públicos:** el modo local oculta «compartir enlace» del informe y el feed iCal; quedan la descarga del PDF del informe y «Añadir al calendario» nativo.
   - **Paso inverso (servidor → teléfono):** no por ahora; solo local → servidor con el zip de export/import.
+  - **Motor y esquema:** SQLite nativo con `@capacitor-community/sqlite` (no WASM en el WebView, que Android puede desalojar). El esquema Drizzle pasa a un paquete compartido que usan la API y el móvil; en el dispositivo, driver `sqlite-proxy` y migraciones empaquetadas con Vite. Un usuario local sintético mantiene las FK a `user.id` y el esquema idéntico al del servidor.
 
 ## Diseño
 
