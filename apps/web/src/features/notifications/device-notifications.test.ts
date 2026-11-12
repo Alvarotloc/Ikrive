@@ -7,6 +7,8 @@ import {
   loadDeviceNotificationState,
   markPermissionAsked,
   notificationIntId,
+  notificationTapData,
+  parseNotificationTapData,
   saveDeviceNotificationState,
   selectNewNotifications,
   wasPermissionAsked,
@@ -147,5 +149,32 @@ describe('device notifications', () => {
     markPermissionAsked();
     expect(wasPermissionAsked()).toBe(true);
     expect(localStorage.getItem('ikrive.notificationPermissionAsked')).not.toBeNull();
+  });
+
+  it('round-trips the tap data of a notification', () => {
+    const item = notification('a', '2026-11-10T09:00:00.000Z');
+    const data = notificationTapData('u1', item);
+
+    expect(data).toEqual({ userId: 'u1', notificationId: 'a', link: '/vehicles/v1' });
+    // Through the plugin and back (it is stored as JSON by Android).
+    expect(parseNotificationTapData(JSON.parse(JSON.stringify(data)))).toEqual(data);
+    expect(parseNotificationTapData(notificationTapData('u1', { ...item, link: null }))).toEqual({
+      userId: 'u1',
+      notificationId: 'a',
+      link: null,
+    });
+  });
+
+  it('rejects tap data that is not ours and links that are not internal paths', () => {
+    for (const extra of [undefined, null, 'a', {}, { userId: 'u1' }, { userId: 1, notificationId: 'a' }]) {
+      expect(parseNotificationTapData(extra)).toBeNull();
+    }
+    for (const link of ['https://evil.example', '//evil.example/x', 'vehicles/v1', 42, undefined]) {
+      expect(parseNotificationTapData({ userId: 'u1', notificationId: 'a', link })).toEqual({
+        userId: 'u1',
+        notificationId: 'a',
+        link: null,
+      });
+    }
   });
 });

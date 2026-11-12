@@ -4,6 +4,7 @@ import {
   loadDeviceNotificationState,
   markPermissionAsked,
   notificationIntId,
+  notificationTapData,
   saveDeviceNotificationState,
   selectNewNotifications,
   wasPermissionAsked,
@@ -13,7 +14,8 @@ import { notificationsQuery } from './queries';
 /**
  * Native app only (mounted by the authenticated layout): turns each new notification of the tray into an
  * Android notification. It shares the bell's query and polling, so it makes no requests of its own, and
- * renders nothing. The notification permission is asked once per device, on the first launch.
+ * renders nothing. The notification permission is asked once per device, on the first launch. Tapping one
+ * of them is handled by `NotificationTapHandler`.
  */
 export function DeviceNotificationsSync({ userId }: { userId: string }) {
   const { data } = useQuery(notificationsQuery);
@@ -44,7 +46,12 @@ export function DeviceNotificationsSync({ userId }: { userId: string }) {
       const native = await import('@/lib/native-notifications');
       if ((await native.getNotificationPermission()) !== 'granted') return;
       await native.showNotifications(
-        notify.map((item) => ({ id: notificationIntId(item.id), title: item.title, body: item.body ?? '' })),
+        notify.map((item) => ({
+          id: notificationIntId(item.id),
+          title: item.title,
+          body: item.body ?? '',
+          extra: notificationTapData(userId, item),
+        })),
       );
     })().catch(() => {
       // Showing is best effort: the notifications are still in the bell.

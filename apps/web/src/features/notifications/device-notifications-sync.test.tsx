@@ -133,11 +133,18 @@ describe('DeviceNotificationsSync', () => {
 
     await waitFor(() => expect(native.showNotifications).toHaveBeenCalledTimes(1));
     expect(native.showNotifications).toHaveBeenCalledWith([
-      { id: notificationIntId('fresher'), title: 'Mantenimiento vencido fresher', body: '' },
+      {
+        id: notificationIntId('fresher'),
+        title: 'Mantenimiento vencido fresher',
+        body: '',
+        // What a tap needs to open it (`NotificationTapHandler`).
+        extra: { userId: 'u1', notificationId: 'fresher', link: '/vehicles/v1' },
+      },
       {
         id: notificationIntId('fresh'),
         title: 'Mantenimiento vencido fresh',
         body: 'Cambio de aceite · Renault Clio',
+        extra: { userId: 'u1', notificationId: 'fresh', link: '/vehicles/v1' },
       },
     ]);
     expect(storedState()).toEqual({ since: fresher.createdAt, seen: ['fresher', 'fresh', 'old'] });

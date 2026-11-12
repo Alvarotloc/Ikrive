@@ -14,11 +14,12 @@ import {
 import { renderApp } from '@/test/render-app';
 import { meQuery } from './queries';
 
-/** The native side of the phone notifications: only `DeviceNotificationsSync` loads it. */
+/** The native side of the phone notifications: only `DeviceNotificationsSync` and `NotificationTapHandler` load it. */
 const native = vi.hoisted(() => ({
   getNotificationPermission: vi.fn(),
   requestNotificationPermission: vi.fn(),
   showNotifications: vi.fn(),
+  onNotificationTap: vi.fn(async () => async () => {}),
 }));
 vi.mock('@/lib/native-notifications', () => native);
 
@@ -179,7 +180,12 @@ describe('switching accounts without logging out', () => {
     await waitFor(() => expect(native.showNotifications).toHaveBeenCalled());
     expect(native.showNotifications).toHaveBeenCalledTimes(1);
     expect(native.showNotifications).toHaveBeenCalledWith([
-      { id: notificationIntId(bertaNotification.id), title: 'Aviso berta-n1', body: '' },
+      {
+        id: notificationIntId(bertaNotification.id),
+        title: 'Aviso berta-n1',
+        body: '',
+        extra: { userId: berta.id, notificationId: bertaNotification.id, link: bertaNotification.link },
+      },
     ]);
     // Berta's cut-off is her own page, not Ana's.
     expect(JSON.parse(localStorage.getItem('ikrive.deviceNotifications.u2') ?? 'null')).toEqual({
