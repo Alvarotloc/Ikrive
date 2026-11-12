@@ -597,3 +597,11 @@
 - **Revisión:** APPROVED (`progress/review_native-chunks-guard.md`). En Gate 2 el humano pidió arreglar los avisos 1 (JSDoc de `packageModuleId` con una ruta de ejemplo incorrecta) y 2 (frase larga en CONTRIBUTING); reviewer: APPROVED.
 - **Pendientes:** las dependencias transitivas de los plugins no se recorren (el fallo sería benigno: el chunk se precachearía).
 - **Gate 2:** «merge» del humano → PR; lo integra el humano en GitHub.
+
+## 2026-11-12 — #62 native-notification-open-link
+
+- **Rama:** `feat/native-notification-open-link` (`sdd: false`, sin spec ni Gate 1). Decisión a validar 3 de #52.
+- **Cambios:** las notificaciones locales llevan `extra` `{ userId, notificationId, link }` (`notificationTapData`/`parseNotificationTapData` en `device-notifications.ts`); `onNotificationTap` en `lib/native-notifications.ts` sobre `localNotificationActionPerformed` (`actionId: 'tap'`); `NotificationTapHandler` montado en `__root.tsx` solo si `isNativeApp()` (carga el módulo nativo con `import()`): comprueba `me`, marca leído y navega al link interno. Sin sesión, otra cuenta, PATCH fallido (401/404) o link no interno → se queda en la pantalla por defecto. Se monta en la raíz y no en `_app` para que el toque retenido (`retainUntilConsumed`) se consuma también en login y no salte tras iniciar sesión. `docs/mobile.md` actualizado.
+- **Tests:** `notification-tap-handler.test.tsx` (nuevo) con el módulo nativo mockeado; `native-notifications.test.ts` con el plugin mockeado; ida y vuelta del `extra`. Web 469, API 368. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED a la primera (`progress/review_native-notification-open-link.md`). Avisos no bloqueantes: falta prueba en dispositivo (checklist de 4 pasos en `progress/impl_native-notification-open-link.md`); en arranque en frío el `navigate` compite con la navegación inicial; las notificaciones de versiones anteriores no llevan `extra`.
+- **Gate 2:** «merge» del humano → PR; lo integra el humano en GitHub. El humano probará la APK tras el merge.
