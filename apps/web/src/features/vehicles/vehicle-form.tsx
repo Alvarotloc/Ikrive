@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { FUEL_TYPES, VEHICLE_TYPES, type Vehicle } from '@ikrive/shared';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { z } from 'zod';
 import { FormField } from '@/components/form-field';
 import { Button } from '@/components/ui/button';
@@ -59,6 +60,7 @@ function defaultsFrom(vehicle?: Vehicle): FormInput {
 interface VehicleFormProps {
   /** Vehicle being edited; omit to create a new one. */
   vehicle?: Vehicle;
+  /** Saves the vehicle; if it rejects, the form shows a generic error toast and stays as it is. */
   onSubmit: (values: VehicleFormValues) => Promise<unknown>;
   onCancel: () => void;
 }
@@ -71,6 +73,14 @@ export function VehicleForm({ vehicle, onSubmit, onCancel }: VehicleFormProps) {
     defaultValues: defaultsFrom(vehicle),
   });
   const { errors, isSubmitting } = form.formState;
+  // A failed save (no connection, a storage error on the phone…) must not be lost in an unhandled rejection.
+  const submit = form.handleSubmit(async (values) => {
+    try {
+      await onSubmit(values);
+    } catch {
+      toast.error(t('common.error'));
+    }
+  });
   const field = (name: keyof FormInput) => ({
     id: name,
     label: t(`vehicles.fields.${name}`, { unit: distanceUnit }),
@@ -78,7 +88,7 @@ export function VehicleForm({ vehicle, onSubmit, onCancel }: VehicleFormProps) {
   });
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-6" noValidate>
+    <form onSubmit={submit} className="grid gap-6" noValidate>
       <Card>
         <CardHeader>
           <CardTitle>{t('vehicles.form.identity')}</CardTitle>

@@ -64,7 +64,13 @@ function SettingsPage() {
 
   const onSubmit = form.handleSubmit(async (values) => {
     // The authenticated layout applies the saved locale; the toast already speaks it.
-    const saved = await update.mutateAsync(values);
+    let saved: UserSettings;
+    try {
+      saved = await update.mutateAsync(values);
+    } catch {
+      toast.error(t('common.error'));
+      return;
+    }
     toast.success(i18n.getFixedT(saved.locale)('settings.saved'));
   });
 
