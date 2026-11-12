@@ -1,24 +1,18 @@
-import type {
-  Attachment,
-  CreateMaintenanceRecordInput,
-  MaintenanceRecord,
-  MaintenanceSpending,
-  UpdateMaintenanceRecordInput,
-} from '@ikrive/shared';
+import type { CreateMaintenanceRecordInput, UpdateMaintenanceRecordInput } from '@ikrive/shared';
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/lib/api-client';
+import { dataSource } from '@/lib/data-source';
 import { queryKeys } from '@/lib/query-keys';
 
 export const maintenanceQuery = (vehicleId: string) =>
   queryOptions({
     queryKey: queryKeys.vehicles.maintenance(vehicleId),
-    queryFn: () => api.get<MaintenanceRecord[]>(`/vehicles/${vehicleId}/maintenance`),
+    queryFn: () => dataSource().maintenance.list(vehicleId),
   });
 
 export const maintenanceSpendingQuery = (vehicleId: string) =>
   queryOptions({
     queryKey: queryKeys.vehicles.maintenanceSpending(vehicleId),
-    queryFn: () => api.get<MaintenanceSpending>(`/vehicles/${vehicleId}/maintenance/spending`),
+    queryFn: () => dataSource().maintenance.spending(vehicleId),
   });
 
 /** Records create, move or delete their linked odometer reading: refresh the whole vehicle tree. */
@@ -34,38 +28,30 @@ function useMaintenanceMutation<TVariables, TResult>(
 
 export const useCreateMaintenance = (vehicleId: string) =>
   useMaintenanceMutation((record: CreateMaintenanceRecordInput) =>
-    api.post<MaintenanceRecord>(`/vehicles/${vehicleId}/maintenance`, record),
+    dataSource().maintenance.create(vehicleId, record),
   );
 
 export const useUpdateMaintenance = (vehicleId: string) =>
   useMaintenanceMutation(
     ({ recordId, changes }: { recordId: string; changes: UpdateMaintenanceRecordInput }) =>
-      api.patch<MaintenanceRecord>(`/vehicles/${vehicleId}/maintenance/${recordId}`, changes),
+      dataSource().maintenance.update(vehicleId, recordId, changes),
   );
 
 export const useDeleteMaintenance = (vehicleId: string) =>
-  useMaintenanceMutation((recordId: string) =>
-    api.delete<void>(`/vehicles/${vehicleId}/maintenance/${recordId}`),
-  );
-
-const attachmentsPath = (vehicleId: string, recordId: string) =>
-  `/vehicles/${vehicleId}/maintenance/${recordId}/attachments`;
+  useMaintenanceMutation((recordId: string) => dataSource().maintenance.remove(vehicleId, recordId));
 
 export const attachmentsQuery = (vehicleId: string, recordId: string) =>
   queryOptions({
     queryKey: queryKeys.vehicles.attachments(vehicleId, recordId),
-    queryFn: () => api.get<Attachment[]>(attachmentsPath(vehicleId, recordId)),
+    queryFn: () => dataSource().attachments.list(vehicleId, recordId),
   });
 
 /** One file per request (the API takes a single `file` part). `recordId` is a variable: on create it comes later. */
 export function useUploadAttachment(vehicleId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ recordId, file }: { recordId: string; file: File }) => {
-      const body = new FormData();
-      body.append('file', file);
-      return api.post<Attachment>(attachmentsPath(vehicleId, recordId), body);
-    },
+    mutationFn: ({ recordId, file }: { recordId: string; file: File }) =>
+      dataSource().attachments.upload(vehicleId, recordId, file),
     onSuccess: (_, { recordId }) =>
       queryClient.invalidateQueries({ queryKey: queryKeys.vehicles.attachments(vehicleId, recordId) }),
   });
@@ -74,8 +60,7 @@ export function useUploadAttachment(vehicleId: string) {
 export function useDeleteAttachment(vehicleId: string, recordId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (attachmentId: string) =>
-      api.delete<void>(`${attachmentsPath(vehicleId, recordId)}/${attachmentId}`),
+    mutationFn: (attachmentId: string) => dataSource().attachments.remove(vehicleId, recordId, attachmentId),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: queryKeys.vehicles.attachments(vehicleId, recordId) }),
   });

@@ -1,11 +1,11 @@
-import type { AdminUser, AdminUserRoleUpdate } from '@ikrive/shared';
+import type { AdminUserRoleUpdate } from '@ikrive/shared';
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/lib/api-client';
+import { dataSource } from '@/lib/data-source';
 import { queryKeys } from '@/lib/query-keys';
 
 export const adminUsersQuery = queryOptions({
   queryKey: queryKeys.adminUsers,
-  queryFn: () => api.get<AdminUser[]>('/admin/users'),
+  queryFn: () => dataSource().adminUsers.list(),
 });
 
 /**
@@ -22,14 +22,11 @@ function useAdminUserMutation<TVariables, TResult>(mutationFn: (variables: TVari
 
 export const useSetUserRole = () =>
   useAdminUserMutation(({ id, role }: { id: string } & AdminUserRoleUpdate) =>
-    api.put<AdminUser>(`/admin/users/${id}/role`, { role }),
+    dataSource().adminUsers.setRole(id, role),
   );
 
-export const useDisableUser = () =>
-  useAdminUserMutation((id: string) => api.post<AdminUser>(`/admin/users/${id}/disable`));
+export const useDisableUser = () => useAdminUserMutation((id: string) => dataSource().adminUsers.disable(id));
 
-export const useEnableUser = () =>
-  useAdminUserMutation((id: string) => api.post<AdminUser>(`/admin/users/${id}/enable`));
+export const useEnableUser = () => useAdminUserMutation((id: string) => dataSource().adminUsers.enable(id));
 
-export const useDeleteUser = () =>
-  useAdminUserMutation((id: string) => api.delete<void>(`/admin/users/${id}`));
+export const useDeleteUser = () => useAdminUserMutation((id: string) => dataSource().adminUsers.remove(id));

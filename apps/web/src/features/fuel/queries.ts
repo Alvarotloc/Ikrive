@@ -1,12 +1,12 @@
-import type { CreateFuelLogInput, FuelLog, UpdateFuelLogInput } from '@ikrive/shared';
+import type { CreateFuelLogInput, UpdateFuelLogInput } from '@ikrive/shared';
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/lib/api-client';
+import { dataSource } from '@/lib/data-source';
 import { queryKeys } from '@/lib/query-keys';
 
 export const fuelLogsQuery = (vehicleId: string) =>
   queryOptions({
     queryKey: queryKeys.vehicles.fuelLogs(vehicleId),
-    queryFn: () => api.get<FuelLog[]>(`/vehicles/${vehicleId}/fuel-logs`),
+    queryFn: () => dataSource().fuelLogs.list(vehicleId),
   });
 
 /** Refuels create, move or delete their linked odometer reading: refresh the whole vehicle tree. */
@@ -19,12 +19,12 @@ function useFuelLogMutation<TVariables, TResult>(mutationFn: (variables: TVariab
 }
 
 export const useCreateFuelLog = (vehicleId: string) =>
-  useFuelLogMutation((log: CreateFuelLogInput) => api.post<FuelLog>(`/vehicles/${vehicleId}/fuel-logs`, log));
+  useFuelLogMutation((log: CreateFuelLogInput) => dataSource().fuelLogs.create(vehicleId, log));
 
 export const useUpdateFuelLog = (vehicleId: string) =>
   useFuelLogMutation(({ logId, changes }: { logId: string; changes: UpdateFuelLogInput }) =>
-    api.patch<FuelLog>(`/vehicles/${vehicleId}/fuel-logs/${logId}`, changes),
+    dataSource().fuelLogs.update(vehicleId, logId, changes),
   );
 
 export const useDeleteFuelLog = (vehicleId: string) =>
-  useFuelLogMutation((logId: string) => api.delete<void>(`/vehicles/${vehicleId}/fuel-logs/${logId}`));
+  useFuelLogMutation((logId: string) => dataSource().fuelLogs.remove(vehicleId, logId));
