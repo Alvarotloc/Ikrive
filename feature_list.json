@@ -1040,7 +1040,7 @@
       "phase": "8",
       "title": "Modo «En este teléfono»: núcleo en SQLite",
       "description": "Etapa 2 de la fase 8 (parte 1 de 5). Datos en SQLite en el dispositivo (@capacitor-community/sqlite), sin cuenta ni servidor, a través de una implementación local de la interfaz de web-data-layer (#53). El esquema Drizzle pasa a un paquete compartido (packages/db) que usan la API y el móvil; en el dispositivo, driver sqlite-proxy y migraciones empaquetadas con Vite; usuario local sintético para las FK a user.id. Cubre ajustes, vehículos, km, repostajes, mantenimientos, planes y estadísticas. Lo que llega en #65–#68 (ficheros, export, recordatorios, PDF) y lo que necesita servidor (cuenta, admin, canales, iCal, enlaces públicos) se oculta en modo local. Exploración: progress/explore_mobile-local-mode_*.md.",
-      "status": "in_progress",
+      "status": "done",
       "sdd": true,
       "acceptance": [
         "En la app móvil, la tarjeta «En este teléfono» de /welcome está activa y elegirla deja la app en modo local, que se recuerda entre arranques, sin login ni servidor",
@@ -1161,6 +1161,14 @@
       ],
       "sdd": false,
       "status": "done"
+    },
+    {
+      "id": 69,
+      "name": "ci-android-shared-paths",
+      "phase": "8",
+      "title": "El job android de CI vigila packages/shared",
+      "description": "Aviso del implementer en Gate 2 de #54. La APK empaqueta packages/shared, pero el filtro android del job changes de .github/workflows/ci.yml no lo incluye (ya pasaba antes de #54): un cambio solo en packages/shared no recompila la APK en el PR.",
+      "status": "pending"
     }
   ]
 }

@@ -613,3 +613,12 @@
 - **Tests:** shared 165, web 478, API 368 (los tests de la API solo cambian imports). `no-direct-api.test.ts` impide que un `queries.ts` importe el cliente de la API. `pnpm harness --full` en verde.
 - **Revisión:** APPROVED a la primera (`progress/review_web-data-layer.md`). Avisos: una consulta extra de lecturas al guardar un mantenimiento sin km; los jobs re-exportan funciones de shared para no tocar sus tests; un fallo intermitente sin identificar en una pasada de `pnpm test`.
 - **Gate 2:** «merge» del humano → PR; lo integra el humano en GitHub. Sin prueba de la APK antes del merge (checklist de regresión dada en la sesión).
+
+## 2026-11-12 — #54 mobile-local-core
+
+- **Rama:** `feat/mobile-local-core`. Etapa 2 de la fase 8. La antigua #54 `mobile-local-mode` se partió en #54 y #65–#68 (ficheros, export, recordatorios, PDF). Exploración en `progress/explore_mobile-local-mode_{data-source,mobile,export}.md`. Decisiones de Gate 1: `@capacitor-community/sqlite` 8.1.1, esquema compartido en `packages/db`, usuario local sintético; además, ajustes de recordatorios ocultos en local, checklist del dispositivo para el humano y job android de CI con `packages/db/**`.
+- **Cambios:** `packages/db` con el esquema y las migraciones de la API (`git mv`, «No schema changes»); la API re-exporta `@ikrive/db/schema`. En la web, `DataSource` local sobre `drizzle-orm/sqlite-proxy` (`lib/data-source/local/`: migraciones empaquetadas con Vite, cola serial, problems, dominios que replican la orquestación de la API con las reglas de shared, 501 para lo no soportado) y `lib/native-sqlite.ts`; modo en `ikrive.mode` (`lib/app-mode.ts`, `features/mobile/local-mode.ts`), tarjeta «En este teléfono» activa, «Cambiar de modo», secciones ocultas en local.
+- **Tests:** shared 165, db 3, API 368, web 517. Base SQLite en memoria (better-sqlite3) tras el mismo callback del proxy; plugin simulado. `pnpm harness --full` en verde.
+- **Revisión:** CHANGES_REQUESTED (tests de modo local inestables bajo carga por el `import()` del módulo local; activación huérfana entre tests) → arreglado (precarga en `beforeAll`, guarda de activación, `MIGRATIONS_FOLDER` válido en Windows) → APPROVED (`progress/review_mobile-local-core.md`).
+- **Pendientes:** checklist del dispositivo (`progress/impl_mobile-local-core.md`) sin pasar antes del merge: el humano la pasará con la APK del CI. `packages/shared` fuera del filtro android de CI → #69. README (hoja de ruta) al publicar.
+- **Gate 2:** «merge» del humano → PR; lo integra el humano en GitHub.
