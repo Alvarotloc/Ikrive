@@ -588,3 +588,12 @@
 - **Revisión:** APPROVED a la primera (`progress/review_pwa-precache-skip-native.md`), con el build reproducido.
 - **Pendientes:** #64 `native-chunks-guard` (test que detecte módulos nativos no listados y regla «la web no importa Capacitor de forma estática»), añadida al backlog.
 - **Gate 2:** «merge» del humano → PR; lo integra el humano en GitHub.
+
+## 2026-11-11 — #64 native-chunks-guard
+
+- **Rama:** `feat/native-chunks-guard` (`sdd: false`, sin spec ni Gate 1). Avisos 2 y 3 del reviewer en Gate 2 de #60.
+- **Cambios:** `features/pwa/native-only.test.ts` (nuevo): descubre `src/lib/native-*.ts` y las `dependencies` de `apps/mobile/package.json` (salvo `@capacitor/android` y `@capacitor/cli`) y exige que `nativeChunkFileNames` las mande a `assets/native/`; guard que falla si la web importa Capacitor o `lib/native-*` de forma estática (regex sobre `src`, con test propio del extractor). JSDoc de `NATIVE_ONLY_MODULES` y dos puntos en `CONTRIBUTING.md` § Web con la regla, el motivo y qué hacer al añadir un módulo nativo.
+- **Tests:** web 459, API 368. El reviewer reprodujo 8 mutaciones (7 detectadas; la de subcarpetas de `lib/native-*` no, aceptable). `pnpm harness --full` en verde.
+- **Revisión:** APPROVED (`progress/review_native-chunks-guard.md`). En Gate 2 el humano pidió arreglar los avisos 1 (JSDoc de `packageModuleId` con una ruta de ejemplo incorrecta) y 2 (frase larga en CONTRIBUTING); reviewer: APPROVED.
+- **Pendientes:** las dependencias transitivas de los plugins no se recorren (el fallo sería benigno: el chunk se precachearía).
+- **Gate 2:** «merge» del humano → PR; lo integra el humano en GitHub.

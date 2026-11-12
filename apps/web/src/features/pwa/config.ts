@@ -29,6 +29,12 @@ export const NATIVE_CHUNKS_DIR = 'assets/native/';
 /**
  * Modules that only the native app runs: the `lib/native-*.ts` loaded through `import()` when
  * `isNativeApp()` and the Capacitor packages they import (core and plugins, web fallbacks included).
+ *
+ * The web never imports Capacitor nor a `lib/native-*` module statically, only through `import()` after
+ * `isNativeApp()`. With a static import the web would load that code on every page, but its chunk (made
+ * only of these modules) would still go to `assets/native/`, out of the precache: the web would not work
+ * offline. Kept by hand: `native-only.test.ts` fails when a `lib/native-*.ts` or a dependency of
+ * `apps/mobile` is not listed here, and when the web imports one of them statically.
  */
 const NATIVE_ONLY_MODULES = [
   /\/src\/lib\/native-(files|calendar|notifications)\.ts$/,
