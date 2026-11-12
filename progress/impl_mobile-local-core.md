@@ -28,7 +28,7 @@ Rama `feat/mobile-local-core`. Todas las tasks T1–T25 marcadas en `specs/mobil
 - `apps/web/package.json`: `@capacitor-community/sqlite 8.1.1`, `@ikrive/db`, `drizzle-orm ^0.45.4`; dev `better-sqlite3 ^13.0.3`, `@types/better-sqlite3 ^9.6.0` (una sola copia de drizzle-orm en el lockfile).
 
 ### C. Plugin nativo (T14–T15)
-- `apps/web/src/lib/native-sqlite.ts`: `openDeviceDatabase()` (`checkConnectionsConsistency` + `isConnection` → `retrieveConnection` o `createConnection('ikrive', false, 'no-encryption', 1, false)`, `open()` si no está abierta) y `deviceCallback()` (SELECT/PRAGMA/WITH → `query`; escrituras → `run(sql, params, false)`; con `all`/`get` → `run(…, false, 'all')` y `changes.values`; `Object.values` por fila; `get` → primera fila).
+- `apps/web/src/lib/native-sqlite.ts`: `openDeviceDatabase()` (`checkConnectionsConsistency` + `isConnection` → `retrieveConnection` o `createConnection('ikrive', false, 'no-encryption', 1, false)`, `open()` si no está abierta) y `deviceCallback()` (SELECT/PRAGMA/WITH y cualquier sentencia con `RETURNING` → `query`; el resto de escrituras → `run(sql, params, false)`; `Object.values` por fila; `get` → primera fila).
 - `apps/web/src/features/pwa/config.ts`: `native-(files|calendar|notifications|sqlite)` en `NATIVE_ONLY_MODULES`.
 - `apps/mobile/package.json`: `@capacitor-community/sqlite 8.1.1`.
 
@@ -67,11 +67,11 @@ Rama `feat/mobile-local-core`. Todas las tasks T1–T25 marcadas en `specs/mobil
 | R11 | `database.test.ts` › `applies only pending migrations on reopen` |
 | R12 | `database.test.ts` › `seeds the local user and default settings once` |
 | R13 | `apps/web/src/lib/data-source/local/serial.test.ts` › `runs operations one after another even when one fails`; `local-data-source.test.ts` › `serializes concurrent writes` (comprobado que falla sin la cola: «cannot start a transaction within a transaction») |
-| R14 | `apps/web/src/lib/native-sqlite.test.ts` › `maps selected rows to arrays in column order`, `runs writes without the plugin transaction`, `returns RETURNING rows`, `returns the first row for get`, `reuses an existing connection` (+ checklist del dispositivo) |
+| R14 | `apps/web/src/lib/native-sqlite.test.ts` › `maps selected rows to arrays in column order`, `runs writes without the plugin transaction`, `sends RETURNING statements through query, never through the plugin emulation`, `returns the first row for get`, `reuses an existing connection` (+ checklist del dispositivo) |
 | R15 | `local-data-source.test.ts` › `rejects invalid input with a validation problem and writes nothing` |
 | R16 | `local-data-source.test.ts` › `rejects unknown ids with 404` |
 | R17 | `local-data-source.test.ts` › `reads and updates the settings` |
-| R18 | `local-data-source.test.ts` › `creates a vehicle with its initial reading and lists it by status`, `archives and deletes a vehicle cascading its data` |
+| R18 | `local-data-source.test.ts` › `creates a vehicle with its initial reading and lists it by status`, `archives and deletes a vehicle cascading its data`; `apps/web/src/features/vehicles/vehicle-save-errors.test.tsx` (error visible si falla el guardado) |
 | R19 | `local-data-source.test.ts` › `archives and deletes a vehicle cascading its data` |
 | R20 | `local-data-source.test.ts` › `rejects a future or conflicting reading and keeps readings of other records` |
 | R21 | `local-data-source.test.ts` › `keeps the fuel reading in sync on create, edit and delete`, `recomputes fuel prices on edit` |
@@ -126,18 +126,20 @@ Las capturas de ajustes y de la ficha en modo local van en la checklist del disp
 
 Con la APK de depuración (artefacto `ikrive-debug-apk` del CI de esta rama, o `pnpm --filter @ikrive/mobile build:web && pnpm --filter @ikrive/mobile exec cap sync android && cd apps/mobile/android && ./gradlew assembleDebug`). Mejor en una instalación limpia (desinstala antes o borra los datos de la app). Ten `adb logcat | grep -i -E "capacitor|sqlite|console"` abierto para ver errores.
 
-1. **Elegir el modo.** Abre la app → `/welcome`. «En este teléfono» está activa (sin «Próximamente»). Púlsala → entra al panel «Hola, Local» con el estado vacío, sin pasar por login ni por «Mi servidor», y sin errores (si sale la pantalla de error de ruta, el plugin o las migraciones fallan: copia el logcat).
-2. **Navegación.** No hay campana ni «Usuarios»; en lugar de «Cerrar sesión» aparece «Cambiar de modo» (en el menú del móvil).
-3. **Crear vehículo** con kilometraje actual (p. ej. 12 000). Aparece en el panel y en la ficha con ese km de hoy. En la ficha no hay «Informe de venta»; en «Editar» no hay selector de foto.
-4. **Repostaje:** añade uno con fecha pasada y km menor que el actual → debe rechazarlo («no puede retroceder»). Añade otro válido (fecha de hoy, 12 400 km, 40 L, 60 €): se ve en la lista, el precio por litro se calcula (1,5) y el km del vehículo pasa a 12 400. Edítalo (cambia los litros) y comprueba que el precio se recalcula. Bórralo: desaparece también su lectura de km.
-5. **Mantenimiento con plan:** crea una regla (p. ej. «Aceite», cada 15 000 km). Crea un mantenimiento con km 12 500, coste 80 y esa regla: el formulario no muestra «Facturas»; la fila del timeline no tiene el botón del clip; la regla pasa a «última vez» = esa fecha y km. El gasto de mantenimiento de la ficha muestra 80 €. Las estadísticas se pintan sin error.
-6. **Ajustes:** solo se ven Preferencias (sin día del aviso de km ni hora de recordatorios) y Apariencia; no hay canales, calendario/iCal, notificaciones del teléfono ni «Tus datos». Cambia la moneda y guarda → «Ajustes guardados» y los importes cambian de moneda.
-7. **Reiniciar la app** (ciérrala desde recientes y ábrela): entra directo al panel en modo local, con el vehículo y sus datos.
-8. **Borrar el vehículo:** desaparece junto con sus lecturas, repostajes, mantenimientos y reglas (crea otro vehículo después y comprueba que empieza vacío).
-9. **Salir del modo:** «Cambiar de modo» → `/welcome`. Vuelve a elegir «En este teléfono» → los datos siguen ahí. Sal otra vez, elige «Mi servidor», conecta un servidor real → login de ese servidor; tras iniciar sesión se ven los datos del servidor, no los locales. Cierra sesión y vuelve a `/welcome` (o reinstala si no) para comprobar que el modo local ya no se activa solo.
-10. **Capturas** en modo local, tema claro, oscuro y vertical de móvil (Ajustes › Apariencia para el tema): `/welcome`, Ajustes y la ficha del vehículo (con repostaje, mantenimiento y regla).
+1. ✅ **Elegir el modo** (pasado por el humano en la primera prueba). Abre la app → `/welcome`. «En este teléfono» está activa (sin «Próximamente»). Púlsala → entra al panel «Hola, Local» con el estado vacío, sin login ni «Mi servidor».
+2. ✅ **Navegación** (pasado). No hay campana ni «Usuarios»; en lugar de «Cerrar sesión» aparece «Cambiar de modo».
+3. **Crear vehículo** (`INSERT … RETURNING`; falló en la primera prueba) con kilometraje actual (p. ej. 12 000). Tras «Añadir vehículo» se abre su ficha con ese km de hoy y aparece en el panel. En la ficha no hay «Informe de venta»; en «Editar» no hay selector de foto. Si fallara, ahora debe salir el toast «Algo ha ido mal» y quedarse en el formulario (nunca un botón que no hace nada).
+4. **Editar el vehículo** (`UPDATE … RETURNING`): cambia el nombre o la matrícula y guarda → la ficha muestra el valor nuevo. Archiva y desarchiva desde la ficha, y márcalo como vendido y deshazlo: el estado cambia en cada paso.
+5. **Lecturas de km:** añade una lectura manual válida (aparece en el historial y en el km del vehículo) y bórrala (desaparece).
+6. **Repostaje:** añade uno con fecha pasada y km menor que el actual → lo rechaza («no puede retroceder»). Añade otro válido (hoy, 12 400 km, 40 L, 60 €): se ve en la lista, el precio por litro es 1,5 y el km del vehículo pasa a 12 400. **Edítalo** (cambia los litros y el km): el precio se recalcula y el km del vehículo sigue al repostaje. **Bórralo**: desaparece también su lectura de km.
+7. **Regla y mantenimiento:** crea una regla («Aceite», cada 15 000 km) y **edítala** (cambia el título o el intervalo) → se ve el cambio. Crea un mantenimiento con km 12 500, coste 80 y esa regla: el formulario no muestra «Facturas»; la fila no tiene el clip; la regla pasa a «última vez» = esa fecha y km; el gasto de la ficha muestra 80 €. **Edita** el mantenimiento (km 12 600, coste 90) → la lectura, la regla y el gasto (90 €) se actualizan. **Bórralo** → desaparece con su lectura y el gasto vuelve a 0. **Borra la regla**. Las estadísticas se pintan sin error.
+8. **Ajustes:** solo Preferencias (sin día del aviso de km ni hora de recordatorios) y Apariencia; sin canales, calendario/iCal, notificaciones del teléfono ni «Tus datos». Cambia la moneda y guarda (`INSERT … ON CONFLICT … RETURNING`) → «Ajustes guardados» y los importes cambian de moneda.
+9. **Reiniciar la app** (ciérrala desde recientes y ábrela): entra directa al panel en modo local, con el vehículo y sus datos.
+10. **Borrar el vehículo:** desaparece junto con sus lecturas, repostajes, mantenimientos y reglas (crea otro vehículo después y comprueba que empieza vacío).
+11. **Salir del modo:** «Cambiar de modo» → `/welcome`. Vuelve a elegir «En este teléfono» → los datos siguen ahí. Sal otra vez, elige «Mi servidor» y conecta un servidor real → login de ese servidor; tras iniciar sesión se ven sus datos, no los locales.
+12. **Capturas** en modo local, tema claro, oscuro y vertical de móvil (Ajustes › Apariencia para el tema): `/welcome`, Ajustes y la ficha del vehículo (con repostaje, mantenimiento y regla).
 
-Si algo de 1, 3–5, 7 u 8 falla con un error de SQL o de transacción (`cannot start a transaction within a transaction`, filas vacías o columnas cambiadas), es el riesgo de R14 descrito en el design: la feature vuelve a `in_progress` con el logcat.
+Si algo de 3–10 falla con un error de SQL o de transacción (`cannot start a transaction within a transaction`, filas vacías o columnas cambiadas), es el riesgo de R14 descrito en el design: la feature vuelve a `in_progress` con el logcat.
 
 ## Desviaciones del spec
 
@@ -163,3 +165,14 @@ Si algo de 1, 3–5, 7 u 8 falla con un error de SQL o de transacción (`cannot 
 3. **Aviso no bloqueante de Windows:** `MIGRATIONS_FOLDER` usa `fileUrlToPath` (`/C:/…` → `C:/…`) con su test en `packages/db/src/index.test.ts`.
 
 Verificación: la suite web completa 5 veces seguidas con `nproc` bucles `node` de CPU al 100 % y los tests de la API en paralelo en cada vuelta: 517/517 las 5 veces. `pnpm harness --full` en verde (salida arriba).
+
+## Cambios tras la prueba en dispositivo
+
+El humano pasó los pasos 1–2 de la checklist; el 3 (crear vehículo) falló: `TypeError: Cannot read properties of undefined (reading 'id')` en `vehicles.create`, dentro de `db.transaction`, sin ningún aviso en la UI.
+
+1. **Causa y arreglo (R14).** Con `run(sql, params, false, 'all')` el plugin (Android, `Database.java`) quita el `RETURNING`, ejecuta la sentencia y relee las filas por `rowid` entre el `last_insert_rowid()` de la conexión anterior (del último insert en cualquier tabla) y el nuevo: el rango sale vacío y `.returning().get()` devuelve `undefined`; `UPDATE/DELETE … RETURNING` también se emulan. `deviceCallback` manda ahora toda sentencia con `RETURNING` por `connection.query(sql, params)` (el SQLite de SQLCipher 4.17 lo soporta de forma nativa y `query` pasa la sentencia tal cual); el resto de escrituras sigue con `run(sql, params, false)`. Comentario del módulo actualizado con el motivo.
+2. **Tests.** `native-sqlite.test.ts` › `sends RETURNING statements through query, never through the plugin emulation`: el `run` simulado lanza si recibe una sentencia con `RETURNING` o un `returnMode`; INSERT, UPDATE y DELETE con `RETURNING` van por `query` con sus parámetros y devuelven las filas como arrays (falla con el código anterior). `returns the first row for get` ya no usa `run`.
+3. **Errores visibles al guardar** (en los dos modos). `VehicleForm` captura el rechazo de su `onSubmit` y muestra el toast `common.error` («Algo ha ido mal») sin salir del formulario (alta en `vehicles/new.tsx` y edición en `$vehicleId/edit.tsx`); lo mismo en `vehicle-actions.tsx` (archivar, vendido, borrar) y en el guardado de Ajustes. El resto de formularios del alcance local (repostaje, mantenimiento, regla, lectura de km y los borrados de sus listas) ya capturaban el error. Tests en `apps/web/src/features/vehicles/vehicle-save-errors.test.tsx`: `shows an error and stays on the form when the API fails`, `shows an error and stays on the form when the phone database fails` (el callback de la base falla en `insert into "vehicles"`), `shows an error when saving the settings fails`; los dos primeros fallan sin el cambio en `VehicleForm`.
+4. **Checklist ampliada** (arriba): pasos 1–2 marcados como pasados; pasos explícitos de edición (`UPDATE … RETURNING`: vehículo, archivar/vendido, repostaje, regla, mantenimiento, ajustes) y de borrado (lectura, repostaje, mantenimiento, regla, vehículo).
+
+`pnpm harness --full` en verde tras estos cambios (web 520 tests).

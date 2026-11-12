@@ -1,6 +1,6 @@
 # Review — #54 mobile-local-core
 
-**Veredicto:** APPROVED (segunda revisión)
+**Veredicto:** APPROVED (tercera revisión, tras la reapertura por el fallo en dispositivo)
 
 Primera revisión: CHANGES_REQUESTED por tests inestables en `welcome.test.tsx` (Hallazgo 1). Los dos cambios requeridos están resueltos y verificados (ver «Segunda revisión» al final).
 
@@ -97,3 +97,39 @@ Primera revisión: CHANGES_REQUESTED por tests inestables en `welcome.test.tsx` 
 `pnpm harness --full`: verde (lint, typecheck; shared 165, db 3, api 368, web 517, mobile OK, e2e 6). Los ficheros tocados son los mismos que en la primera revisión, sin nada nuevo fuera del alcance.
 
 Antes de Gate 2 sigue siendo imprescindible la checklist del dispositivo de `impl_mobile-local-core.md` (R14 sobre el plugin real).
+
+## Tercera revisión — reapertura tras la checklist del dispositivo
+
+Alcance: solo el diff sin commitear sobre `68c6ca6`. Toca `native-sqlite.ts` y su test, `vehicle-form.tsx`, `vehicle-actions.tsx` y `routes/_app/settings.tsx`; añade `vehicle-save-errors.test.tsx`; en `feature_list.json` la feature vuelve a `in_progress`; y actualiza `progress/`.
+
+### Diagnóstico, comprobado en `node_modules` (`@capacitor-community/sqlite` 8.1.1, Android)
+- `android/build.gradle:64`: `net.zetetic:sqlcipher-android:4.17.0`. Su SQLite es posterior a la 3.35, así que soporta `RETURNING` de forma nativa.
+- `Database.java` › `prepareSQL`:
+  - Con `returnMode` distinto de `no` (`wAall`), `getStmtAndRetColNames`/`isReturning` quitan el `RETURNING` de la sentencia.
+  - Antes de ejecutar guarda `initLastId = dbLastId(_db)`, que es el `last_insert_rowid()` de la conexión en cualquier tabla.
+  - `getInsertReturnedValues` relee después `SELECT … FROM <tabla> WHERE rowid BETWEEN initLastId+1 AND lastId`. Si el insert anterior fue en otra tabla (p. ej. `user_settings` en la semilla), el rango no corresponde y sale vacío. Así `.returning().get()` devuelve `undefined`, que es el `reading 'id'` que vio el humano.
+  - `UPDATE`/`DELETE … RETURNING` se emulan con `getUpdDelReturnedValues`, que vuelve a ejecutar un `SELECT` con la cláusula `WHERE` extraída del texto: tampoco es fiable.
+  - El diagnóstico es correcto.
+- `query` (`CapacitorSQLitePlugin.query` → `CapacitorSQLite.query` → `Database.selectSQL`):
+  - No valida el tipo de sentencia: la ejecuta tal cual con `_db.query(statement, args)` y recorre el cursor entero con `moveToNext`, así que el `INSERT/UPDATE … RETURNING` se ejecuta una vez y devuelve sus filas.
+  - Va por el mismo hilo del plugin y la misma conexión `RW_ikrive` que `run`, con lo que respeta el `BEGIN` del proxy.
+
+### ¿Queda algo que dependa de la emulación?
+No.
+- `deviceCallback` solo usa `run(sql, params, false)`, con `returnMode` `no`, para sentencias sin `RETURNING` y que no son de lectura. En ellas `isReturning` deja la sentencia intacta.
+- Toda sentencia con `RETURNING` va por `query`. Esto incluye el upsert de ajustes `INSERT … ON CONFLICT DO UPDATE … RETURNING`, que con la emulación también habría devuelto vacío.
+- La otra reescritura del plugin, `deleteSQL` (`DELETE` → `UPDATE … sql_deleted = 1`), solo se activa si hay columnas `last_modified` y `sql_deleted`. Ninguna migración de `packages/db` las tiene (comprobado con grep).
+- Ninguna migración contiene la palabra `returning`.
+
+### Tests
+- `native-sqlite.test.ts` › `sends RETURNING statements through query, never through the plugin emulation`: el `run` simulado lanza si recibe `RETURNING` o un `returnMode`. Cubre `INSERT`, `UPDATE` y `DELETE` con `RETURNING`, comprueba las llamadas exactas a `query` y que `run` no se llama. Con el código anterior fallaría. R14 sigue cubierto.
+- `vehicle-save-errors.test.tsx`: al fallar la API o la base del teléfono aparece el toast «Algo ha ido mal», el formulario no se abandona y no queda ningún vehículo; con los ajustes, no aparece «Ajustes guardados». `common.error` existe en `es.json` y `en.json`.
+
+### Verificación
+- `pnpm harness --full`: verde (shared 165, db 3, api 368, web 520, mobile y e2e OK).
+- Suite web 3 veces con 40 bucles de CPU al 100 %: 520/520 las 3 veces.
+
+### Avisos (no bloquean)
+- Los toasts de error al guardar (vehículo, acciones del vehículo, ajustes) no estaban en `design.md`. Se aceptan como consecuencia directa del fallo silencioso visto en el dispositivo: son pocos cambios, los dos modos se benefician y están probados. Un 400/409 de la API en el alta o edición de un vehículo ahora muestra un toast genérico en lugar de nada.
+- El cursor de Android vuelve a ejecutar la sentencia si el resultado no cabe en una `CursorWindow` (~2 MB). Las sentencias locales con `RETURNING` devuelven una sola fila, así que no aplica; tenerlo en cuenta si algún día hay un `DELETE … RETURNING` masivo.
+- El cambio se ha verificado solo con el plugin simulado: antes de Gate 2, el humano debe repetir la checklist del dispositivo completa (pasos 3–10, ampliados con ediciones y borrados).
