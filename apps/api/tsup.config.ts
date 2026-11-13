@@ -56,7 +56,7 @@ function installedVersion(name: RuntimeExternal): string {
 
 /** Copies the migrations and the report fonts next to the bundle and writes its `package.json`. */
 function writeRuntimeFiles(outDir: string): void {
-  cpSync(join(ROOT, 'src/db/migrations'), join(outDir, 'migrations'), { recursive: true });
+  cpSync(join(ROOT, '../../packages/db/migrations'), join(outDir, 'migrations'), { recursive: true });
 
   const fontsDir = join(outDir, 'fonts');
   mkdirSync(fontsDir, { recursive: true });

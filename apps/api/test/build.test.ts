@@ -78,7 +78,7 @@ describe('api build', () => {
   });
 
   it('copies the migrations and the report fonts', () => {
-    const migrations = readdirSync(new URL('../src/db/migrations', import.meta.url));
+    const migrations = readdirSync(new URL('../../../packages/db/migrations', import.meta.url));
 
     expect(readdirSync(join(outDir, 'migrations')).sort()).toEqual(migrations.sort());
     expect(readdirSync(join(outDir, 'fonts')).sort()).toEqual(

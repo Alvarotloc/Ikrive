@@ -21,7 +21,7 @@ Ejecutas **una sola** feature siguiendo su spec aprobado. El spec manda: el `acc
    a. Implementa el cambio.
    b. Si la task es un test, escríbelo y comprueba que pasa (`pnpm --filter <paquete> test`).
    c. Marca `[x] T<n>` en `tasks.md` y añade una línea en la bitácora de `progress/current.md`.
-4. Cambios de BD: edita `apps/api/src/db/schema/` y ejecuta `pnpm db:generate`; nunca escribas el SQL a mano.
+4. Cambios de BD: edita `packages/db/src/schema/` y ejecuta `pnpm db:generate`; nunca escribas el SQL a mano.
 5. Features con UI: arranca `pnpm dev` y saca capturas en claro, oscuro y móvil (`docs/verification.md`). Guárdalas fuera del repo y anota las rutas.
 6. **Verifica:** `pnpm harness --full`. Si falla, corrige y repite.
 7. Escribe `progress/impl_<name>.md`:

@@ -33,7 +33,12 @@ export function VehicleActions({ vehicle }: { vehicle: Vehicle }) {
   const update = useUpdateVehicle(vehicle.id);
 
   const change = async (changes: Parameters<typeof update.mutateAsync>[0], message: string) => {
-    await update.mutateAsync(changes);
+    try {
+      await update.mutateAsync(changes);
+    } catch {
+      toast.error(t('common.error'));
+      return;
+    }
     toast.success(message);
   };
 
@@ -149,7 +154,12 @@ function DeleteDialog({ vehicle }: { vehicle: Vehicle }) {
             <Button
               variant="destructive"
               onClick={async () => {
-                await remove.mutateAsync();
+                try {
+                  await remove.mutateAsync();
+                } catch {
+                  toast.error(t('common.error'));
+                  return;
+                }
                 toast.success(t('vehicles.actions.deleted'));
                 await navigate({ to: '/vehicles' });
               }}

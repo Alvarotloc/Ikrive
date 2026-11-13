@@ -1036,19 +1036,86 @@
     },
     {
       "id": 54,
-      "name": "mobile-local-mode",
+      "name": "mobile-local-core",
       "phase": "8",
-      "title": "Modo «En este teléfono»",
-      "description": "Etapa 2 de la fase 8. Datos en SQLite en el dispositivo, sin cuenta ni servidor, con la interfaz de web-data-layer (#53), y paso del modo local a un servidor con el zip de export/import. Va después de #53; probablemente haya que partirla al escribir su spec.",
+      "title": "Modo «En este teléfono»: núcleo en SQLite",
+      "description": "Etapa 2 de la fase 8 (parte 1 de 5). Datos en SQLite en el dispositivo (@capacitor-community/sqlite), sin cuenta ni servidor, a través de una implementación local de la interfaz de web-data-layer (#53). El esquema Drizzle pasa a un paquete compartido (packages/db) que usan la API y el móvil; en el dispositivo, driver sqlite-proxy y migraciones empaquetadas con Vite; usuario local sintético para las FK a user.id. Cubre ajustes, vehículos, km, repostajes, mantenimientos, planes y estadísticas. Lo que llega en #65–#68 (ficheros, export, recordatorios, PDF) y lo que necesita servidor (cuenta, admin, canales, iCal, enlaces públicos) se oculta en modo local. Exploración: progress/explore_mobile-local-mode_*.md.",
+      "status": "done",
+      "sdd": true,
       "acceptance": [
-        "En la app móvil, «En este teléfono» guarda los datos en SQLite en el dispositivo sin cuenta ni servidor",
-        "El modo local usa la misma interfaz de datos de #53 y las reglas de packages/shared",
-        "Se puede exportar desde el modo local un zip que el import de un servidor acepta",
+        "En la app móvil, la tarjeta «En este teléfono» de /welcome está activa y elegirla deja la app en modo local, que se recuerda entre arranques, sin login ni servidor",
+        "En modo local, ajustes, vehículos, lecturas de km, repostajes, mantenimientos, planes, gasto y estadísticas se guardan en SQLite en el dispositivo mediante una implementación local de la interfaz DataSource de #53",
+        "La implementación local aplica las mismas reglas de packages/shared que la API (validación zod, sincronización del odómetro, última vez hecho de los planes, estadísticas) y rechaza con ApiError/Problem como la HTTP; hay tests unitarios contra una base SQLite en memoria",
+        "El esquema Drizzle vive en un paquete compartido que usan la API y el modo local; las migraciones de la API no cambian de comportamiento",
+        "En modo local se ocultan login, cuenta, admin, canales de notificación, feed iCal, enlaces públicos, adjuntos, foto del vehículo, export/import y PDF de venta, y las operaciones sin soporte rechazan con un Problem",
+        "Se puede salir del modo local hacia /welcome sin borrar los datos locales",
         "Todos los textos están en es.json y en.json",
         "pnpm harness --full pasa en verde"
-      ],
+      ]
+    },
+    {
+      "id": 65,
+      "name": "mobile-local-files",
+      "phase": "8",
+      "title": "Modo local: adjuntos y foto del vehículo",
+      "description": "Etapa 2 de la fase 8 (parte 2 de 5). Va después de #54. Adjuntos de mantenimiento y foto del vehículo guardados con @capacitor/filesystem (Directory.Data), miniaturas y redimensionado con canvas en lugar de sharp, y URLs locales opacas resueltas por files.get.",
+      "status": "pending",
       "sdd": true,
-      "status": "pending"
+      "acceptance": [
+        "En modo local se pueden subir, ver y borrar adjuntos de un mantenimiento y la foto de un vehículo, con los mismos tipos y límites que la API",
+        "La detección del tipo por bytes mágicos y sanitizeFileName se comparten entre API y modo local desde packages/shared",
+        "Borrar un mantenimiento o un vehículo borra sus ficheros locales",
+        "Todos los textos están en es.json y en.json",
+        "pnpm harness --full pasa en verde"
+      ]
+    },
+    {
+      "id": 66,
+      "name": "mobile-local-export",
+      "phase": "8",
+      "title": "Modo local: exportar a un servidor",
+      "description": "Etapa 2 de la fase 8 (parte 3 de 5). Va después de #65. dataPortability.export() en la interfaz de #53: el modo local genera en el cliente el zip de la fase 7 (data.json + adjuntos + fotos) y la API sigue sirviendo el suyo. El constructor del documento de export pasa a packages/shared. Es el camino de local a servidor.",
+      "status": "pending",
+      "sdd": true,
+      "acceptance": [
+        "Desde el modo local se puede exportar un zip que el import de un servidor (POST /api/me/import) acepta, con test que valida el documento con dataExportSchema y lo importa en la API",
+        "El constructor de data.json vive en packages/shared y lo usan la API y el modo local",
+        "La web en modo servidor sigue exportando igual",
+        "Todos los textos están en es.json y en.json",
+        "pnpm harness --full pasa en verde"
+      ]
+    },
+    {
+      "id": 67,
+      "name": "mobile-local-reminders",
+      "phase": "8",
+      "title": "Modo local: recordatorios y aviso de km",
+      "description": "Etapa 2 de la fase 8 (parte 4 de 5). Va después de #54. Sin jobs: los recordatorios de planes y el aviso de km se calculan al abrir la app o volver a primer plano con las funciones puras de packages/shared, se guardan en la bandeja local y se muestran con las notificaciones locales de #52.",
+      "status": "pending",
+      "sdd": true,
+      "acceptance": [
+        "En modo local, al abrir la app o volver a primer plano se generan los mismos recordatorios y avisos de km que generarían los jobs del servidor, sin duplicados",
+        "La bandeja de notificaciones funciona en modo local (listar, marcar leída, marcar todas)",
+        "Las notificaciones nuevas se muestran con las notificaciones locales nativas",
+        "Todos los textos están en es.json y en.json",
+        "pnpm harness --full pasa en verde"
+      ]
+    },
+    {
+      "id": 68,
+      "name": "mobile-local-sale-report",
+      "phase": "8",
+      "title": "Modo local: PDF del informe de venta",
+      "description": "Etapa 2 de la fase 8 (parte 5 de 5). Va después de #65. saleReport.download en modo local genera el PDF en el dispositivo a partir de buildSaleReport de packages/shared, con las facturas como anexos.",
+      "status": "pending",
+      "sdd": true,
+      "acceptance": [
+        "En modo local se puede descargar el PDF del informe de venta con el mismo contenido que el de la API",
+        "Las facturas se añaden como anexos y las ilegibles se omiten como en la API",
+        "«Compartir enlace» sigue oculto en modo local",
+        "Todos los textos están en es.json y en.json",
+        "pnpm harness --full pasa en verde"
+      ]
     },
     {
       "id": 62,
@@ -1094,6 +1161,14 @@
       ],
       "sdd": false,
       "status": "done"
+    },
+    {
+      "id": 69,
+      "name": "ci-android-shared-paths",
+      "phase": "8",
+      "title": "El job android de CI vigila packages/shared",
+      "description": "Aviso del implementer en Gate 2 de #54. La APK empaqueta packages/shared, pero el filtro android del job changes de .github/workflows/ci.yml no lo incluye (ya pasaba antes de #54): un cambio solo en packages/shared no recompila la APK en el PR.",
+      "status": "pending"
     }
   ]
 }

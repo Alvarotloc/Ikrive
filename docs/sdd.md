@@ -90,7 +90,7 @@ SI la lectura de km entra en conflicto con las lecturas vecinas ENTONCES el sist
 
 ### design.md — decisiones antes de programar
 
-- Archivos que se crean o modifican, por capa (`packages/shared`, `apps/api/src/modules/<dominio>/{routes,service,repository}.ts`, `db/schema`, `apps/web/src/features/<dominio>/`, rutas, i18n).
+- Archivos que se crean o modifican, por capa (`packages/shared`, `apps/api/src/modules/<dominio>/{routes,service,repository}.ts`, `packages/db/src/schema`, `apps/web/src/features/<dominio>/`, rutas, i18n).
 - Cambios en la base de datos y migración (`pnpm db:generate`).
 - Contrato HTTP: método, ruta, cuerpo, respuestas y errores (`AppError` → RFC 7807).
 - Tipos y firmas nuevas.
@@ -106,7 +106,7 @@ Pasos pequeños en orden, cada uno con checkbox y los `R<n>` que cubre:
 
 ```markdown
 - [ ] T1 — Añadir `maintenanceRecordCreateSchema` y `maintenanceRecordSchema` en `packages/shared/src/schemas/maintenance.ts`. Cubre: R1, R2.
-- [ ] T2 — Tabla `maintenance_records` en `apps/api/src/db/schema/maintenance.ts` + `pnpm db:generate`. Cubre: R1.
+- [ ] T2 — Tabla `maintenance_records` en `packages/db/src/schema/maintenance.ts` + `pnpm db:generate`. Cubre: R1.
 - [ ] T3 — Test `creates a maintenance odometer reading` en `apps/api/test/maintenance.test.ts`. Cubre: R3.
 ```
 
@@ -132,6 +132,7 @@ Los subagentes escriben en disco y solo devuelven una línea con la ruta (regla 
 | `progress/spec_<name>.md`       | spec-author      | Solo si se bloquea: preguntas para el humano       |
 | `progress/impl_<name>.md`       | implementer      | Archivos tocados, mapa `R<n> → test`, verificación |
 | `progress/review_<name>.md`     | reviewer         | Veredicto y checklist                              |
+| `progress/explore_<name>_<tema>.md` | leader       | Informe de un `Explore` (solo lectura: lo devuelve en el mensaje y el leader lo guarda) |
 | `progress/current.md`           | leader           | Estado vivo de la sesión                           |
 | `progress/history.md`           | leader           | Bitácora append-only, una entrada por feature      |
 

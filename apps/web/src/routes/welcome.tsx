@@ -2,8 +2,8 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { Server, Smartphone } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Badge } from '@/components/ui/badge';
 import { AuthLayout } from '@/features/auth/auth-layout';
+import { useEnterLocalMode } from '@/features/mobile/local-mode';
 import { requireNative } from '@/features/mobile/require-server';
 
 export const Route = createFileRoute('/welcome')({
@@ -36,9 +36,10 @@ function TileContent({
   );
 }
 
-/** First screen of the native app without a server: how to use it. Only «Mi servidor» exists for now. */
+/** First screen of the native app without a mode: with a server or with the data on this phone. */
 function WelcomePage() {
   const { t } = useTranslation();
+  const enterLocalMode = useEnterLocalMode();
 
   return (
     <AuthLayout title={t('mobile.welcome.title')} subtitle={t('mobile.welcome.subtitle')}>
@@ -52,18 +53,12 @@ function WelcomePage() {
         </Link>
         <button
           type="button"
-          disabled
-          aria-disabled
-          className={`${tileClassName} cursor-not-allowed opacity-60`}
+          onClick={enterLocalMode}
+          className={`${tileClassName} cursor-pointer hover:border-foreground/40`}
         >
           <TileContent
             icon={<Smartphone className="size-5" aria-hidden />}
-            title={
-              <>
-                {t('mobile.welcome.local')}
-                <Badge variant="stamp">{t('mobile.welcome.comingSoon')}</Badge>
-              </>
-            }
+            title={t('mobile.welcome.local')}
             description={t('mobile.welcome.localDescription')}
           />
         </button>

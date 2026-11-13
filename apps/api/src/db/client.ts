@@ -1,6 +1,7 @@
-import { mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { MIGRATIONS_FOLDER } from '@ikrive/db';
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
@@ -18,8 +19,10 @@ export function createDb(filename: string) {
   return drizzle({ client: sqlite, schema, casing: 'snake_case' });
 }
 
-// Resolves to src/db/migrations in development and dist/migrations in the bundled build.
-const MIGRATIONS_DIR = fileURLToPath(new URL('./migrations', import.meta.url));
+// The bundled build ships them in dist/migrations (next to the bundle); from sources (development,
+// tests) they are read from packages/db.
+const BUNDLED_MIGRATIONS_DIR = fileURLToPath(new URL('./migrations', import.meta.url));
+const MIGRATIONS_DIR = existsSync(BUNDLED_MIGRATIONS_DIR) ? BUNDLED_MIGRATIONS_DIR : MIGRATIONS_FOLDER;
 
 export function runMigrations(db: Db) {
   migrate(db, { migrationsFolder: MIGRATIONS_DIR });

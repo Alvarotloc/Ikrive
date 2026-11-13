@@ -133,6 +133,7 @@ jobs:
             android:
               - 'apps/mobile/**'
               - 'apps/web/**'
+              - 'packages/db/**'
               - 'pnpm-lock.yaml'
               - '.github/workflows/ci.yml'
 

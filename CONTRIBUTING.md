@@ -6,6 +6,7 @@
 apps/api         API (Fastify 5 + Drizzle ORM + SQLite + Better Auth)
 apps/web         SPA (React 19 + Vite + TanStack Router/Query + Tailwind 4)
 packages/shared  Esquemas zod, enums y lógica de dominio pura compartida
+packages/db      Esquema Drizzle y migraciones SQL (los usan la API y el modo local del móvil)
 e2e/             Tests E2E con Playwright contra el build de producción
 docker/          Dockerfile multi-stage (una sola imagen sirve API + SPA)
 ```
@@ -24,15 +25,18 @@ Las dependencias se conectan a mano en `src/app.ts` (composition root), así los
 
 ### Base de datos
 
-1. Modifica el esquema en `apps/api/src/db/schema/`.
-2. Genera la migración: `pnpm db:generate` (crea SQL en `src/db/migrations/`).
-3. Las migraciones se aplican solas al arrancar el servidor.
+1. Modifica el esquema en `packages/db/src/schema/` (la API lo importa con `apps/api/src/db/schema.ts`).
+2. Genera la migración: `pnpm db:generate` (crea SQL en `packages/db/migrations/`).
+3. Las migraciones se aplican solas al arrancar el servidor (el build las copia a `dist/migrations`) y al abrir la base local de la app móvil (`apps/web/src/lib/data-source/local/migrations.ts` las empaqueta con Vite).
+
+El esquema es el mismo en el servidor y en el teléfono: no añadas columnas ni tablas solo para uno de los dos.
 
 ### Web
 
 - Rutas por fichero en `apps/web/src/routes/` (el árbol `routeTree.gen.ts` lo genera el plugin de Vite).
 - El código de cada dominio va en `src/features/<dominio>/` (queries, componentes).
-- Los `queries.ts` y `lib/client-config.ts` acceden a los datos con `dataSource()` (`src/lib/data-source/`), nunca con `api` directamente: la implementación HTTP es `http.ts` y el modo local tendrá la suya. Las query keys y las invalidaciones se quedan en los `queries.ts`. Una operación nueva se añade a `DataSource` (`types.ts`) y a `http.ts`. `no-direct-api.test.ts` falla si un `queries.ts` importa `@/lib/api-client`.
+- Los `queries.ts` y `lib/client-config.ts` acceden a los datos con `dataSource()` (`src/lib/data-source/`), nunca con `api` directamente: la implementación HTTP es `http.ts` y la del modo local del móvil, `local/`. Las query keys y las invalidaciones se quedan en los `queries.ts`. Una operación nueva se añade a `DataSource` (`types.ts`), a `http.ts` y a `local/` (o allí rechaza con `unsupported()`, un Problem 501). `no-direct-api.test.ts` falla si un `queries.ts` importa `@/lib/api-client`.
+- **DataSource local** (`src/lib/data-source/local/`, modo «En este teléfono» de la app nativa): un fichero por dominio que replica la orquestación del `service.ts`/`repository.ts` de la API sobre `drizzle-orm/sqlite-proxy` (async, `db.transaction(async (tx) => …)`), con las mismas reglas de `@ikrive/shared`, los mismos textos de error y DTO que cumplen el esquema de respuesta. Las entradas se validan con `parseInput` (400 `Validation failed`) y cada método pasa por una cola (`serial.ts`) para que dos operaciones no intercalen sus sentencias. Si cambias una regla en un servicio de la API, cámbiala también aquí. En el dispositivo el motor es `@capacitor-community/sqlite` (`lib/native-sqlite.ts`); en los tests, better-sqlite3 en memoria (`createMemorySqlite` de `src/test/memory-sqlite.ts`). El modo se guarda en `localStorage` (`lib/app-mode.ts`) y lo que necesita servidor se oculta con `isLocalMode()`.
 - Los textos van siempre en `src/i18n/locales/{es,en}.json`.
 - El código exclusivo de la app nativa (Capacitor y sus plugins, `src/lib/native-*.ts`) se carga solo con `import()` tras `isNativeApp()`; nunca con un import estático (`import type` sí vale). Motivo: el build web manda esos chunks a `assets/native/`, que el service worker no precachea (`NATIVE_ONLY_MODULES` en `src/features/pwa/config.ts`). Con un import estático la web cargaría ese chunk en todas las páginas y dejaría de funcionar offline.
 - Al añadir un `lib/native-*.ts` o un plugin en `apps/mobile/package.json`, añádelo a `NATIVE_ONLY_MODULES` (y el plugin también al `package.json` de la web). `src/features/pwa/native-only.test.ts` falla si falta o si la web lo importa de forma estática.
