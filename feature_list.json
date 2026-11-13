@@ -1168,6 +1168,29 @@
       "phase": "8",
       "title": "El job android de CI vigila packages/shared",
       "description": "Aviso del implementer en Gate 2 de #54. La APK empaqueta packages/shared, pero el filtro android del job changes de .github/workflows/ci.yml no lo incluye (ya pasaba antes de #54): un cambio solo en packages/shared no recompila la APK en el PR.",
+      "acceptance": [
+        "El filtro android del job changes de .github/workflows/ci.yml incluye packages/shared/**",
+        "El filtro cubre todos los paquetes del workspace de los que depende la APK (apps/web, packages/db, packages/shared)",
+        "El YAML sigue siendo válido y el resto de jobs no cambia",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
+      "status": "done"
+    },
+    {
+      "id": 70,
+      "name": "ci-android-root-paths",
+      "phase": "8",
+      "title": "El job android de CI vigila los ficheros raíz del build y todo packages/",
+      "description": "Avisos del reviewer en Gate 2 de #69. El filtro android del job changes de .github/workflows/ci.yml no vigila ficheros de la raíz que afectan al build de la APK (package.json, pnpm-workspace.yaml, tsconfig.base.json, .nvmrc), y enumera los paquetes uno a uno, así que un paquete nuevo en packages/ quedaría fuera.",
+      "acceptance": [
+        "El filtro android incluye package.json, pnpm-workspace.yaml, tsconfig.base.json y .nvmrc de la raíz",
+        "El filtro usa packages/** en lugar de enumerar packages/db/** y packages/shared/**",
+        "Se revisa si algún otro fichero de la raíz afecta al build de la APK y, si es así, se añade al filtro",
+        "El YAML sigue siendo válido y el resto de jobs no cambia",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
       "status": "pending"
     }
   ]

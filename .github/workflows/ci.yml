@@ -134,6 +134,7 @@ jobs:
               - 'apps/mobile/**'
               - 'apps/web/**'
               - 'packages/db/**'
+              - 'packages/shared/**'
               - 'pnpm-lock.yaml'
               - '.github/workflows/ci.yml'
 

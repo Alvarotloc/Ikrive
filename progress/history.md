@@ -623,3 +623,11 @@
 - **Prueba en dispositivo:** con la APK del PR #58 falló crear vehículo sin feedback (`reading 'id'`): el plugin emula `RETURNING` en `run(…, 'all')` releyendo por `rowid` desde el `last_insert_rowid()` previo de la conexión (de otra tabla) → vacío. Reabierta: las sentencias con `RETURNING` van por `query()` (SQLCipher 4.17, nativo); los fallos al guardar vehículo, acciones del vehículo y ajustes muestran «Algo ha ido mal». Reviewer APPROVED (3ª revisión); web 520. Segunda pasada del humano (2026-11-13): checklist 1–10 en verde (el paso 6 de la checklist tenía mal el caso de rechazo; la regla de `findOdometerConflict` era correcta).
 - **Pendientes:** `packages/shared` fuera del filtro android de CI → #69. README (hoja de ruta) al publicar.
 - **Gate 2:** «merge» del humano → PR #58; lo integra el humano en GitHub tras la checklist.
+
+## 2026-11-13 — #69 ci-android-shared-paths
+
+- **Rama:** `feat/ci-android-shared-paths` (`sdd: false`, sin spec ni Gate 1). Pendiente de #54. La feature no tenía `sdd` ni `acceptance`; el leader los añadió.
+- **Cambios:** `'packages/shared/**'` en el filtro `android` del job `changes` de `.github/workflows/ci.yml`. El cierre transitivo de la APK (`apps/mobile`, `apps/web`, `packages/db`, `packages/shared`) queda cubierto.
+- **Tests:** sin test automatizado (configuración de CI); YAML validado. `pnpm harness --full` en verde (web 520, API 368).
+- **Revisión:** APPROVED a la primera (`progress/review_ci-android-shared-paths.md`). Avisos (ficheros raíz del build sin vigilar; usar `packages/**`) → #70 `ci-android-root-paths`.
+- **Gate 2:** «merge» del humano → PR.
