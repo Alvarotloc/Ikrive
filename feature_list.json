@@ -1059,7 +1059,7 @@
       "phase": "8",
       "title": "Modo local: adjuntos y foto del vehículo",
       "description": "Etapa 2 de la fase 8 (parte 2 de 5). Va después de #54. Adjuntos de mantenimiento y foto del vehículo guardados con @capacitor/filesystem (Directory.Data), miniaturas y redimensionado con canvas en lugar de sharp, y URLs locales opacas resueltas por files.get.",
-      "status": "pending",
+      "status": "spec_ready",
       "sdd": true,
       "acceptance": [
         "En modo local se pueden subir, ver y borrar adjuntos de un mantenimiento y la foto de un vehículo, con los mismos tipos y límites que la API",
@@ -1192,6 +1192,22 @@
       ],
       "sdd": false,
       "status": "done"
+    },
+    {
+      "id": 71,
+      "name": "api-photo-avif",
+      "phase": "8",
+      "title": "La foto del vehículo acepta AVIF de verdad o deja de anunciarlo",
+      "description": "Detectado al redactar el spec de #65 (mobile-local-files). apps/api/src/lib/images.ts declara AVIF en SUPPORTED_FORMATS y en el texto del 400, pero sharp informa de las imágenes AVIF como heif, así que la API las rechaza. Hay que aceptarlas (format heif con compresión av1) o quitar AVIF de la lista y del mensaje.",
+      "acceptance": [
+        "Una foto AVIF real subida a PUT /api/vehicles/:id/photo se guarda como WebP o, si el sharp empaquetado no puede decodificarla, AVIF desaparece de SUPPORTED_FORMATS y del texto del 400",
+        "Un HEIC (heif sin av1) sigue rechazándose con 400",
+        "El texto del 400 enumera exactamente los formatos aceptados, y el modo local (#65) usa el mismo texto",
+        "Hay un test en apps/api con una imagen AVIF generada con sharp",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
+      "status": "pending"
     }
   ]
 }
