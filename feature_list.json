@@ -1208,6 +1208,22 @@
       ],
       "sdd": false,
       "status": "pending"
+    },
+    {
+      "id": 72,
+      "name": "local-missing-file-404",
+      "phase": "8",
+      "title": "En modo local, files.get responde 404 si falta el fichero",
+      "description": "Aviso 2 del reviewer en Gate 2 de #65 (mobile-local-files). En modo local, si la fila de un adjunto o de la foto de un vehículo existe pero su fichero ya no está en el almacén local, files.get (apps/web/src/lib/data-source/local/files-get.ts) rechaza con el error del plugin de Capacitor en vez de con un Problem 404. Conviene resolverlo antes de #66 (mobile-local-export) para que el export pueda tratar ese caso.",
+      "acceptance": [
+        "En modo local, files.get rechaza con un Problem 404 cuando la fila existe pero falta su fichero, para la foto, el original de un adjunto y su miniatura",
+        "LocalFileStore distingue «fichero inexistente» de otros errores, tanto en el almacén del dispositivo como en el de memoria de los tests",
+        "Los demás errores del almacén se siguen relanzando tal cual",
+        "Tests con el almacén en memoria sin el fichero cubren los tres casos",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
+      "status": "pending"
     }
   ]
 }
