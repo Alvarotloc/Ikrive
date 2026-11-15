@@ -133,9 +133,12 @@ jobs:
             android:
               - 'apps/mobile/**'
               - 'apps/web/**'
-              - 'packages/db/**'
-              - 'packages/shared/**'
+              - 'packages/**'
+              - '.nvmrc'
+              - 'package.json'
               - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'tsconfig.base.json'
               - '.github/workflows/ci.yml'
 
   # Debug APK (signed with the debug key) to try the app on a phone: artifact `ikrive-debug-apk`.

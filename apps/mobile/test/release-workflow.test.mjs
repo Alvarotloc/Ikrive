@@ -71,18 +71,25 @@ test('passes the version from the tag to Gradle', () => {
   );
 });
 
-test('ci android job only runs when mobile, web, packages/db, the lockfile or the workflow change', () => {
+test('ci android job only runs when mobile, web, packages, the root build files or the workflow change', () => {
   const { changes, android: ciAndroid, check, e2e, docker } = ci.jobs;
-  // `packages/db`: the APK bundles its schema and migrations (local mode).
+  // `packages/**`: the APK bundles `packages/db` (schema and migrations, local mode), `packages/shared`
+  // and any future package. The root files decide Node, pnpm, the workspace and the TS base config.
   for (const path of [
     'apps/mobile/**',
     'apps/web/**',
-    'packages/db/**',
+    'packages/**',
+    '.nvmrc',
+    'package.json',
     'pnpm-lock.yaml',
+    'pnpm-workspace.yaml',
+    'tsconfig.base.json',
     '.github/workflows/ci.yml',
   ]) {
     assert.ok(changes.includes(`- '${path}'`), path);
   }
+  // Packages are not listed one by one: a new package under `packages/` must trigger the job too.
+  assert.doesNotMatch(changes, /- 'packages\/[\w-]+\/\*\*'/);
   assert.match(changes, /uses: dorny\/paths-filter@[0-9a-f]{40} # v\d+\.\d+\.\d+\n/);
   assert.match(changes, /android: \$\{\{ steps\.filter\.outputs\.android \}\}/);
   assert.match(ciAndroid, /\n {4}needs: changes\n/);

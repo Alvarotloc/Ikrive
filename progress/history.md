@@ -631,3 +631,11 @@
 - **Tests:** sin test automatizado (configuración de CI); YAML validado. `pnpm harness --full` en verde (web 520, API 368).
 - **Revisión:** APPROVED a la primera (`progress/review_ci-android-shared-paths.md`). Avisos (ficheros raíz del build sin vigilar; usar `packages/**`) → #70 `ci-android-root-paths`.
 - **Gate 2:** «merge» del humano → PR.
+
+## 2026-11-13 — #70 ci-android-root-paths
+
+- **Rama:** `feat/ci-android-root-paths` (`sdd: false`, sin spec ni Gate 1). Avisos del reviewer en Gate 2 de #69.
+- **Cambios:** el filtro `android` del job `changes` de `.github/workflows/ci.yml` vigila `packages/**` (en vez de enumerar paquetes) y los ficheros raíz del build: `.nvmrc`, `package.json`, `pnpm-workspace.yaml`, `tsconfig.base.json`. Descartados con justificación en `progress/impl_ci-android-root-paths.md`: `biome.json`, `lefthook.yml`, `.editorconfig`, `.env*`, Docker, `scripts/`, `e2e/` (sus dependencias ya llegan por `pnpm-lock.yaml`).
+- **Tests:** `apps/mobile/test/release-workflow.test.mjs` exige las rutas nuevas y prohíbe enumerar `packages/<nombre>/**`. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED a la primera (`progress/review_ci-android-root-paths.md`). Avisos: el test no detecta rutas sobrantes; `e2e/` fuera a propósito.
+- **Gate 2:** «merge» del humano → PR.
