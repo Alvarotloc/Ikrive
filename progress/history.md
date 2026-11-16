@@ -667,3 +667,12 @@
 - **Gate 2:** cambio pedido: comillas inglesas en `localExportHint` de `en.json`; re-review APPROVED. Otras comillas angulares antiguas en `en.json` → #76 `en-angle-quotes`.
 - **Prueba en dispositivo:** APK debug compilada en local (JDK 21) e instalada con `adb`; checklist en verde (tarjeta sin import, «Preparando…», hoja de compartir con `ikrive-export-<hoy>.zip`, zip importado en el servidor con vehículo, historial, factura y foto).
 - **Gate 2:** «merge» del humano → PR.
+
+## 2026-11-16 — #74 android-back-button
+
+- **Rama:** `feat/android-back-button`. Fase 8. Sin `Explore`. Gate 1: cambio pedido, `/login` también es pantalla raíz (para que tras «Cerrar sesión» atrás no recorra la sesión anterior; `replace` al cerrar sesión no bastaría); `ServerLink` ya ofrece «Cambiar servidor» en el login nativo.
+- **Cambios:** `@capacitor/app` 8.1.2 en web y mobile (`cap sync android`). `lib/native-back-button.ts` (`onBackButton`, `minimizeApp`; native-only, en `NATIVE_ONLY_MODULES`). `features/mobile/back-button.ts`: `closeTopLayer` envía un `keydown` Escape sintético y Radix cierra la capa más alta (el retorno de `dispatchEvent` dice si había capa, sin registro propio); `resolveBack` decide capa → atrás en el router (fuera de `/`, `/welcome`, `/login` y con historial) → `minimizeApp`. `BackButtonHandler` montado en `__root.tsx` con `isNativeApp()`.
+- **Tests:** unitarios de la lógica y del módulo nativo; test de componente con `Dialog`/`DropdownMenu` reales y plugin simulado (12 casos, incluido modo local y web sin cargar el módulo). Web 575, API 370. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED a la primera (`progress/review_android-back-button.md`). Avisos: el test de R8 depende de ejecutarse primero en su archivo; `docker build` no comprobado en local; un listener de Escape no-Radix con `preventDefault` consumiría atrás.
+- **Prueba en dispositivo:** APK debug (JDK 21) instalada con `adb`; checklist manual OK, «mucho mejor la experiencia de uso».
+- **Gate 2:** «merge» del humano → PR.
