@@ -82,7 +82,7 @@
     "odometerReminderWeekday": "Odometer reminder day",
     "odometerReminderOff": "Don't remind me",
     "odometerReminderWeekdayInfoLabel": "More about the odometer reminder",
-    "odometerReminderWeekdayInfo": "On that day, from the reminder time, we notify you once about active vehicles with no odometer reading for 7 days or more. Choose «Don't remind me» to turn it off.",
+    "odometerReminderWeekdayInfo": "On that day, from the reminder time, we notify you once about active vehicles with no odometer reading for 7 days or more. Choose \"Don't remind me\" to turn it off.",
     "reminderHour": "Reminder time",
     "reminderHourHint": "We will notify you from this time in your time zone.",
     "reminderHourInfoLabel": "More about the reminder time",

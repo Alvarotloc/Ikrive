@@ -676,3 +676,11 @@
 - **Revisión:** APPROVED a la primera (`progress/review_android-back-button.md`). Avisos: el test de R8 depende de ejecutarse primero en su archivo; `docker build` no comprobado en local; un listener de Escape no-Radix con `preventDefault` consumiría atrás.
 - **Prueba en dispositivo:** APK debug (JDK 21) instalada con `adb`; checklist manual OK, «mucho mejor la experiencia de uso».
 - **Gate 2:** «merge» del humano → PR.
+
+## 2026-11-16 — #76 en-angle-quotes
+
+- **Rama:** `feat/en-angle-quotes`. `sdd: false` (sin spec ni Gate 1). Se adelanta a #67 para que el test proteja sus textos nuevos en inglés.
+- **Cambios:** `settings.odometerReminderWeekdayInfo` en `en.json` usa `"Don't remind me"` en vez de comillas angulares; `es.json` sin cambios.
+- **Tests:** `locales.test.ts` › `en uses English quotation marks, not Spanish angle quotes` (falla con el texto anterior). Web 576. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED a la primera (`progress/review_en-angle-quotes.md`), sin avisos.
+- **Gate 2:** «merge» del humano → PR.
