@@ -1224,6 +1224,24 @@
       ],
       "sdd": false,
       "status": "pending"
+    },
+    {
+      "id": 73,
+      "name": "camera-capture",
+      "phase": "8",
+      "title": "Hacer la foto del vehículo o de una factura con la cámara",
+      "description": "Detectado al probar #65 en un móvil físico. PhotoPicker (apps/web/src/features/vehicles/photo-picker.tsx) y AttachmentPicker usan <input type=\"file\"> sin capture, así que en la app Android Capacitor (BridgeWebChromeClient.onShowFileChooser) solo abre el selector de fotos del sistema y no hay forma de hacer una foto. Con capture abre únicamente la cámara, sin galería, así que se proponen dos acciones: «Hacer foto» y «Elegir de la galería» (o «Elegir archivo» en facturas, que también admiten PDF). Aplica a la app (modo servidor y local) y a la web en el móvil.",
+      "acceptance": [
+        "El selector de foto del vehículo ofrece «Hacer foto» (input con capture=\"environment\") y «Elegir de la galería» (el comportamiento actual)",
+        "El selector de facturas ofrece «Hacer foto» además de elegir archivo; la foto sigue los mismos tipos, límites y validaciones que una imagen subida",
+        "En la app Android, AndroidManifest.xml declara el permiso CAMERA y la primera vez se pide; si se deniega, la app lo indica y elegir de la galería o un archivo sigue funcionando",
+        "En escritorio, donde capture no aplica, la interfaz no ofrece una acción que no hace nada distinto (el spec decide si se oculta «Hacer foto»)",
+        "Funciona igual en modo servidor y en modo local",
+        "Todos los textos están en es.json y en.json",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
     }
   ]
 }
