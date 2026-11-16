@@ -1258,7 +1258,7 @@
         "pnpm harness --full pasa en verde, con tests del manejador usando un plugin simulado y checklist manual en el dispositivo antes de Gate 2"
       ],
       "sdd": true,
-      "status": "pending"
+      "status": "in_progress"
     },
     {
       "id": 75,
