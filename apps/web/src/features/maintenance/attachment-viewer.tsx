@@ -6,8 +6,7 @@ import { toast } from 'sonner';
 import { ApiImage } from '@/components/api-image';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogTitle } from '@/components/ui/dialog';
-import { saveApiFile } from '@/lib/api-files';
-import { isServerMode } from '@/lib/server';
+import { filesViaDataSource, saveApiFile } from '@/lib/api-files';
 import { inlineUrl } from './attachments';
 
 type ViewedAttachment = Pick<Attachment, 'url' | 'originalName'>;
@@ -75,8 +74,8 @@ function ViewerBody({ attachment }: { attachment: ViewedAttachment }) {
         <DialogClose asChild>
           <Button variant="ghost">{t('maintenance.attachments.close')}</Button>
         </DialogClose>
-        {isServerMode() ? (
-          // Server mode has no cookie: the original is fetched with the token (`api-files`).
+        {filesViaDataSource() ? (
+          // Server mode has no cookie and local mode no server: the original goes through the `DataSource`.
           <Button
             type="button"
             variant="outline"

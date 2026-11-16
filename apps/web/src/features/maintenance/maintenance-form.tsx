@@ -15,7 +15,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { schedulesQuery } from '@/features/schedules/queries';
 import { sortSchedules } from '@/features/schedules/schedules';
 import { settingsQuery } from '@/features/settings/queries';
-import { isLocalMode } from '@/lib/app-mode';
 import { todayIso, useFormat } from '@/lib/format';
 import { AttachmentPicker } from './attachment-picker';
 import {
@@ -181,8 +180,7 @@ function MaintenanceForm({
       <FormField {...field('description')}>
         <Textarea {...input('description')} />
       </FormField>
-      {/* Invoices are not stored on the phone until #65. */}
-      {!record && !isLocalMode() && (
+      {!record && (
         <fieldset className="grid gap-2">
           <legend className="mb-2 text-sm leading-none font-semibold">
             {t('maintenance.attachments.sectionTitle')}

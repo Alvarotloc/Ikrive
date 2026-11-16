@@ -1059,7 +1059,7 @@
       "phase": "8",
       "title": "Modo local: adjuntos y foto del vehículo",
       "description": "Etapa 2 de la fase 8 (parte 2 de 5). Va después de #54. Adjuntos de mantenimiento y foto del vehículo guardados con @capacitor/filesystem (Directory.Data), miniaturas y redimensionado con canvas en lugar de sharp, y URLs locales opacas resueltas por files.get.",
-      "status": "pending",
+      "status": "done",
       "sdd": true,
       "acceptance": [
         "En modo local se pueden subir, ver y borrar adjuntos de un mantenimiento y la foto de un vehículo, con los mismos tipos y límites que la API",
@@ -1192,6 +1192,73 @@
       ],
       "sdd": false,
       "status": "done"
+    },
+    {
+      "id": 71,
+      "name": "api-photo-avif",
+      "phase": "8",
+      "title": "La foto del vehículo acepta AVIF de verdad o deja de anunciarlo",
+      "description": "Detectado al redactar el spec de #65 (mobile-local-files). apps/api/src/lib/images.ts declara AVIF en SUPPORTED_FORMATS y en el texto del 400, pero sharp informa de las imágenes AVIF como heif, así que la API las rechaza. Hay que aceptarlas (format heif con compresión av1) o quitar AVIF de la lista y del mensaje.",
+      "acceptance": [
+        "Una foto AVIF real subida a PUT /api/vehicles/:id/photo se guarda como WebP o, si el sharp empaquetado no puede decodificarla, AVIF desaparece de SUPPORTED_FORMATS y del texto del 400",
+        "Un HEIC (heif sin av1) sigue rechazándose con 400",
+        "El texto del 400 enumera exactamente los formatos aceptados, y el modo local (#65) usa el mismo texto",
+        "Hay un test en apps/api con una imagen AVIF generada con sharp",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
+      "status": "pending"
+    },
+    {
+      "id": 72,
+      "name": "local-missing-file-404",
+      "phase": "8",
+      "title": "En modo local, files.get responde 404 si falta el fichero",
+      "description": "Aviso 2 del reviewer en Gate 2 de #65 (mobile-local-files). En modo local, si la fila de un adjunto o de la foto de un vehículo existe pero su fichero ya no está en el almacén local, files.get (apps/web/src/lib/data-source/local/files-get.ts) rechaza con el error del plugin de Capacitor en vez de con un Problem 404. Conviene resolverlo antes de #66 (mobile-local-export) para que el export pueda tratar ese caso.",
+      "acceptance": [
+        "En modo local, files.get rechaza con un Problem 404 cuando la fila existe pero falta su fichero, para la foto, el original de un adjunto y su miniatura",
+        "LocalFileStore distingue «fichero inexistente» de otros errores, tanto en el almacén del dispositivo como en el de memoria de los tests",
+        "Los demás errores del almacén se siguen relanzando tal cual",
+        "Tests con el almacén en memoria sin el fichero cubren los tres casos",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
+      "status": "pending"
+    },
+    {
+      "id": 73,
+      "name": "camera-capture",
+      "phase": "8",
+      "title": "Hacer la foto del vehículo o de una factura con la cámara",
+      "description": "Detectado al probar #65 en un móvil físico. PhotoPicker (apps/web/src/features/vehicles/photo-picker.tsx) y AttachmentPicker usan <input type=\"file\"> sin capture, así que en la app Android Capacitor (BridgeWebChromeClient.onShowFileChooser) solo abre el selector de fotos del sistema y no hay forma de hacer una foto. Con capture abre únicamente la cámara, sin galería, así que se proponen dos acciones: «Hacer foto» y «Elegir de la galería» (o «Elegir archivo» en facturas, que también admiten PDF). Aplica a la app (modo servidor y local) y a la web en el móvil.",
+      "acceptance": [
+        "El selector de foto del vehículo ofrece «Hacer foto» (input con capture=\"environment\") y «Elegir de la galería» (el comportamiento actual)",
+        "El selector de facturas ofrece «Hacer foto» además de elegir archivo; la foto sigue los mismos tipos, límites y validaciones que una imagen subida",
+        "En la app Android, AndroidManifest.xml declara el permiso CAMERA y la primera vez se pide; si se deniega, la app lo indica y elegir de la galería o un archivo sigue funcionando",
+        "En escritorio, donde capture no aplica, la interfaz no ofrece una acción que no hace nada distinto (el spec decide si se oculta «Hacer foto»)",
+        "Funciona igual en modo servidor y en modo local",
+        "Todos los textos están en es.json y en.json",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 74,
+      "name": "android-back-button",
+      "phase": "8",
+      "title": "El botón atrás de Android navega hacia atrás en la app",
+      "description": "Detectado al probar #65 en un móvil físico. En la app Android, el botón (o gesto) atrás del sistema casi siempre cierra la app en vez de volver a la pantalla anterior. Capacitor solo gestiona el historial del WebView a medias; lo habitual es escuchar el evento backButton de @capacitor/app (plugin nuevo, no está en apps/mobile ni apps/web) y decidir: cerrar el diálogo, hoja o menú abierto, volver atrás en el router si hay historial, o salir de la app en la pantalla raíz.",
+      "acceptance": [
+        "En la app Android, el botón atrás con un diálogo, hoja o menú abierto lo cierra sin cambiar de pantalla",
+        "Sin nada abierto, vuelve a la pantalla anterior del router si hay historial dentro de la app",
+        "En la pantalla raíz (panel, o la primera pantalla de elección de modo), sale de la app o la manda al fondo como cualquier app Android (el spec decide cuál)",
+        "Funciona igual en modo servidor y en modo local, y no cambia nada en la web ni en la PWA",
+        "El plugin nuevo va en el build nativo y fuera del precache de la PWA (native-only)",
+        "pnpm harness --full pasa en verde, con tests del manejador usando un plugin simulado y checklist manual en el dispositivo antes de Gate 2"
+      ],
+      "sdd": true,
+      "status": "pending"
     }
   ]
 }

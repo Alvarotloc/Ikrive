@@ -8,7 +8,10 @@ import { ApiError } from '@/lib/api-client';
 import { VehiclePhoto } from './dossier';
 import { useRemoveVehiclePhoto, useUploadVehiclePhoto } from './queries';
 
-/** Vehicle photo with upload and remove buttons. The API resizes it and strips its metadata. */
+/**
+ * Vehicle photo with upload and remove buttons. The `DataSource` (the API, or the phone in local mode)
+ * orients, resizes and recodes it, which strips its metadata.
+ */
 export function PhotoPicker({ vehicle }: { vehicle: Vehicle }) {
   const { t } = useTranslation();
   const input = useRef<HTMLInputElement>(null);

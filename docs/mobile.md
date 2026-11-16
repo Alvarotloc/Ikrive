@@ -44,8 +44,9 @@ La app acepta servidores `http://` porque en una LAN es habitual no tener certif
 
 Al abrir la app, elige **En este teléfono**: entras directamente al panel, sin cuenta, sin login y sin conexión. Los datos se guardan en una base SQLite dentro de la app (sin cifrar) y nunca salen del móvil. La app recuerda el modo: al volver a abrirla entra directamente.
 
-- **Qué funciona:** ajustes, vehículos (alta, edición, archivar, vender, borrar), lecturas de km, repostajes, mantenimientos, reglas de mantenimiento, gasto y estadísticas, con las mismas reglas que el servidor (no se puede retroceder el kilometraje, fechas futuras, etc.).
-- **Qué no está todavía:** adjuntos (facturas) y foto del vehículo, exportar e importar los datos, recordatorios y aviso de km, y el PDF del informe de venta llegarán en próximas versiones; mientras, no aparecen. Lo que solo tiene sentido con servidor tampoco: cuenta, administración de usuarios, canales de notificación, feed iCal, enlaces públicos del informe y la campana de avisos.
+- **Qué funciona:** ajustes, vehículos (alta, edición, archivar, vender, borrar), foto del vehículo, lecturas de km, repostajes, mantenimientos con sus facturas (PDF, JPG, PNG o WebP, hasta 20 MB), reglas de mantenimiento, gasto y estadísticas, con las mismas reglas que el servidor (no se puede retroceder el kilometraje, fechas futuras, etc.).
+- **Fotos y facturas:** se guardan en el almacenamiento privado de la app (no necesita permisos y ninguna otra app las ve). La foto se endereza, se reduce a 1600 px y se guarda en WebP en el propio móvil, como haría el servidor; las facturas se guardan tal cual. Borrar una factura, un mantenimiento o un vehículo borra también sus ficheros. Desinstalar la app o borrar sus datos en Android los elimina.
+- **Qué no está todavía:** exportar e importar los datos, recordatorios y aviso de km, y el PDF del informe de venta llegarán en próximas versiones; mientras, no aparecen. Lo que solo tiene sentido con servidor tampoco: cuenta, administración de usuarios, canales de notificación, feed iCal, enlaces públicos del informe y la campana de avisos.
 - **Cambiar de modo:** el botón **Cambiar de modo** (donde estaría «Cerrar sesión») vuelve a la pantalla de inicio. Los datos del teléfono **no se borran**: al elegir otra vez «En este teléfono» siguen ahí. Conectar un servidor en «Mi servidor» apaga el modo local, pero tampoco borra esos datos.
 - **Copia de seguridad:** de momento no hay forma de sacar los datos del teléfono ni de pasarlos a un servidor (llegará con el export). Desinstalar la app o borrar sus datos en Android los elimina.
 
@@ -69,7 +70,7 @@ La app no pide permisos de almacenamiento: los ficheros se preparan en su caché
 
 ## Limitaciones conocidas
 
-- En el modo «En este teléfono» todavía faltan adjuntos, foto, export/import, recordatorios y el PDF del informe de venta (ver [En este teléfono](#en-este-teléfono-sin-servidor)).
+- En el modo «En este teléfono» todavía faltan export/import, recordatorios y el PDF del informe de venta (ver [En este teléfono](#en-este-teléfono-sin-servidor)).
 - Las notificaciones del teléfono solo llegan con la app abierta (ver [Calendario y notificaciones](#calendario-y-notificaciones)); con la app cerrada, usa los canales de notificación.
 - La pantalla de arranque es la de Capacitor.
 

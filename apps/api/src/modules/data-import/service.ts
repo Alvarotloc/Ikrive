@@ -8,8 +8,10 @@ import {
   type DataExportNotificationChannel,
   type DataImportSummary,
   dataExportSchema,
+  detectAttachmentType,
   findMatchingVehicles,
   notificationChannelConfigSchema,
+  sanitizeFileName,
 } from '@ikrive/shared';
 import type { FastifyBaseLogger } from 'fastify';
 import type { Entry } from 'yauzl';
@@ -19,11 +21,9 @@ import {
   PayloadTooLargeError,
   UnsupportedMediaTypeError,
 } from '../../lib/errors';
-import { detectAttachmentType } from '../../lib/file-type';
 import { assertDecodableImage } from '../../lib/images';
 import type { FileStorage } from '../../lib/storage';
 import { openZip, type ZipReader } from '../../lib/zip-reader';
-import { sanitizeFileName } from '../attachments/service';
 import type { SettingsService } from '../settings/service';
 import { type DataImportRepository, duplicateImportError, type ImportPlan } from './repository';
 

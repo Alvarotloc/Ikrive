@@ -18,6 +18,8 @@ import {
 import type { AsyncRemoteCallback } from 'drizzle-orm/sqlite-proxy';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { ApiError } from '@/lib/api-client';
+import { fakeImages } from '@/test/fake-images';
+import { createMemoryFileStore, type MemoryFileStore } from '@/test/memory-file-store';
 import { createMemorySqlite } from '@/test/memory-sqlite';
 import type { DataSource } from '../types';
 import {
@@ -32,6 +34,8 @@ let db: LocalDb;
 let local: DataSource;
 /** Every statement that reached the engine, to check that a rejected operation wrote nothing. */
 let statements: string[];
+/** The local file store, to check that a rejected operation wrote no file. */
+let store: MemoryFileStore;
 
 beforeEach(async () => {
   const memory = createMemorySqlite();
@@ -42,7 +46,8 @@ beforeEach(async () => {
   };
   db = await openLocalDatabase(recording);
   statements = [];
-  local = createLocalDataSource(db);
+  store = createMemoryFileStore();
+  local = createLocalDataSource(db, { files: store, images: fakeImages() });
 });
 
 /** The problem an operation rejected with (fails the test if it resolved or threw something else). */
@@ -489,12 +494,6 @@ describe('local DataSource', () => {
     const options = { hidePrices: false, hidePlate: false, hideVin: false, includeInvoices: false };
     statements = [];
     const unsupported = [
-      local.vehicles.setPhoto(vehicle.id, file),
-      local.vehicles.removePhoto(vehicle.id),
-      local.attachments.list(vehicle.id, 'record'),
-      local.attachments.upload(vehicle.id, 'record', file),
-      local.attachments.remove(vehicle.id, 'record', 'attachment'),
-      local.files.get('/api/vehicles/x/photo'),
       local.saleReport.download(vehicle.id, options),
       local.reportShares.list(vehicle.id),
       local.reportShares.create(vehicle.id, options),
@@ -530,5 +529,6 @@ describe('local DataSource', () => {
       });
     }
     expect(statements).toEqual([]);
+    expect(store.keys()).toEqual([]);
   });
 });

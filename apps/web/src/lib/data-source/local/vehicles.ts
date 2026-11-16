@@ -1,10 +1,11 @@
 import { LOCAL_USER_ID } from '@ikrive/db';
-import { odometerReadings, vehicles } from '@ikrive/db/schema';
+import { attachments, maintenanceRecords, odometerReadings, vehicles } from '@ikrive/db/schema';
 import {
   archivedAtAfterUpdate,
   canDeleteOdometerReading,
   createOdometerReadingSchema,
   createVehicleSchema,
+  detectPhotoFormat,
   initialOdometerReading,
   type OdometerReading,
   odometerConflictMessage,
@@ -14,9 +15,10 @@ import {
   validateOdometerWrite,
   vehicleStatus,
 } from '@ikrive/shared';
-import { and, desc, eq, isNotNull, isNull, type SQL } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, isNull, type SQL } from 'drizzle-orm';
 import type { DataSource } from '../types';
 import type { LocalDb } from './database';
+import { assertUploadSize, assertWebp, fileBytes, type LocalDeps, localPhotoUrl, removeFiles } from './files';
 import { badRequest, conflict, notFound, parseInput } from './problems';
 import { localToday } from './settings';
 
@@ -65,14 +67,19 @@ async function toDto(db: LocalDb, row: VehicleRow): Promise<Vehicle> {
     createdAt: createdAt.toISOString(),
     updatedAt: updatedAt.toISOString(),
     status: vehicleStatus(row),
-    // Photos come with #65.
-    photoUrl: null,
+    photoUrl: row.photo ? localPhotoUrl({ id: row.id, photo: row.photo }) : null,
     odometer: latest ? { value: latest.value, date: latest.date } : null,
   };
 }
 
-/** `vehicles` of the local `DataSource`, without the photo (`setPhoto`/`removePhoto` are added by the caller). */
-export function localVehicles(db: LocalDb): Omit<DataSource['vehicles'], 'setPhoto' | 'removePhoto'> {
+const PHOTO_FOLDER = 'vehicles';
+const UNSUPPORTED_PHOTO = 'The file is not a supported image (JPEG, PNG, WebP, AVIF, GIF or TIFF)';
+
+/** `vehicles` of the local `DataSource`; the photo is recoded to WebP and kept in the local store. */
+export function localVehicles(db: LocalDb, { files, images }: LocalDeps): DataSource['vehicles'] {
+  const setPhotoKey = (id: string, photo: string | null) =>
+    db.update(vehicles).set({ photo }).where(eq(vehicles.id, id)).returning().get();
+
   return {
     async list(status) {
       const rows = await db
@@ -120,10 +127,55 @@ export function localVehicles(db: LocalDb): Omit<DataSource['vehicles'], 'setPho
       return toDto(db, updated);
     },
 
-    /** Its readings, fuel logs, maintenance records and schedules go with it (`on delete cascade`). */
+    /**
+     * Its readings, fuel logs, maintenance records and schedules go with it (`on delete cascade`); the
+     * attachments of its records are deleted in the same transaction. Their files and the photo, afterwards.
+     */
     async remove(id) {
-      await requireVehicle(db, id);
-      await db.delete(vehicles).where(eq(vehicles.id, id));
+      const vehicle = await requireVehicle(db, id);
+      const keys = await db.transaction(async (tx) => {
+        const records = tx
+          .select({ id: maintenanceRecords.id })
+          .from(maintenanceRecords)
+          .where(eq(maintenanceRecords.vehicleId, id));
+        const removed = await tx
+          .delete(attachments)
+          .where(and(eq(attachments.entityType, 'maintenance'), inArray(attachments.entityId, records)))
+          .returning({ storageKey: attachments.storageKey })
+          .all();
+        await tx.delete(vehicles).where(eq(vehicles.id, id));
+        return removed.map((row) => row.storageKey);
+      });
+      await removeFiles(files, vehicle.photo ? [...keys, vehicle.photo] : keys);
+    },
+
+    /** Oriented, at most 1600 px and recoded to WebP (which also strips its metadata); replaces the previous one. */
+    async setPhoto(id, file) {
+      const vehicle = await requireVehicle(db, id);
+      assertUploadSize(file);
+      const data = await fileBytes(file);
+      if (!detectPhotoFormat(data)) throw badRequest(UNSUPPORTED_PHOTO);
+      const webp = await images.toWebpPhoto(data).catch(() => {
+        throw badRequest(UNSUPPORTED_PHOTO);
+      });
+      assertWebp(webp);
+      const key = await files.save(PHOTO_FOLDER, webp, 'webp');
+      let updated: VehicleRow;
+      try {
+        updated = await setPhotoKey(id, key);
+      } catch (error) {
+        await removeFiles(files, [key]);
+        throw error;
+      }
+      if (vehicle.photo) await removeFiles(files, [vehicle.photo]);
+      return toDto(db, updated);
+    },
+
+    async removePhoto(id) {
+      const vehicle = await requireVehicle(db, id);
+      const updated = await setPhotoKey(id, null);
+      if (vehicle.photo) await removeFiles(files, [vehicle.photo]);
+      return toDto(db, updated);
     },
   };
 }
