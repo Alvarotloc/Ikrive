@@ -1,6 +1,6 @@
+import { detectAttachmentType } from '@ikrive/shared';
 import sharp from 'sharp';
 import { describe, expect, it } from 'vitest';
-import { detectAttachmentType } from '../src/lib/file-type';
 
 const image = (format: 'jpeg' | 'png' | 'webp') =>
   sharp({ create: { width: 8, height: 8, channels: 3, background: '#2d3a3a' } })

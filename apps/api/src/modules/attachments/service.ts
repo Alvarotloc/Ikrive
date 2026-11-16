@@ -1,8 +1,7 @@
 import { createHash } from 'node:crypto';
 import { buffer } from 'node:stream/consumers';
-import type { Attachment } from '@ikrive/shared';
+import { type Attachment, detectAttachmentType, sanitizeFileName } from '@ikrive/shared';
 import { NotFoundError, UnsupportedMediaTypeError } from '../../lib/errors';
-import { detectAttachmentType } from '../../lib/file-type';
 import { assertDecodableImage, toWebpThumbnail } from '../../lib/images';
 import type { FileStorage } from '../../lib/storage';
 import type { MaintenanceRepository } from '../maintenance/repository';
@@ -23,18 +22,9 @@ export interface UploadedFile {
 }
 
 const FOLDER = 'attachments';
-const MAX_NAME_LENGTH = 255;
 const UNSUPPORTED = 'Only PDF, JPEG, PNG and WebP files are allowed';
 
 const isImage = (row: Pick<AttachmentRow, 'mimeType'>) => row.mimeType.startsWith('image/');
-
-/** Keeps the base name of the declared file name (no directories), capped to 255 characters. */
-export function sanitizeFileName(filename: string, extension: string): string {
-  const base = Array.from(filename.split(/[/\\]/).pop()?.trim() ?? '')
-    .slice(0, MAX_NAME_LENGTH)
-    .join('');
-  return base || `file.${extension}`;
-}
 
 export function createAttachmentsService({ repo, maintenance, vehicles, storage }: AttachmentsServiceDeps) {
   const toDto = (vehicleId: string, row: AttachmentRow): Attachment => {
