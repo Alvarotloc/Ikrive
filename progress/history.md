@@ -648,3 +648,12 @@
 - **Revisión:** APPROVED a la primera (`progress/review_mobile-local-files.md`). Avisos: checklist del dispositivo; `files.get` sin 404 si falta el fichero → #72 `local-missing-file-404`.
 - **Prueba en dispositivo:** checklist en verde en un móvil físico con la APK debug compilada en local (JDK 21). El punto 4 (imagen no admitida) no se puede reproducir con el selector de fotos de Android; cubierto por tests. Detectado al probar: no se puede hacer una foto con la cámara → #73 `camera-capture`; el botón atrás de Android cierra la app → #74 `android-back-button`.
 - **Gate 2:** «merge» del humano → PR.
+
+## 2026-11-16 — #72 local-missing-file-404
+
+- **Rama:** `feat/local-missing-file-404` (`sdd: false`, sin spec ni Gate 1). Aviso 2 del reviewer en Gate 2 de #65; se adelanta a #66 para que el export sepa tratar un fichero que falta.
+- **Cambios:** `MissingFileError` en `local/files.ts`; `read` la lanza en `native-storage.ts` (mensaje «does not exist» del plugin) y en el almacén en memoria; `files.get` la traduce a Problem 404 `File not found` para foto, original y miniatura. El resto de errores del almacén se relanza tal cual.
+- **Tests:** `local-files.test.ts` (fila presente sin fichero → 404 en las tres URLs; otros errores se relanzan) y `native-storage.test.ts`. Web 544, API 368. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED a la primera (`progress/review_local-missing-file-404.md`); verificó en el plugin 8.1.5 que Android devuelve `OS-PLUG-FILE-0008` «… does not exist.». Aviso: el test simula el texto de la implementación web del plugin, no el de Android.
+- **Prueba en dispositivo:** APK debug recompilada en local; con `adb` se borraron la foto y un JPG dejando sus filas: foto y miniatura no cargan sin romper la pantalla, el visor muestra su error, el PDF de control se abre y borrar el JPG funciona.
+- **Gate 2:** «merge» del humano → PR.

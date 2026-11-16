@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { MissingFileError } from '@/lib/data-source/local/files';
 import { createDeviceFileStore } from './native-storage';
 
 const plugin = vi.hoisted(() => ({ writeFile: vi.fn(), readFile: vi.fn(), deleteFile: vi.fn() }));
@@ -52,6 +53,19 @@ describe('device file store', () => {
     const fromBlob = await store.read('attachments/a.pdf', 'application/pdf');
     expect(fromBlob.type).toBe('application/pdf');
     expect(new Uint8Array(await fromBlob.arrayBuffer())).toEqual(PDF);
+  });
+
+  it('tells a missing file apart from other read errors', async () => {
+    const store = createDeviceFileStore();
+
+    plugin.readFile.mockRejectedValue(new Error('File does not exist'));
+    const missing = await store.read('vehicles/a.webp', 'image/webp').catch((error: unknown) => error);
+    expect(missing).toBeInstanceOf(MissingFileError);
+    expect(missing).toMatchObject({ key: 'vehicles/a.webp' });
+
+    const denied = new Error('Permission denied');
+    plugin.readFile.mockRejectedValue(denied);
+    await expect(store.read('vehicles/a.webp', 'image/webp')).rejects.toBe(denied);
   });
 
   it('ignores removing a missing file', async () => {

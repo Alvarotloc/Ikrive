@@ -1,4 +1,4 @@
-import type { LocalFileStore } from '@/lib/data-source/local/files';
+import { type LocalFileStore, MissingFileError } from '@/lib/data-source/local/files';
 
 export type FileStoreOperation = 'save' | 'read' | 'remove';
 
@@ -32,7 +32,7 @@ export function createMemoryFileStore(): MemoryFileStore {
     async read(key, mimeType) {
       check('read');
       const data = files.get(key);
-      if (!data) throw new Error(`File does not exist: ${key}`);
+      if (!data) throw new MissingFileError(key);
       return new Blob([data.slice()], { type: mimeType });
     },
     async remove(key) {

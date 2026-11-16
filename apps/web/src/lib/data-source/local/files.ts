@@ -5,9 +5,21 @@ import { problem } from './problems';
 export interface LocalFileStore {
   /** Writes `data` under a new random key `<folder>/<uuid>.<extension>` and returns the key. */
   save(folder: 'attachments' | 'vehicles', data: Uint8Array, extension: string): Promise<string>;
+  /** Rejects with `MissingFileError` when there is no file under `key`, with the store's error otherwise. */
   read(key: string, mimeType: string): Promise<Blob>;
   /** No-op when the file does not exist. */
   remove(key: string): Promise<void>;
+}
+
+/**
+ * What `LocalFileStore.read` rejects with when the file of `key` is not in the store (its row survived a
+ * partial wipe of the app's data, for instance), so it can be told apart from any other failure.
+ */
+export class MissingFileError extends Error {
+  constructor(readonly key: string) {
+    super(`File does not exist: ${key}`);
+    this.name = 'MissingFileError';
+  }
 }
 
 /** Image processing of the local `DataSource` (canvas on the device instead of the API's `sharp`). */
