@@ -1091,7 +1091,7 @@
       "phase": "8",
       "title": "Modo local: recordatorios y aviso de km",
       "description": "Etapa 2 de la fase 8 (parte 4 de 5). Va después de #54. Sin jobs: los recordatorios de planes y el aviso de km se calculan al abrir la app o volver a primer plano con las funciones puras de packages/shared, se guardan en la bandeja local y se muestran con las notificaciones locales de #52.",
-      "status": "spec_ready",
+      "status": "in_progress",
       "sdd": true,
       "acceptance": [
         "En modo local, al abrir la app o volver a primer plano se generan los mismos recordatorios y avisos de km que generarían los jobs del servidor, sin duplicados",
