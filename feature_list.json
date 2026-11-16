@@ -1075,7 +1075,7 @@
       "phase": "8",
       "title": "Modo local: exportar a un servidor",
       "description": "Etapa 2 de la fase 8 (parte 3 de 5). Va después de #65. dataPortability.export() en la interfaz de #53: el modo local genera en el cliente el zip de la fase 7 (data.json + adjuntos + fotos) y la API sigue sirviendo el suyo. El constructor del documento de export pasa a packages/shared. Es el camino de local a servidor.",
-      "status": "pending",
+      "status": "in_progress",
       "sdd": true,
       "acceptance": [
         "Desde el modo local se puede exportar un zip que el import de un servidor (POST /api/me/import) acepta, con test que valida el documento con dataExportSchema y lo importa en la API",
