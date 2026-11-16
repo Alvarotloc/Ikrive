@@ -1259,6 +1259,24 @@
       ],
       "sdd": true,
       "status": "pending"
+    },
+    {
+      "id": 75,
+      "name": "mobile-local-export-streaming",
+      "phase": "8",
+      "title": "Modo local: export en streaming a disco",
+      "description": "Detectado en el spec de #66 (mobile-local-export). El export del modo local monta el zip entero en memoria y downloadBlob nativo lo pasa a base64, así que con cientos de MB de facturas y fotos el WebView puede quedarse sin memoria. El zip debe escribirse por trozos a un fichero del dispositivo (@capacitor/filesystem, appendFile) a medida que se leen los adjuntos, y compartirse desde ese fichero, sin tener el zip completo en memoria ni en base64.",
+      "acceptance": [
+        "En modo local, el export escribe el zip por trozos a un fichero del dispositivo y lo comparte desde él, sin construir el zip completo en memoria ni convertirlo entero a base64",
+        "El pico de memoria del export no crece con el tamaño total del zip: como mucho, un fichero leído más los trozos pendientes de escribir (test con un almacén simulado que mide los bytes retenidos)",
+        "El zip resultante es idéntico en contenido al de #66: data.json válido con dataExportSchema y aceptado por POST /api/me/import",
+        "Si el export falla o se cancela, el fichero temporal se borra",
+        "En la web (sin plugin nativo) el export local sigue funcionando como en #66",
+        "Todos los textos nuevos están en es.json y en.json",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
     }
   ]
 }
