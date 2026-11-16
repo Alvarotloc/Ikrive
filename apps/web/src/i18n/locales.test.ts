@@ -40,4 +40,8 @@ describe('locales', () => {
       }
     }
   });
+
+  it('en uses English quotation marks, not Spanish angle quotes', () => {
+    expect(JSON.stringify(en)).not.toMatch(/[«»]/);
+  });
 });
