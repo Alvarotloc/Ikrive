@@ -85,6 +85,16 @@ describe('native-only modules', () => {
     }
   });
 
+  it('sends the back button module and @capacitor/app to assets/native/', () => {
+    const lib = join(LIB, 'native-back-button.ts');
+    expect(nativeLibs).toContain(lib);
+    expect(nativeChunkFileNames({ moduleIds: [lib] })).toBe(NATIVE_CHUNK);
+    const app = nativePackages.find(([name]) => name === '@capacitor/app');
+    expect(app).toBeDefined();
+    const id = packageModuleId('@capacitor/app', app?.[1] ?? '', 'dist/esm/index.js');
+    expect(nativeChunkFileNames({ moduleIds: [id] })).toBe(NATIVE_CHUNK);
+  });
+
   it('detects static imports of native-only code and ignores type-only and dynamic ones', () => {
     const file = join(SRC, 'features/calendar/actions.ts');
     const source = [
