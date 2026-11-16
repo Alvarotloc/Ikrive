@@ -45,6 +45,7 @@ test("declares the web's Capacitor plugins with the same versions", () => {
     (name) => /^@(capacitor(-community)?|ebarooni)\//.test(name) && name !== '@capacitor/core',
   );
   for (const name of [
+    '@capacitor/app',
     '@capacitor/filesystem',
     '@capacitor/share',
     '@capacitor-community/file-opener',
