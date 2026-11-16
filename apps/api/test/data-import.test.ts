@@ -2,11 +2,16 @@ import { createHash } from 'node:crypto';
 import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import {
+  attachmentExportPath,
+  buildDataExport,
   type DataExport,
   type DataImportSummary,
   DUPLICATE_IMPORT_PROBLEM_TYPE,
+  dataExportSchema,
   dataImportSummarySchema,
+  photoExportPath,
 } from '@ikrive/shared';
+import { createDataExportZip } from '@ikrive/shared/data-export-zip';
 import { and, count, eq, inArray, sql } from 'drizzle-orm';
 import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
 import sharp from 'sharp';
@@ -27,6 +32,7 @@ import {
   vehicles,
 } from '../src/db/schema';
 import { createFileStorage } from '../src/lib/storage';
+import { createDataExportRepository } from '../src/modules/data-export/repository';
 import { createDataImportRepository, type DataImportRepository } from '../src/modules/data-import/repository';
 import { createDataImportService, type ImportLimits } from '../src/modules/data-import/service';
 import { createSettingsRepository } from '../src/modules/settings/repository';
@@ -374,6 +380,36 @@ const referencedPaths = (document: DataExport) =>
       record.attachments.map((attachment) => attachment.path),
     ),
   ]);
+
+/**
+ * A user's export zip built like the phone does in local mode: the shared builder and zip writer,
+ * the files read one by one from `uploads/` and `data.json` last.
+ */
+function clientBuiltZip(db: Db, dataDir: string, userId: string) {
+  const rows = createDataExportRepository(db).load(userId);
+  const settings = createSettingsService(createSettingsRepository(db)).get(userId);
+  const zip = createDataExportZip();
+  const read = (key: string) => readFileSync(join(dataDir, 'uploads', key));
+  const attachmentIds = new Set<string>();
+  for (const row of rows.attachments) {
+    zip.addFile(attachmentExportPath(row.id, row.mimeType), read(row.storageKey));
+    attachmentIds.add(row.id);
+  }
+  const photoVehicleIds = new Set<string>();
+  for (const row of rows.vehicles) {
+    if (row.photo === null) continue;
+    zip.addFile(photoExportPath(row.id), read(row.photo));
+    photoVehicleIds.add(row.id);
+  }
+  const { document } = buildDataExport({
+    rows,
+    settings,
+    appVersion: '0.0.0-local',
+    exportedAt: new Date(),
+    present: { attachmentIds, photoVehicleIds },
+  });
+  return { document, zip: Buffer.concat(zip.finish(document)) };
+}
 
 const DEFAULT_LIMITS: ImportLimits = {
   zipBytes: 1024 * MIB,
@@ -784,6 +820,50 @@ describe('data import', () => {
         { type: 'webhook', config: { url: 'https://hooks.example.com/ikrive' } },
       ]);
       expect(snapshot(db, dataDir).notificationChannels).toBe(before.notificationChannels + 1);
+    });
+  });
+
+  describe('client-built zip', () => {
+    it('imports a zip built with the shared builder and zip writer', async () => {
+      const { app, db, dataDir, a, b, exported } = await setup();
+      await b.api.patch('/api/settings', exported.document.settings);
+      const built = clientBuiltZip(db, dataDir, a.userId);
+
+      const entries = await readZip(built.zip);
+      const parsed = dataExportSchema.safeParse(JSON.parse(entries.get('data.json')?.toString('utf8') ?? ''));
+      expect(parsed.error).toBeUndefined();
+      expect([...entries.keys()].sort()).toEqual([...exported.entries.keys()].sort());
+
+      const response = await upload(app, b.cookie, built.zip);
+      expect(response.statusCode, response.body).toBe(201);
+      const reexported = await download(app, b.cookie);
+
+      // A's export without the channel that had a token (skipped on import).
+      const expected = clone(exported.document);
+      expected.notificationChannels = expected.notificationChannels.filter((channel) => !channel.hasToken);
+      expect(normalize(reexported.document)).toEqual(normalize(expected));
+
+      // Same bytes in each referenced file, matched by position.
+      const before = referencedPaths(exported.document);
+      const after = referencedPaths(reexported.document);
+      expect(after).toHaveLength(3);
+      before.forEach((path, i) => {
+        const original = exported.entries.get(path);
+        expect(original).toBeDefined();
+        expect(entries.get(path)?.equals(original ?? Buffer.alloc(0))).toBe(true);
+        expect(reexported.entries.get(after[i] ?? '')?.equals(original ?? Buffer.alloc(0))).toBe(true);
+      });
+    });
+
+    it('builds the same document as GET /api/me/export', async () => {
+      const { db, dataDir, a, exported } = await setup();
+
+      const { document } = clientBuiltZip(db, dataDir, a.userId);
+
+      const { exportedAt: _a, appVersion: _b, ...client } = document;
+      const { exportedAt: _c, appVersion: _d, ...server } = exported.document;
+      expect(client).toEqual(server);
+      expect(document.appVersion).toBe('0.0.0-local');
     });
   });
 

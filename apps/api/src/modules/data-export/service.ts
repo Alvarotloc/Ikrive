@@ -1,12 +1,5 @@
 import { PassThrough, pipeline, type Readable } from 'node:stream';
-import {
-  attachmentExportPath,
-  DATA_EXPORT_FORMAT_VERSION,
-  type DataExport,
-  dataExportSchema,
-  photoExportPath,
-  todayIn,
-} from '@ikrive/shared';
+import { buildDataExport, todayIn } from '@ikrive/shared';
 import type { FastifyBaseLogger } from 'fastify';
 import { ZipFile } from 'yazl';
 import type { FileStorage } from '../../lib/storage';
@@ -19,41 +12,6 @@ interface DataExportServiceDeps {
   settings: Pick<SettingsService, 'get'>;
   storage: Pick<FileStorage, 'exists'> & { read(key: string): Readable };
   log: Pick<FastifyBaseLogger, 'warn' | 'error'>;
-}
-
-type Row<K extends keyof DataExportRows> = DataExportRows[K][number];
-
-/** A file to copy into the zip: its storage key and its path inside the zip. */
-interface ZipFileEntry {
-  key: string;
-  path: string;
-}
-
-const iso = (date: Date) => date.toISOString();
-
-/** Groups rows by a key, keeping their order. */
-function groupBy<T>(rows: T[], keyOf: (row: T) => string): Map<string, T[]> {
-  const groups = new Map<string, T[]>();
-  for (const row of rows) {
-    const key = keyOf(row);
-    const group = groups.get(key);
-    if (group) group.push(row);
-    else groups.set(key, [row]);
-  }
-  return groups;
-}
-
-/** The channel config without its token; `hasToken` keeps whether there was one. */
-function channelOf(row: Row<'notificationChannels'>) {
-  const { token, ...config } = { token: undefined, ...row.config };
-  return {
-    type: row.type,
-    enabled: row.enabled,
-    hasToken: Boolean(token),
-    config,
-    createdAt: iso(row.createdAt),
-    updatedAt: iso(row.updatedAt),
-  };
 }
 
 export function createDataExportService({ repo, settings, storage, log }: DataExportServiceDeps) {
@@ -73,125 +31,17 @@ export function createDataExportService({ repo, settings, storage, log }: DataEx
     return { attachmentIds, photoVehicleIds };
   }
 
-  /**
-   * Maps the rows to the document, dropping every owner id and storage key. Returns, next to it,
-   * the files to copy into the zip.
-   */
+  /** Document of the user's data and the files to copy into the zip (see `buildDataExport`). */
   async function build(userId: string) {
     const rows = repo.load(userId);
     const userSettings = settings.get(userId);
-    const { attachmentIds, photoVehicleIds } = await presentFiles(rows);
-    const files: ZipFileEntry[] = [];
-
-    const readingsOf = groupBy(rows.odometerReadings, (row) => row.vehicleId);
-    const schedulesOf = groupBy(rows.maintenanceSchedules, (row) => row.vehicleId);
-    const recordsOf = groupBy(rows.maintenanceRecords, (row) => row.vehicleId);
-    const fuelLogsOf = groupBy(rows.fuelLogs, (row) => row.vehicleId);
-    const attachmentsOf = groupBy(
-      rows.attachments.filter((row) => attachmentIds.has(row.id)),
-      (row) => row.entityId,
-    );
-
-    const attachmentOf = (row: Row<'attachments'>) => {
-      const path = attachmentExportPath(row.id, row.mimeType);
-      files.push({ key: row.storageKey, path });
-      return {
-        id: row.id,
-        originalName: row.originalName,
-        mimeType: row.mimeType,
-        size: row.size,
-        sha256: row.sha256,
-        path,
-        createdAt: iso(row.createdAt),
-      };
-    };
-
-    const vehicleOf = (row: Row<'vehicles'>) => {
-      let photoPath: string | null = null;
-      if (row.photo !== null && photoVehicleIds.has(row.id)) {
-        photoPath = photoExportPath(row.id);
-        files.push({ key: row.photo, path: photoPath });
-      }
-      return {
-        id: row.id,
-        name: row.name,
-        make: row.make,
-        model: row.model,
-        version: row.version,
-        year: row.year,
-        plate: row.plate,
-        vin: row.vin,
-        type: row.type,
-        fuelType: row.fuelType,
-        purchaseDate: row.purchaseDate,
-        purchasePrice: row.purchasePrice,
-        purchaseOdometer: row.purchaseOdometer,
-        notes: row.notes,
-        soldAt: row.soldAt,
-        archivedAt: row.archivedAt ? iso(row.archivedAt) : null,
-        createdAt: iso(row.createdAt),
-        updatedAt: iso(row.updatedAt),
-        photoPath,
-        odometerReadings: (readingsOf.get(row.id) ?? []).map((reading) => ({
-          id: reading.id,
-          date: reading.date,
-          value: reading.value,
-          source: reading.source,
-          createdAt: iso(reading.createdAt),
-        })),
-        maintenanceSchedules: (schedulesOf.get(row.id) ?? []).map((schedule) => ({
-          id: schedule.id,
-          title: schedule.title,
-          category: schedule.category,
-          intervalMonths: schedule.intervalMonths,
-          intervalDistance: schedule.intervalDistance,
-          warnDays: schedule.warnDays,
-          warnDistance: schedule.warnDistance,
-          lastDoneDate: schedule.lastDoneDate,
-          lastDoneOdometer: schedule.lastDoneOdometer,
-          createdAt: iso(schedule.createdAt),
-          updatedAt: iso(schedule.updatedAt),
-        })),
-        maintenanceRecords: (recordsOf.get(row.id) ?? []).map((record) => ({
-          id: record.id,
-          date: record.date,
-          odometer: record.odometer,
-          odometerReadingId: record.odometerReadingId,
-          category: record.category,
-          title: record.title,
-          description: record.description,
-          workshop: record.workshop,
-          cost: record.cost,
-          includeInReport: record.includeInReport,
-          scheduleId: record.scheduleId,
-          createdAt: iso(record.createdAt),
-          updatedAt: iso(record.updatedAt),
-          attachments: (attachmentsOf.get(record.id) ?? []).map(attachmentOf),
-        })),
-        fuelLogs: (fuelLogsOf.get(row.id) ?? []).map((fuelLog) => ({
-          id: fuelLog.id,
-          date: fuelLog.date,
-          odometer: fuelLog.odometer,
-          odometerReadingId: fuelLog.odometerReadingId,
-          quantity: fuelLog.quantity,
-          totalPrice: fuelLog.totalPrice,
-          pricePerUnit: fuelLog.pricePerUnit,
-          fullTank: fuelLog.fullTank,
-          missedPrevious: fuelLog.missedPrevious,
-          createdAt: iso(fuelLog.createdAt),
-          updatedAt: iso(fuelLog.updatedAt),
-        })),
-      };
-    };
-
-    // Defense in depth: the document must satisfy the schema the import checks, and unknown keys go.
-    const document: DataExport = dataExportSchema.parse({
-      formatVersion: DATA_EXPORT_FORMAT_VERSION,
-      appVersion: APP_VERSION,
-      exportedAt: iso(new Date()),
+    const present = await presentFiles(rows);
+    const { document, files } = buildDataExport({
+      rows,
       settings: userSettings,
-      notificationChannels: rows.notificationChannels.map(channelOf),
-      vehicles: rows.vehicles.map(vehicleOf),
+      appVersion: APP_VERSION,
+      exportedAt: new Date(),
+      present,
     });
     return { document, files, timezone: userSettings.timezone };
   }

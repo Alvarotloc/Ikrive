@@ -1075,7 +1075,7 @@
       "phase": "8",
       "title": "Modo local: exportar a un servidor",
       "description": "Etapa 2 de la fase 8 (parte 3 de 5). Va después de #65. dataPortability.export() en la interfaz de #53: el modo local genera en el cliente el zip de la fase 7 (data.json + adjuntos + fotos) y la API sigue sirviendo el suyo. El constructor del documento de export pasa a packages/shared. Es el camino de local a servidor.",
-      "status": "pending",
+      "status": "done",
       "sdd": true,
       "acceptance": [
         "Desde el modo local se puede exportar un zip que el import de un servidor (POST /api/me/import) acepta, con test que valida el documento con dataExportSchema y lo importa en la API",
@@ -1258,6 +1258,39 @@
         "pnpm harness --full pasa en verde, con tests del manejador usando un plugin simulado y checklist manual en el dispositivo antes de Gate 2"
       ],
       "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 75,
+      "name": "mobile-local-export-streaming",
+      "phase": "8",
+      "title": "Modo local: export en streaming a disco",
+      "description": "Detectado en el spec de #66 (mobile-local-export). El export del modo local monta el zip entero en memoria y downloadBlob nativo lo pasa a base64, así que con cientos de MB de facturas y fotos el WebView puede quedarse sin memoria. El zip debe escribirse por trozos a un fichero del dispositivo (@capacitor/filesystem, appendFile) a medida que se leen los adjuntos, y compartirse desde ese fichero, sin tener el zip completo en memoria ni en base64.",
+      "acceptance": [
+        "En modo local, el export escribe el zip por trozos a un fichero del dispositivo y lo comparte desde él, sin construir el zip completo en memoria ni convertirlo entero a base64",
+        "El pico de memoria del export no crece con el tamaño total del zip: como mucho, un fichero leído más los trozos pendientes de escribir (test con un almacén simulado que mide los bytes retenidos)",
+        "El zip resultante es idéntico en contenido al de #66: data.json válido con dataExportSchema y aceptado por POST /api/me/import",
+        "Si el export falla o se cancela, el fichero temporal se borra",
+        "En la web (sin plugin nativo) el export local sigue funcionando como en #66",
+        "Todos los textos nuevos están en es.json y en.json",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 76,
+      "name": "en-angle-quotes",
+      "phase": "8",
+      "title": "Comillas inglesas en los textos en inglés",
+      "description": "Detectado al revisar #66 (mobile-local-export). apps/web/src/i18n/locales/en.json usa comillas angulares españolas en settings.odometerReminderWeekdayInfo («Don't remind me»). En inglés deben ser comillas dobles.",
+      "acceptance": [
+        "settings.odometerReminderWeekdayInfo en en.json usa \"Don't remind me\" con comillas dobles",
+        "en.json no contiene « ni »; es.json no cambia",
+        "Hay un test en apps/web/src/i18n/locales.test.ts que falla si en.json contiene « o »",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
       "status": "pending"
     }
   ]

@@ -657,3 +657,13 @@
 - **Revisión:** APPROVED a la primera (`progress/review_local-missing-file-404.md`); verificó en el plugin 8.1.5 que Android devuelve `OS-PLUG-FILE-0008` «… does not exist.». Aviso: el test simula el texto de la implementación web del plugin, no el de Android.
 - **Prueba en dispositivo:** APK debug recompilada en local; con `adb` se borraron la foto y un JPG dejando sus filas: foto y miniatura no cargan sin romper la pantalla, el visor muestra su error, el PDF de control se abre y borrar el JPG funciona.
 - **Gate 2:** «merge» del humano → PR.
+
+## 2026-11-16 — #66 mobile-local-export
+
+- **Rama:** `feat/mobile-local-export`. Etapa 2 de la fase 8 (parte 3 de 5). Dos `Explore` (`progress/explore_mobile-local-export_{api-export,web-local}.md`). Gate 1 aprobada sin cambios; el riesgo de memoria del export local → #75 `mobile-local-export-streaming`.
+- **Cambios:** `buildDataExport` (mapeo filas → `data.json`, tipos de entrada estructurales para no importar `@ikrive/db`) en `packages/shared/src/domain/data-export-builder.ts`; la API lo usa y sigue sirviendo el zip con `yazl` en streaming. Escritor de zip isomórfico `createDataExportZip` sobre `fflate` en el subpath `@ikrive/shared/data-export-zip` (solo entra en el chunk perezoso del modo local). `dataPortability.export()` en la DataSource HTTP y local (`local/data-export.ts`: filas en la cola serie, ficheros fuera; `MissingFileError` → se omite, otro error → 500). La tarjeta «Tus datos» se muestra en modo local solo con export, con «Preparando…» y toast de error.
+- **Tests:** test cruzado en `apps/api/test/data-import.test.ts` › `client-built zip` (zip del escritor compartido validado con `dataExportSchema` e importado con 201 en otra cuenta; mismo documento que `GET /api/me/export`). Shared 177, db 3, API 370 (sin cambiar aserciones de export), web 554, mobile 27. `pnpm harness --full` en verde; docker build + smoke OK.
+- **Revisión:** APPROVED a la primera (`progress/review_mobile-local-export.md`). Avisos: `finish()` devuelve `Uint8Array<ArrayBuffer>[]`; sin capturas del modo local; comillas angulares en `en.json`.
+- **Gate 2:** cambio pedido: comillas inglesas en `localExportHint` de `en.json`; re-review APPROVED. Otras comillas angulares antiguas en `en.json` → #76 `en-angle-quotes`.
+- **Prueba en dispositivo:** APK debug compilada en local (JDK 21) e instalada con `adb`; checklist en verde (tarjeta sin import, «Preparando…», hoja de compartir con `ikrive-export-<hoy>.zip`, zip importado en el servidor con vehículo, historial, factura y foto).
+- **Gate 2:** «merge» del humano → PR.

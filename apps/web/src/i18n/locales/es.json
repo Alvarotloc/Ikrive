@@ -604,8 +604,11 @@
   "dataPortability": {
     "title": "Tus datos",
     "description": "Descarga una copia de todo lo que guardas en Ikrive o importa un export de otra cuenta o instancia.",
+    "localDescription": "Descarga una copia de todo lo que guardas en este teléfono para llevarla a un servidor de Ikrive.",
     "export": "Descargar mis datos",
     "exportHint": "Un zip con tus vehículos, su historial, facturas, fotos y ajustes.",
+    "localExportHint": "Un zip con tus vehículos, su historial, facturas, fotos y ajustes. Impórtalo en «Tus datos» de tu cuenta: la moneda y las unidades deben coincidir.",
+    "exporting": "Preparando…",
     "import": "Importar datos",
     "importing": "Importando…",
     "fileInput": "Fichero de export de Ikrive (.zip)",
@@ -640,7 +643,8 @@
       "settings": "La moneda o las unidades del export no coinciden con tus ajustes",
       "duplicate": "Este export ya se importó en tu cuenta",
       "tooLarge": "El fichero es demasiado grande",
-      "fileType": "Tipo de fichero no admitido: elige un .zip"
+      "fileType": "Tipo de fichero no admitido: elige un .zip",
+      "export": "No se ha podido generar el export"
     }
   },
   "adminUsers": {

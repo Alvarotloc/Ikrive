@@ -1,6 +1,7 @@
 export * from './domain/admin-users';
 export * from './domain/calendar';
 export * from './domain/data-export';
+export * from './domain/data-export-builder';
 export * from './domain/dates';
 export * from './domain/files';
 export * from './domain/fuel';
