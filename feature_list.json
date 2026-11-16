@@ -1059,7 +1059,7 @@
       "phase": "8",
       "title": "Modo local: adjuntos y foto del vehículo",
       "description": "Etapa 2 de la fase 8 (parte 2 de 5). Va después de #54. Adjuntos de mantenimiento y foto del vehículo guardados con @capacitor/filesystem (Directory.Data), miniaturas y redimensionado con canvas en lugar de sharp, y URLs locales opacas resueltas por files.get.",
-      "status": "in_progress",
+      "status": "done",
       "sdd": true,
       "acceptance": [
         "En modo local se pueden subir, ver y borrar adjuntos de un mantenimiento y la foto de un vehículo, con los mismos tipos y límites que la API",

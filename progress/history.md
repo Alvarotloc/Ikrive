@@ -639,3 +639,12 @@
 - **Tests:** `apps/mobile/test/release-workflow.test.mjs` exige las rutas nuevas y prohíbe enumerar `packages/<nombre>/**`. `pnpm harness --full` en verde.
 - **Revisión:** APPROVED a la primera (`progress/review_ci-android-root-paths.md`). Avisos: el test no detecta rutas sobrantes; `e2e/` fuera a propósito.
 - **Gate 2:** «merge» del humano → PR.
+
+## 2026-11-16 — #65 mobile-local-files
+
+- **Rama:** `feat/mobile-local-files`. Etapa 2 de la fase 8 (parte 2 de 5). Sin `Explore` nuevos: se reutilizaron `progress/explore_mobile-local-mode_*.md`. Gate 1 aprobada sin cambios; la decisión a validar 1 (AVIF anunciado pero rechazado por la API) → #71 `api-photo-avif`.
+- **Cambios:** `detectAttachmentType`, `sanitizeFileName` y `detectPhotoFormat` en `packages/shared/src/domain/files.ts`; la API los importa y se borra `apps/api/src/lib/file-type.ts`. La DataSource local recibe `LocalDeps` (`LocalFileStore` + `LocalImages`): adjuntos, foto (orientada, ≤ 1600 px, WebP), miniatura al vuelo y `files.get` con URLs `local://`; borrado en cascada de ficheros tras la transacción. Adaptadores del dispositivo: `lib/native-storage.ts` (`@capacitor/filesystem`, `Directory.Data/uploads/`, native-only) y `local/canvas-images.ts` (`createImageBitmap` + canvas). `PhotoPicker`, `AttachmentPicker` y facturas visibles en local. Se commitea también el `cap sync` pendiente del plugin de SQLite en los gradle de `apps/mobile/android`.
+- **Tests:** shared 169, db 3, API 368 (sin cambiar aserciones), web 542, mobile 27. Almacén en memoria y procesador de imágenes falso; plugin simulado. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED a la primera (`progress/review_mobile-local-files.md`). Avisos: checklist del dispositivo; `files.get` sin 404 si falta el fichero → #72 `local-missing-file-404`.
+- **Prueba en dispositivo:** checklist en verde en un móvil físico con la APK debug compilada en local (JDK 21). El punto 4 (imagen no admitida) no se puede reproducir con el selector de fotos de Android; cubierto por tests. Detectado al probar: no se puede hacer una foto con la cámara → #73 `camera-capture`; el botón atrás de Android cierra la app → #74 `android-back-button`.
+- **Gate 2:** «merge» del humano → PR.
