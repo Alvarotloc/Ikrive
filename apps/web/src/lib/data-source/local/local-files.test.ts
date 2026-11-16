@@ -372,6 +372,33 @@ describe('local DataSource files', () => {
     );
   });
 
+  it('files.get rejects with 404 when the row exists but its file is gone', async () => {
+    const { vehicle, record } = await vehicleWithRecord();
+    const withPhoto = await local.vehicles.setPhoto(vehicle.id, file(JPEG, 'photo.jpg'));
+    const jpeg = await local.attachments.upload(vehicle.id, record.id, file(JPEG, 'Ticket.jpg'));
+    const urls = [withPhoto.photoUrl ?? '', jpeg.url, jpeg.thumbnailUrl ?? ''];
+    images.requested.length = 0;
+
+    // Another store error is not a 404: it is rethrown as the store gave it.
+    store.failOn.add('read');
+    for (const url of urls) {
+      const error = await local.files.get(url).catch((reason: unknown) => reason);
+      expect(error, url).not.toBeInstanceOf(ApiError);
+      expect(error, url).toEqual(new Error('File store read failed'));
+    }
+    store.failOn.delete('read');
+
+    // The files go away, the rows stay.
+    for (const key of store.keys()) await store.remove(key);
+    expect(store.keys()).toEqual([]);
+    expect(await db.select().from(attachments)).toHaveLength(1);
+
+    for (const url of urls) {
+      expect(await problemOf(local.files.get(url)), url).toEqual(notFound('File not found'));
+    }
+    expect(images.requested).toEqual([]);
+  });
+
   it('deleting a maintenance record deletes its attachments and files', async () => {
     const { vehicle, record } = await vehicleWithRecord();
     const other = await local.maintenance.create(vehicle.id, {

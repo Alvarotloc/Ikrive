@@ -1,7 +1,7 @@
 import type { DataSource, DownloadedFile } from '../types';
 import { isImage, requireAttachment } from './attachments';
 import type { LocalDb } from './database';
-import { assertWebp, type LocalDeps, parseLocalUrl } from './files';
+import { assertWebp, type LocalDeps, type LocalFileStore, MissingFileError, parseLocalUrl } from './files';
 import { notFound } from './problems';
 import type { SerialQueue } from './serial';
 import { requireVehicle } from './vehicles';
@@ -12,6 +12,16 @@ interface StoredFile {
   mimeType: string;
   fileName: string | null;
   thumbnail: boolean;
+}
+
+/** The file of `key`, or a 404 when its row exists but the file is gone; other store errors as they are. */
+async function readStored(files: LocalFileStore, { key, mimeType }: StoredFile): Promise<Blob> {
+  try {
+    return await files.read(key, mimeType);
+  } catch (error) {
+    if (error instanceof MissingFileError) throw notFound('File not found');
+    throw error;
+  }
 }
 
 /**
@@ -43,7 +53,7 @@ export function localFiles(
   return {
     async get(url): Promise<DownloadedFile> {
       const file = await queue.run(() => find(url));
-      const blob = await files.read(file.key, file.mimeType);
+      const blob = await readStored(files, file);
       if (!file.thumbnail) return { blob, fileName: file.fileName };
       const thumbnail = await images.toWebpThumbnail(new Uint8Array(await blob.arrayBuffer()));
       assertWebp(thumbnail);

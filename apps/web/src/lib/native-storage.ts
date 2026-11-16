@@ -5,7 +5,7 @@
  */
 
 import { Directory, Filesystem } from '@capacitor/filesystem';
-import type { LocalFileStore } from '@/lib/data-source/local/files';
+import { type LocalFileStore, MissingFileError } from '@/lib/data-source/local/files';
 import { blobToBase64 } from './native-files';
 
 const ROOT = 'uploads';
@@ -18,7 +18,7 @@ function base64ToBytes(base64: string): Uint8Array<ArrayBuffer> {
   return Uint8Array.from(binary, (char) => char.charCodeAt(0));
 }
 
-/** The plugin rejects with «File does not exist» when deleting a missing file. */
+/** The plugin rejects with «File does not exist» when reading or deleting a missing file. */
 const isMissingFile = (error: unknown) => error instanceof Error && /does not exist/i.test(error.message);
 
 /** `LocalFileStore` over `@capacitor/filesystem` in `Directory.Data`. */
@@ -36,7 +36,11 @@ export function createDeviceFileStore(): LocalFileStore {
     },
 
     async read(key, mimeType) {
-      const { data } = await Filesystem.readFile({ path: pathOf(key), directory: Directory.Data });
+      const { data } = await Filesystem.readFile({ path: pathOf(key), directory: Directory.Data }).catch(
+        (error: unknown) => {
+          throw isMissingFile(error) ? new MissingFileError(key) : error;
+        },
+      );
       const bytes = typeof data === 'string' ? base64ToBytes(data) : await data.arrayBuffer();
       return new Blob([bytes], { type: mimeType });
     },
