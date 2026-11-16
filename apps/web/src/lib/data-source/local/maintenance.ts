@@ -12,7 +12,9 @@ import {
 } from '@ikrive/shared';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import type { DataSource } from '../types';
+import { deleteMaintenanceAttachments } from './attachments';
 import type { LocalDb, LocalTx } from './database';
+import { type LocalDeps, removeFiles } from './files';
 import { badRequest, conflict, notFound, parseInput } from './problems';
 import { localToday } from './settings';
 import { listReadings, requireVehicle } from './vehicles';
@@ -128,7 +130,10 @@ async function applyReadingChange(tx: LocalTx, record: MaintenanceRecordRow, rea
  * `maintenance` of the local `DataSource`: each record keeps its linked `maintenance` reading and the last
  * done values of its schedule in the same transaction.
  */
-export function localMaintenance(db: LocalDb): DataSource['maintenance'] {
+export function localMaintenance(
+  db: LocalDb,
+  { files }: Pick<LocalDeps, 'files'>,
+): DataSource['maintenance'] {
   return {
     async list(vehicleId) {
       await requireVehicle(db, vehicleId);
@@ -202,14 +207,18 @@ export function localMaintenance(db: LocalDb): DataSource['maintenance'] {
       return toDto(updated);
     },
 
+    /** Deletes the record and its attachments: rows in the same transaction, files afterwards. */
     async remove(vehicleId, recordId) {
       const record = await requireRecord(db, vehicleId, recordId);
-      await db.transaction(async (tx) => {
+      const keys = await db.transaction(async (tx) => {
+        const removed = await deleteMaintenanceAttachments(tx, [record.id]);
         await tx.delete(maintenanceRecords).where(eq(maintenanceRecords.id, record.id));
         if (record.odometerReadingId) {
           await tx.delete(odometerReadings).where(eq(odometerReadings.id, record.odometerReadingId));
         }
+        return removed;
       });
+      await removeFiles(files, keys);
     },
   };
 }

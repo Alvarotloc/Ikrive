@@ -4,8 +4,9 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { MODE_KEY, setLocalMode } from '@/lib/app-mode';
 import { dataSource } from '@/lib/data-source';
 import { httpDataSource } from '@/lib/data-source/http';
+import type { MemoryFileStore } from '@/test/memory-file-store';
 import { createMemorySqlite } from '@/test/memory-sqlite';
-import { mockApi, mockMediaQuery } from '@/test/render';
+import { mockApi, mockMediaQuery, mockObjectUrls } from '@/test/render';
 import { renderApp } from '@/test/render-app';
 import { activateLocalDataSource, forgetLocalDataSource } from './local-mode';
 
@@ -25,6 +26,23 @@ vi.mock('@/lib/native-sqlite', () => ({
   },
 }));
 
+/** The device file store: in memory, a new one each time the local `DataSource` is opened. */
+const storage = vi.hoisted(() => ({ store: null as MemoryFileStore | null }));
+vi.mock('@/lib/native-storage', async () => {
+  const { createMemoryFileStore } = await import('@/test/memory-file-store');
+  return {
+    createDeviceFileStore: () => {
+      storage.store = createMemoryFileStore();
+      return storage.store;
+    },
+  };
+});
+/** The canvas of the WebView, which jsdom does not have. */
+vi.mock('@/lib/data-source/local/canvas-images', async () => {
+  const { fakeImages } = await import('@/test/fake-images');
+  return { createCanvasImages: () => fakeImages() };
+});
+
 /** The phone notifications: never touched in local mode. */
 const native = vi.hoisted(() => ({
   getNotificationPermission: vi.fn(),
@@ -37,7 +55,12 @@ vi.mock('@/lib/native-notifications', () => native);
 // domains). Transformed by Vite on first use, that can take more than the 1 s of a `findBy*` on a loaded
 // machine, so it is loaded here, before any test renders, as `renderApp` does with the route chunks.
 beforeAll(async () => {
-  await Promise.all([import('@/lib/data-source/local'), import('@/lib/native-sqlite')]);
+  await Promise.all([
+    import('@/lib/data-source/local'),
+    import('@/lib/native-sqlite'),
+    import('@/lib/native-storage'),
+    import('@/lib/data-source/local/canvas-images'),
+  ]);
 });
 
 /** The local `DataSource`, to add data before rendering. */
@@ -53,6 +76,7 @@ describe('local mode', () => {
     vi.stubEnv('MODE', 'native');
     device.callback = createMemorySqlite();
     device.gate = null;
+    storage.store = null;
     setLocalMode(true);
     // Desktop layout: the sidebar with the bell and the exit button.
     mockMediaQuery(true);
@@ -124,7 +148,8 @@ describe('local mode', () => {
     expect(await dataSource().settings.get()).toMatchObject({ odometerReminderWeekday: 3, reminderHour: 20 });
   });
 
-  it('vehicle page hides the sale report and the photo picker', async () => {
+  it('vehicle page shows the photo picker and hides the sale report', async () => {
+    mockObjectUrls();
     const vehicle = await (await localData()).vehicles.create({ make: 'Seat', model: 'Ibiza' });
     const { user } = await renderApp(`/vehicles/${vehicle.id}`);
 
@@ -134,23 +159,60 @@ describe('local mode', () => {
     await user.click(screen.getByRole('link', { name: 'Editar' }));
 
     expect(await screen.findByRole('heading', { name: 'Editar vehículo' })).toBeInTheDocument();
-    expect(screen.queryByText('Añadir foto')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Añadir foto' })).toBeInTheDocument();
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]');
+    if (!input) throw new Error('No photo input');
+    const jpeg = new File([Uint8Array.from([0xff, 0xd8, 0xff, 0xe0, 0x00])], 'IMG_0001.jpg', {
+      type: 'image/jpeg',
+    });
+    await user.upload(input, jpeg);
+
+    expect(await screen.findByRole('button', { name: 'Cambiar foto' })).toBeInTheDocument();
+    expect(storage.store?.keys()).toEqual([expect.stringMatching(/^vehicles\/.+\.webp$/)]);
+
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+
+    expect(await screen.findByRole('heading', { name: 'Seat Ibiza', level: 1 })).toBeInTheDocument();
+    // The photo is read from the device and shown as a `blob:` URL, never by its `local://` URL.
+    await waitFor(() => expect(document.querySelector('img[src^="blob:"]')).not.toBeNull());
+    expect(document.querySelector('img[src^="local:"]')).toBeNull();
   });
 
-  it('maintenance hides attachments', async () => {
+  it('maintenance shows attachments', async () => {
+    mockObjectUrls();
     const local = await localData();
     const vehicle = await local.vehicles.create({ make: 'Seat', model: 'Ibiza' });
     await local.maintenance.create(vehicle.id, { date: '2024-03-01', category: 'other', title: 'Revisión' });
     const { user } = await renderApp(`/vehicles/${vehicle.id}`);
 
     expect(await screen.findByText('Revisión')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Facturas de «Revisión»' })).not.toBeInTheDocument();
 
+    // The form of a new record lets the user pick invoices.
     await user.click(screen.getByRole('button', { name: 'Añadir mantenimiento' }));
+    const form = await screen.findByRole('dialog');
+    expect(within(form).getByText('Facturas')).toBeInTheDocument();
+    await user.click(within(form).getByRole('button', { name: 'Cancelar' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
 
+    await user.click(screen.getByRole('button', { name: 'Facturas de «Revisión»' }));
     const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).getByLabelText('Título')).toBeInTheDocument();
-    expect(within(dialog).queryByText('Facturas')).not.toBeInTheDocument();
+    expect(
+      await within(dialog).findByText('Este mantenimiento todavía no tiene facturas.'),
+    ).toBeInTheDocument();
+
+    await user.upload(
+      within(dialog).getByLabelText('Elegir facturas'),
+      new File(['%PDF-1.7 factura'], 'factura.pdf', { type: 'application/pdf' }),
+    );
+
+    expect(await within(dialog).findByText('factura.pdf')).toBeInTheDocument();
+    expect(storage.store?.keys()).toEqual([expect.stringMatching(/^attachments\/.+\.pdf$/)]);
+
+    await user.click(within(dialog).getByRole('button', { name: 'Eliminar «factura.pdf»' }));
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Eliminar' }));
+
+    expect(await screen.findByText('Este mantenimiento todavía no tiene facturas.')).toBeInTheDocument();
+    expect(storage.store?.keys()).toEqual([]);
   });
 
   it('does not sync device notifications', async () => {

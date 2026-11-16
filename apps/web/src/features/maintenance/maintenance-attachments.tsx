@@ -20,9 +20,8 @@ import {
   DialogFooter,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { openApiFile, saveApiFile } from '@/lib/api-files';
+import { filesViaDataSource, openApiFile, saveApiFile } from '@/lib/api-files';
 import { isNativeApp } from '@/lib/platform';
-import { isServerMode } from '@/lib/server';
 import { AttachmentPicker } from './attachment-picker';
 import { AttachmentViewer } from './attachment-viewer';
 import { inlineUrl } from './attachments';
@@ -131,8 +130,9 @@ function AttachmentCard({
 }) {
   const { t } = useTranslation();
   const name = attachment.originalName;
-  // Server mode has no cookie: the PDF and the download are fetched with the token (`api-files`).
-  const serverMode = isServerMode();
+  // Server mode has no cookie and local mode no server: the PDF and the download go through the
+  // `DataSource` (`api-files`).
+  const viaDataSource = filesViaDataSource();
   const fileAction = (action: () => Promise<void>) => async () => {
     try {
       await action();
@@ -175,7 +175,7 @@ function AttachmentCard({
           />
           {nameLabel}
         </button>
-      ) : serverMode ? (
+      ) : viaDataSource ? (
         <button
           type="button"
           onClick={fileAction(() => openApiFile(inlineUrl(attachment.url), name))}
@@ -198,7 +198,7 @@ function AttachmentCard({
           {nameLabel}
         </a>
       )}
-      {serverMode ? (
+      {viaDataSource ? (
         <Button
           type="button"
           variant="ghost"
