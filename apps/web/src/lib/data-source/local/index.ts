@@ -1,6 +1,7 @@
 import type { ClientConfig, Me } from '@ikrive/shared';
 import type { DataSource } from '../types';
 import { localAttachments } from './attachments';
+import { localDataPortability } from './data-export';
 import { LOCAL_USER, type LocalDb } from './database';
 import { LOCAL_MAX_UPLOAD_MB, type LocalDeps } from './files';
 import { localFiles } from './files-get';
@@ -42,7 +43,8 @@ function serialized<G extends Record<string, AsyncMethod>>(queue: SerialQueue, g
  * The `DataSource` of the mobile app's local mode, over the SQLite database of the device (`db`) and its
  * files and image processing (`deps`). It applies the same `@ikrive/shared` rules as the API and rejects
  * with the same `ApiError` problems. What needs a server (notifications, channels, iCal feed, public links,
- * admin) or comes with #66–#68 (sale report, import) rejects with a 501.
+ * admin) or comes in a later version (sale report, import) rejects with a 501; the data export builds the
+ * same zip as the API on the device.
  */
 export function createLocalDataSource(db: LocalDb, deps: LocalDeps): DataSource {
   const queue = createSerialQueue();
@@ -62,7 +64,7 @@ export function createLocalDataSource(db: LocalDb, deps: LocalDeps): DataSource 
     notifications: { list: reject, markRead: reject, markAllRead: reject },
     notificationChannels: { list: reject, create: reject, update: reject, remove: reject, test: reject },
     calendarFeed: { get: reject, enable: reject, disable: reject },
-    dataPortability: { import: reject },
+    dataPortability: { import: reject, ...localDataPortability(db, deps, queue) },
     adminUsers: { list: reject, setRole: reject, disable: reject, enable: reject, remove: reject },
     files: localFiles(db, deps, queue),
   };

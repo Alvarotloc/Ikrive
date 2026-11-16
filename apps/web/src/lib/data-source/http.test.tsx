@@ -54,6 +54,24 @@ describe('httpDataSource', () => {
     expect((error as ApiError).problem).toEqual(problem);
   });
 
+  it('exports through GET /api/me/export with its file name', async () => {
+    const fetchMock = mockApi({
+      'GET /me/export': {
+        body: new Blob(['PK zip'], { type: 'application/zip' }),
+        headers: { 'content-disposition': 'attachment; filename="ikrive-export-2026-11-16.zip"' },
+      },
+    });
+
+    const { blob, fileName } = await httpDataSource.dataPortability.export();
+
+    expect(fileName).toBe('ikrive-export-2026-11-16.zip');
+    expect(blob.type).toBe('application/zip');
+    expect(await blob.text()).toBe('PK zip');
+    const [url, init] = fetchMock.mock.calls[0] ?? [];
+    expect(String(url)).toBe('/api/me/export');
+    expect(init?.method ?? 'GET').toBe('GET');
+  });
+
   it('resolves me to null on 401', async () => {
     mockApi({
       'GET /me': { status: 401, body: { type: 'about:blank', title: 'Unauthorized', status: 401 } },

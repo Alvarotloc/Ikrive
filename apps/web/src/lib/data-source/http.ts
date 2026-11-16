@@ -127,6 +127,7 @@ export const httpDataSource: DataSource = {
   },
   dataPortability: {
     import: (file) => api.post<DataImportSummary>('/me/import', fileBody(file)),
+    export: () => api.download('/me/export'),
   },
   adminUsers: {
     list: () => api.get<AdminUser[]>('/admin/users'),

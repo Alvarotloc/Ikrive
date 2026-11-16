@@ -320,6 +320,35 @@ describe('DataPortabilitySection', () => {
     expect(await screen.findByText('No se ha podido abrir el archivo')).toBeInTheDocument();
   });
 
+  it('shows the export in progress', async () => {
+    setServerMode('https://ikrive.example.com', 'secret-token');
+    mockObjectUrls();
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    let respond: () => void = () => {};
+    const held = new Promise<void>((resolve) => {
+      respond = resolve;
+    });
+    const { user } = setup({
+      'GET /me/export': async () => {
+        await held;
+        return {
+          body: new Blob([new Uint8Array([0x50, 0x4b])], { type: 'application/zip' }),
+          headers: { 'content-disposition': 'attachment; filename="ikrive-export-2026-11-09.zip"' },
+        };
+      },
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Descargar mis datos' }));
+
+    const pending = await screen.findByRole('button', { name: 'Preparando…' });
+    expect(pending).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Descargar mis datos' })).not.toBeInTheDocument();
+
+    respond();
+
+    expect(await screen.findByRole('button', { name: 'Descargar mis datos' })).toBeEnabled();
+  });
+
   describe('in the native app', () => {
     afterEach(() => {
       vi.unstubAllEnvs();

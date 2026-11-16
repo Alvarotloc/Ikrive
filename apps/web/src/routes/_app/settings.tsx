@@ -217,8 +217,7 @@ function SettingsPage() {
           </FormField>
         </CardContent>
       </Card>
-      {/* Export and import of the local data come with #66. */}
-      {!local && <DataPortabilitySection />}
+      <DataPortabilitySection />
     </div>
   );
 }

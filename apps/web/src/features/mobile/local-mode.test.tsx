@@ -1,5 +1,7 @@
+import { DEFAULT_USER_SETTINGS, dataExportSchema, todayIn } from '@ikrive/shared';
 import { screen, waitFor, within } from '@testing-library/react';
 import type { AsyncRemoteCallback } from 'drizzle-orm/sqlite-proxy';
+import { strFromU8, unzipSync } from 'fflate';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MODE_KEY, setLocalMode } from '@/lib/app-mode';
 import { dataSource } from '@/lib/data-source';
@@ -51,6 +53,10 @@ const native = vi.hoisted(() => ({
 }));
 vi.mock('@/lib/native-notifications', () => native);
 
+/** The share sheet of `downloadBlob` in the native app. */
+const nativeFiles = vi.hoisted(() => ({ saveFile: vi.fn(), openFile: vi.fn() }));
+vi.mock('@/lib/native-files', () => nativeFiles);
+
 // The local mode loads its `DataSource` with `import()` (drizzle, the schema, the bundled migrations and the
 // domains). Transformed by Vite on first use, that can take more than the 1 s of a `findBy*` on a loaded
 // machine, so it is loaded here, before any test renders, as `renderApp` does with the route chunks.
@@ -86,6 +92,7 @@ describe('local mode', () => {
 
   afterEach(() => {
     vi.unstubAllEnvs();
+    nativeFiles.saveFile.mockReset();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -118,19 +125,69 @@ describe('local mode', () => {
     expect(screen.getByRole('link', { name: 'Ajustes' })).toBeInTheDocument();
   });
 
-  it('settings hide channels, calendar feed, device notifications and data', async () => {
+  it('settings hide channels, calendar feed and device notifications', async () => {
     await renderApp('/settings');
 
     expect(await screen.findByText('Preferencias')).toBeInTheDocument();
     expect(screen.getByText('Apariencia')).toBeInTheDocument();
-    for (const title of [
-      'Canales de notificación',
-      'Calendario',
-      'Notificaciones del teléfono',
-      'Tus datos',
-    ]) {
+    for (const title of ['Canales de notificación', 'Calendario', 'Notificaciones del teléfono']) {
       expect(screen.queryByText(title)).not.toBeInTheDocument();
     }
+  });
+
+  it('settings show the data card with export only', async () => {
+    await renderApp('/settings');
+
+    expect(await screen.findByText('Tus datos')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Descarga una copia de todo lo que guardas en este teléfono para llevarla a un servidor de Ikrive.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Descargar mis datos' })).toBeEnabled();
+    expect(screen.queryByRole('link', { name: 'Descargar mis datos' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Importar datos' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Fichero de export de Ikrive (.zip)')).not.toBeInTheDocument();
+  });
+
+  it('exports the local data through the share sheet', async () => {
+    nativeFiles.saveFile.mockResolvedValue(undefined);
+    const vehicle = await (await localData()).vehicles.create({ make: 'Seat', model: 'Ibiza' });
+    const { user } = await renderApp('/settings');
+
+    await user.click(await screen.findByRole('button', { name: 'Descargar mis datos' }));
+
+    await waitFor(() => expect(nativeFiles.saveFile).toHaveBeenCalledTimes(1));
+    const [name, blob] = nativeFiles.saveFile.mock.calls[0] ?? [];
+    expect(name).toBe(`ikrive-export-${todayIn(DEFAULT_USER_SETTINGS.timezone)}.zip`);
+    expect(blob.type).toBe('application/zip');
+    const entries = unzipSync(new Uint8Array(await blob.arrayBuffer()));
+    const document = dataExportSchema.parse(JSON.parse(strFromU8(entries['data.json'] ?? new Uint8Array())));
+    expect(document.vehicles.map((v) => v.id)).toEqual([vehicle.id]);
+    expect(screen.queryByText('No se ha podido generar el export')).not.toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Descargar mis datos' })).toBeEnabled();
+  });
+
+  it('shows a toast when the local export fails', async () => {
+    const local = await localData();
+    const vehicle = await local.vehicles.create({ make: 'Seat', model: 'Ibiza' });
+    const record = await local.maintenance.create(vehicle.id, {
+      date: '2024-03-01',
+      category: 'other',
+      title: 'Revisión',
+    });
+    await local.attachments.upload(
+      vehicle.id,
+      record.id,
+      new File(['%PDF-1.7 factura'], 'factura.pdf', { type: 'application/pdf' }),
+    );
+    storage.store?.failOn.add('read');
+    const { user } = await renderApp('/settings');
+
+    await user.click(await screen.findByRole('button', { name: 'Descargar mis datos' }));
+
+    expect(await screen.findByText('No se ha podido generar el export')).toBeInTheDocument();
+    expect(nativeFiles.saveFile).not.toHaveBeenCalled();
   });
 
   it('settings hide reminder preferences', async () => {

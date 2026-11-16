@@ -136,6 +136,8 @@ export interface DataSource {
   };
   dataPortability: {
     import(file: File): Promise<DataImportSummary>;
+    /** The export zip of every piece of the user's data (`data.json` + attachments + photos). */
+    export(): Promise<DownloadedFile>;
   };
   adminUsers: {
     list(): Promise<AdminUser[]>;
