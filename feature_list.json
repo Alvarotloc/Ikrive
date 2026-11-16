@@ -1242,6 +1242,23 @@
       ],
       "sdd": true,
       "status": "pending"
+    },
+    {
+      "id": 74,
+      "name": "android-back-button",
+      "phase": "8",
+      "title": "El botón atrás de Android navega hacia atrás en la app",
+      "description": "Detectado al probar #65 en un móvil físico. En la app Android, el botón (o gesto) atrás del sistema casi siempre cierra la app en vez de volver a la pantalla anterior. Capacitor solo gestiona el historial del WebView a medias; lo habitual es escuchar el evento backButton de @capacitor/app (plugin nuevo, no está en apps/mobile ni apps/web) y decidir: cerrar el diálogo, hoja o menú abierto, volver atrás en el router si hay historial, o salir de la app en la pantalla raíz.",
+      "acceptance": [
+        "En la app Android, el botón atrás con un diálogo, hoja o menú abierto lo cierra sin cambiar de pantalla",
+        "Sin nada abierto, vuelve a la pantalla anterior del router si hay historial dentro de la app",
+        "En la pantalla raíz (panel, o la primera pantalla de elección de modo), sale de la app o la manda al fondo como cualquier app Android (el spec decide cuál)",
+        "Funciona igual en modo servidor y en modo local, y no cambia nada en la web ni en la PWA",
+        "El plugin nuevo va en el build nativo y fuera del precache de la PWA (native-only)",
+        "pnpm harness --full pasa en verde, con tests del manejador usando un plugin simulado y checklist manual en el dispositivo antes de Gate 2"
+      ],
+      "sdd": true,
+      "status": "pending"
     }
   ]
 }
