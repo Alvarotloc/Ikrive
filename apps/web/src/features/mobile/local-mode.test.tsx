@@ -1,10 +1,10 @@
 import { DEFAULT_USER_SETTINGS, dataExportSchema, todayIn } from '@ikrive/shared';
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import type { AsyncRemoteCallback } from 'drizzle-orm/sqlite-proxy';
 import { strFromU8, unzipSync } from 'fflate';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MODE_KEY, setLocalMode } from '@/lib/app-mode';
-import { dataSource } from '@/lib/data-source';
+import { dataSource, setDataSource } from '@/lib/data-source';
 import { httpDataSource } from '@/lib/data-source/http';
 import type { MemoryFileStore } from '@/test/memory-file-store';
 import { createMemorySqlite } from '@/test/memory-sqlite';
@@ -45,13 +45,39 @@ vi.mock('@/lib/data-source/local/canvas-images', async () => {
   return { createCanvasImages: () => fakeImages() };
 });
 
-/** The phone notifications: never touched in local mode. */
-const native = vi.hoisted(() => ({
-  getNotificationPermission: vi.fn(),
-  requestNotificationPermission: vi.fn(),
-  showNotifications: vi.fn(),
+/** The phone notifications: `onNotificationTap` keeps the listener so the test can tap one. */
+const native = vi.hoisted(() => {
+  const tap = { listener: null as ((extra: unknown) => void) | null };
+  return {
+    tap,
+    getNotificationPermission: vi.fn(),
+    requestNotificationPermission: vi.fn(),
+    showNotifications: vi.fn(),
+    onNotificationTap: vi.fn(async (listener: (extra: unknown) => void) => {
+      tap.listener = listener;
+      return async () => {
+        tap.listener = null;
+      };
+    }),
+  };
+});
+vi.mock('@/lib/native-notifications', () => ({
+  getNotificationPermission: native.getNotificationPermission,
+  requestNotificationPermission: native.requestNotificationPermission,
+  showNotifications: native.showNotifications,
+  onNotificationTap: native.onNotificationTap,
 }));
-vi.mock('@/lib/native-notifications', () => native);
+
+/** The app's lifecycle: `onAppResume` keeps the listener so the test can bring the app back. */
+const appState = vi.hoisted(() => ({ resume: null as (() => void) | null }));
+vi.mock('@/lib/native-app-state', () => ({
+  onAppResume: async (listener: () => void) => {
+    appState.resume = listener;
+    return async () => {
+      appState.resume = null;
+    };
+  },
+}));
 
 /** The share sheet of `downloadBlob` in the native app. */
 const nativeFiles = vi.hoisted(() => ({ saveFile: vi.fn(), openFile: vi.fn() }));
@@ -75,6 +101,28 @@ async function localData() {
   return dataSource();
 }
 
+/**
+ * A vehicle with an overdue schedule per title (due a year after 2024-01-01), and reminders from midnight,
+ * so listing the inbox stores one reminder per schedule whatever the time of the test.
+ */
+async function seedOverdue(titles: string[] = ['Cambio de aceite']) {
+  const local = await localData();
+  await local.settings.update({ reminderHour: 0 });
+  const vehicle = await local.vehicles.create({ make: 'Seat', model: 'Ibiza' });
+  for (const title of titles) {
+    await local.schedules.create(vehicle.id, {
+      title,
+      category: 'oil_change',
+      intervalMonths: 12,
+      lastDoneDate: '2024-01-01',
+    });
+  }
+  return { local, vehicle };
+}
+
+/** The bell's button, by its unread count. */
+const bell = (unread: number) => screen.findByRole('button', { name: `Notificaciones, ${unread} sin leer` });
+
 describe('local mode', () => {
   let fetchMock: ReturnType<typeof mockApi>;
 
@@ -91,8 +139,14 @@ describe('local mode', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllEnvs();
     nativeFiles.saveFile.mockReset();
+    native.getNotificationPermission.mockReset();
+    native.requestNotificationPermission.mockReset();
+    native.showNotifications.mockReset();
+    native.tap.listener = null;
+    appState.resume = null;
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -114,23 +168,135 @@ describe('local mode', () => {
     expect(router.state.location.pathname).toBe('/');
   });
 
-  it('hides the bell and users and shows switch mode', async () => {
-    await renderApp('/');
+  it('shows the bell with the local reminders on start', async () => {
+    await seedOverdue();
+    const { user } = await renderApp('/');
 
     expect(await screen.findByRole('heading', { name: 'Hola, Local' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Cambiar de modo' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Cerrar sesión' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^Notificaciones/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Usuarios' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Ajustes' })).toBeInTheDocument();
+
+    await user.click(await bell(1));
+
+    const panel = await screen.findByRole('dialog', { name: 'Notificaciones' });
+    expect(within(panel).getByText('Mantenimiento vencido')).toBeInTheDocument();
+    expect(within(panel).getByText('Cambio de aceite')).toBeInTheDocument();
+    expect(within(panel).getByText('Seat Ibiza')).toBeInTheDocument();
   });
 
-  it('settings hide channels, calendar feed and device notifications', async () => {
+  it('the bell marks one and all as read in local mode', async () => {
+    const { local, vehicle } = await seedOverdue(['Cambio de aceite', 'Filtro de aire', 'Frenos']);
+    const { user, router } = await renderApp('/');
+
+    await user.click(await bell(3));
+    await user.click(
+      within(await screen.findByRole('dialog', { name: 'Notificaciones' })).getByText('Filtro de aire'),
+    );
+
+    await waitFor(() => expect(router.state.location.pathname).toBe(`/vehicles/${vehicle.id}`));
+    const readTitles = async () =>
+      (await local.notifications.list()).items
+        .filter((item) => item.readAt !== null)
+        .map((item) => item.title);
+    await waitFor(async () => expect(await readTitles()).toEqual(['Filtro de aire']));
+
+    await user.click(await bell(2));
+    await user.click(await screen.findByRole('button', { name: 'Marcar todas como leídas' }));
+
+    expect(await bell(0)).toBeInTheDocument();
+    expect((await readTitles()).sort()).toEqual(['Cambio de aceite', 'Filtro de aire', 'Frenos']);
+  });
+
+  it('generates reminders when the app comes back to the foreground', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    // 07:00 in Madrid, before the reminder hour (09:00).
+    vi.setSystemTime(new Date('2026-11-16T06:00:00.000Z'));
+    const { local } = await seedOverdue();
+    await local.settings.update({ reminderHour: 9 });
+    await renderApp('/');
+    expect(await bell(0)).toBeInTheDocument();
+    await waitFor(() => expect(appState.resume).not.toBeNull());
+
+    // Back to the app at 10:00 in Madrid.
+    vi.setSystemTime(new Date('2026-11-16T09:00:00.000Z'));
+    act(() => appState.resume?.());
+
+    expect(await bell(1)).toBeInTheDocument();
+  });
+
+  it('shows new local reminders as phone notifications', async () => {
+    localStorage.setItem('ikrive.notificationPermissionAsked', '2026-11-09T08:00:00.000Z');
+    native.getNotificationPermission.mockResolvedValue('granted');
+    native.showNotifications.mockResolvedValue(undefined);
+    const { local, vehicle } = await seedOverdue();
+
+    // First run on this device: what is already pending is history, not shown.
+    const first = await renderApp('/');
+    expect(await bell(1)).toBeInTheDocument();
+    await waitFor(() => expect(localStorage.getItem('ikrive.deviceNotifications.local')).not.toBeNull());
+    first.unmount();
+    expect(native.showNotifications).not.toHaveBeenCalled();
+
+    await local.schedules.create(vehicle.id, {
+      title: 'Filtro de aire',
+      category: 'other',
+      intervalMonths: 12,
+      lastDoneDate: '2024-01-01',
+    });
+    await renderApp('/');
+
+    await waitFor(() => expect(native.showNotifications).toHaveBeenCalledTimes(1));
+    const [shown] = native.showNotifications.mock.calls[0] ?? [];
+    const { items } = await local.notifications.list();
+    const added = items.find((item) => item.title === 'Filtro de aire');
+    expect(shown).toEqual([
+      {
+        id: expect.any(Number),
+        title: 'Filtro de aire',
+        body: 'Seat Ibiza',
+        extra: { userId: 'local', notificationId: added?.id, link: `/vehicles/${vehicle.id}` },
+      },
+    ]);
+  });
+
+  it('tapping a phone notification marks it as read and opens its link', async () => {
+    const { local, vehicle } = await seedOverdue();
+    const [notification] = (await local.notifications.list()).items;
+    if (!notification) throw new Error('No local reminder');
+    // A new app run started by the tap: the root listens before `/_app` installs the local `DataSource`
+    // (here, on a screen outside `/_app`).
+    forgetLocalDataSource();
+    setDataSource(httpDataSource);
+    const { router } = await renderApp('/welcome');
+    expect(await screen.findByRole('heading', { name: 'Cómo quieres usar Ikrive' })).toBeInTheDocument();
+    expect(dataSource()).toBe(httpDataSource);
+
+    await waitFor(() => expect(native.tap.listener).not.toBeNull());
+    native.tap.listener?.({ userId: 'local', notificationId: notification.id, link: notification.link });
+
+    await waitFor(() => expect(router.state.location.pathname).toBe(`/vehicles/${vehicle.id}`));
+    expect(await screen.findByRole('heading', { name: 'Seat Ibiza', level: 1 })).toBeInTheDocument();
+    await waitFor(async () =>
+      expect((await local.notifications.list()).items[0]?.readAt).toEqual(expect.any(String)),
+    );
+  });
+
+  it('settings show device notifications and hide channels and calendar feed', async () => {
+    native.getNotificationPermission.mockResolvedValue('granted');
     await renderApp('/settings');
 
     expect(await screen.findByText('Preferencias')).toBeInTheDocument();
     expect(screen.getByText('Apariencia')).toBeInTheDocument();
-    for (const title of ['Canales de notificación', 'Calendario', 'Notificaciones del teléfono']) {
+    expect(await screen.findByText('Notificaciones del teléfono')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Los avisos nuevos salen como notificaciones de Android al abrir la app o volver a ella.',
+      ),
+    ).toBeInTheDocument();
+    expect(await screen.findByText(/^Activadas/)).toBeInTheDocument();
+    for (const title of ['Canales de notificación', 'Calendario']) {
       expect(screen.queryByText(title)).not.toBeInTheDocument();
     }
   });
@@ -190,19 +356,33 @@ describe('local mode', () => {
     expect(nativeFiles.saveFile).not.toHaveBeenCalled();
   });
 
-  it('settings hide reminder preferences', async () => {
+  it('settings show reminder preferences and save them', async () => {
     await (await localData()).settings.update({ odometerReminderWeekday: 3, reminderHour: 20 });
     const { user } = await renderApp('/settings');
 
-    const currency = await screen.findByLabelText('Moneda');
-    expect(screen.queryByLabelText('Día del recordatorio de kilometraje')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Hora de los recordatorios')).not.toBeInTheDocument();
-    await user.clear(currency);
-    await user.type(currency, 'USD');
+    const weekday = await screen.findByLabelText('Día del recordatorio de kilometraje');
+    const hour = screen.getByLabelText('Hora de los recordatorios');
+    expect(weekday).toHaveValue('3');
+    expect(hour).toHaveValue('20');
+
+    await user.click(
+      screen.getByRole('button', { name: 'Más información sobre la hora de los recordatorios' }),
+    );
+    expect(
+      await screen.findByText(/La app revisa los recordatorios al abrirla, al volver a ella y cada minuto/),
+    ).toBeInTheDocument();
+    await user.keyboard('{Escape}');
+
+    await user.selectOptions(weekday, '5');
+    await user.selectOptions(hour, '7');
     await user.click(screen.getByRole('button', { name: 'Guardar' }));
 
-    await waitFor(async () => expect((await dataSource().settings.get()).currency).toBe('USD'));
-    expect(await dataSource().settings.get()).toMatchObject({ odometerReminderWeekday: 3, reminderHour: 20 });
+    await waitFor(async () =>
+      expect(await dataSource().settings.get()).toMatchObject({
+        odometerReminderWeekday: 5,
+        reminderHour: 7,
+      }),
+    );
   });
 
   it('vehicle page shows the photo picker and hides the sale report', async () => {
@@ -270,14 +450,6 @@ describe('local mode', () => {
 
     expect(await screen.findByText('Este mantenimiento todavía no tiene facturas.')).toBeInTheDocument();
     expect(storage.store?.keys()).toEqual([]);
-  });
-
-  it('does not sync device notifications', async () => {
-    await renderApp('/');
-
-    expect(await screen.findByRole('heading', { name: 'Hola, Local' })).toBeInTheDocument();
-    expect(native.getNotificationPermission).not.toHaveBeenCalled();
-    expect(native.showNotifications).not.toHaveBeenCalled();
   });
 
   it('an activation forgotten while opening never installs its DataSource', async () => {

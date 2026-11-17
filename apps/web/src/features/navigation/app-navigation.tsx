@@ -65,8 +65,7 @@ function Sidebar() {
           <exit.icon aria-hidden />
           <span className="hidden sm:inline">{t(exit.label)}</span>
         </Button>
-        {/* Notifications come from the server; local reminders arrive with #67. */}
-        {!isLocalMode() && <NotificationBell />}
+        <NotificationBell />
       </div>
     </aside>
   );
@@ -81,7 +80,7 @@ function MobileHeader() {
         <Brand />
       </Link>
       <div className="flex items-center gap-1">
-        {!isLocalMode() && <NotificationBell />}
+        <NotificationBell />
         <MobileNavMenu />
       </div>
     </header>

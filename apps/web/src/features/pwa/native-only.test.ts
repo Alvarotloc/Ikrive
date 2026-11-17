@@ -95,6 +95,12 @@ describe('native-only modules', () => {
     expect(nativeChunkFileNames({ moduleIds: [id] })).toBe(NATIVE_CHUNK);
   });
 
+  it('sends the app state module to assets/native/', () => {
+    const lib = join(LIB, 'native-app-state.ts');
+    expect(nativeLibs).toContain(lib);
+    expect(nativeChunkFileNames({ moduleIds: [lib] })).toBe(NATIVE_CHUNK);
+  });
+
   it('detects static imports of native-only code and ignores type-only and dynamic ones', () => {
     const file = join(SRC, 'features/calendar/actions.ts');
     const source = [
