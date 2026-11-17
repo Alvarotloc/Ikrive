@@ -702,3 +702,11 @@
 - **Revisión:** APPROVED a la primera (`progress/review_mobile-local-sale-report.md`); avisos no bloqueantes: render en el hilo principal, `registerReportFonts` global por proceso, import relativo en `tsup.config.ts`.
 - **Prueba en dispositivo:** APK debug (JDK 21) instalada con `adb`; dos vehículos sembrados en la SQLite del móvil (PDF multipágina, JPEG con EXIF 6, PNG apaisado, factura excluida, PDF corrupto y 3 × 10 MB para el límite) con copia de seguridad previa. Checklist de 11 pasos OK.
 - **Gate 2:** «merge» del humano → PR.
+
+## 2026-11-17 — #78 release-v0-2-0
+
+- **Rama:** `feat/release-v0-2-0` (`sdd: false`). Release de todo lo integrado desde v0.1.0, sobre todo la app Android en sus dos modos (etapa 2 de la fase 8 completa con #68).
+- **Cambios:** `CHANGELOG.md` `[0.2.0] - 2026-11-17` (Added/Changed/Fixed, enlaces de comparación), `0.2.0` en los 7 `package.json`, `docs/mobile.md` y README al día con lo que ya hace el modo local, `*.jks.b64` en `.gitignore` (el keystore del humano estaba en la raíz del repo).
+- **Revisión:** APPROVED en la tercera ronda (`progress/review_release-v0-2-0.md`). Ronda 1: guía y README presentaban como futuro el export y el PDF locales. Ronda 2: error del leader al trasladar un aviso del reviewer sin comprobarlo («Añadir al calendario» sí existe en local; solo falta el enlace, #77).
+- **Secretos:** el repo no tenía ninguno; el humano configuró los cuatro `ANDROID_*` (PKCS12, misma contraseña para almacén y clave). Se decide mantener `allowBackup="true"`.
+- **Gate 2:** «merge» del humano → PR. El tag `v0.2.0` se sube después, con confirmación explícita.
