@@ -1241,7 +1241,7 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
-      "status": "pending"
+      "status": "in_progress"
     },
     {
       "id": 74,
@@ -1323,6 +1323,22 @@
       ],
       "sdd": false,
       "status": "done"
+    },
+    {
+      "id": 79,
+      "name": "camera-photo-cleanup",
+      "phase": "8",
+      "title": "Borrar las fotos de la cámara tras subirlas",
+      "description": "Riesgo aceptado en Gate 1 de #73 (camera-capture). Capacitor (BridgeWebChromeClient) guarda cada foto hecha con capture como JPEG_*.jpg en getExternalFilesDir(PICTURES) (Android/data/<pkg>/files/Pictures) y no las borra, así que se acumulan en el teléfono aunque ya estén subidas o guardadas en modo local.",
+      "acceptance": [
+        "En la app Android, las fotos que deja la cámara en Android/data/<pkg>/files/Pictures se borran tras subirlas o guardarlas (o al arrancar la app), en modo servidor y en modo local",
+        "Una subida fallida no borra la foto antes de que el usuario pueda reintentar o la haya descartado",
+        "En la web y en la PWA no cambia nada",
+        "Hay tests que cubren la limpieza",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
+      "status": "pending"
     }
   ]
 }
