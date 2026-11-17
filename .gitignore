@@ -17,6 +17,7 @@ e2e/.auth/
 # Android signing keys: never in the repo (release secrets, docs/mobile.md)
 *.keystore
 *.jks
+*.jks.b64
 
 # TanStack Router plugin scratch files
 .tanstack/

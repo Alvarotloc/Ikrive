@@ -9,7 +9,7 @@
 - 📄 **Informe de venta**: un PDF (y un enlace público) con todo el historial y las facturas para vender mejor y más rápido.
 - 📦 **Tus datos son tuyos**: export e import en un zip, PWA instalable y varias cuentas en la misma instancia.
 
-> Estado: **v0.1.0**, la primera versión estable. Cambios en el [CHANGELOG](CHANGELOG.md).
+> Estado: **v0.2.0**, con app de Android conectada a tu servidor o con los datos solo en el teléfono ([docs/mobile.md](docs/mobile.md)). Cambios en el [CHANGELOG](CHANGELOG.md).
 
 ![Inicio con el garaje](docs/screenshots/dashboard.png)
 
@@ -73,7 +73,7 @@ Más detalles sobre la arquitectura y cómo contribuir en [CONTRIBUTING.md](CONT
 - [x] Repostajes y estadísticas
 - [x] Informe de venta (PDF y enlace público)
 - [x] Exportar/importar, PWA y release v0.1.0
-- [ ] App móvil: [app de Android](docs/mobile.md) con la misma web y tu servidor; después, modo «En este teléfono» sin servidor (ver [docs/PLAN.md](docs/PLAN.md))
+- [ ] App móvil: [app de Android](docs/mobile.md) con modo «Mi servidor» y modo «En este teléfono» sin servidor (v0.2.0); siguen pendientes partes de la fase 8 (ver [docs/PLAN.md](docs/PLAN.md))
 
 ## Licencia
 
