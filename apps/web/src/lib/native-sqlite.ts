@@ -12,6 +12,13 @@
  * `last_insert_rowid()`, which belongs to the last insert on any table, so the rows come back empty (an
  * `INSERT … RETURNING` after a migration or another table's insert). Its SQLite (SQLCipher 4.17) supports
  * `RETURNING` natively and `query` runs the statement as it is.
+ *
+ * On Android the plugin reads each column of a row by its name in the cursor, and a name with a `.` is
+ * not found (`Query: in selectSQL cursor Couldn't read row 0 column -1`). So every aggregate or computed
+ * column of a local query needs an alias: `max(odometerReadings.date).as('last_reading_date')`, never a
+ * bare `max(odometerReadings.date)`, whose column is named `max("odometer_readings"."date")`. Plain
+ * columns are fine (SQLite names them without the table). The tests' engine (`test/memory-sqlite.ts`)
+ * rejects such a column too, so every query of the local `DataSource` is checked.
  */
 
 import { CapacitorSQLite, SQLiteConnection, type SQLiteDBConnection } from '@capacitor-community/sqlite';
