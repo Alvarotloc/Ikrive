@@ -494,7 +494,6 @@ describe('local DataSource', () => {
     const options = { hidePrices: false, hidePlate: false, hideVin: false, includeInvoices: false };
     statements = [];
     const unsupported = [
-      local.saleReport.download(vehicle.id, options),
       local.reportShares.list(vehicle.id),
       local.reportShares.create(vehicle.id, options),
       local.reportShares.revoke(vehicle.id, 'share'),

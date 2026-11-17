@@ -44,12 +44,26 @@ const NATIVE_ONLY_MODULES = [
 const isNativeOnlyModule = (id: string) => NATIVE_ONLY_MODULES.some((pattern) => pattern.test(id));
 
 /**
- * `chunkFileNames` of the web build: a chunk made only of native-only modules goes to
- * `NATIVE_CHUNKS_DIR`, any other chunk (even one that mixes both) keeps Vite's default name.
+ * Entry points loaded with `import()` only by the local mode of the native app, whose chunk also goes to
+ * `NATIVE_CHUNKS_DIR` whatever it bundles: the sale report PDF (the shared module, react-pdf, pdf-lib and
+ * their ~30 dependencies, which a list of modules could not keep up with). Dependencies it shares with
+ * the app (`react`) stay in common chunks. The web never imports it statically (`native-only.test.ts`).
  */
-export function nativeChunkFileNames(chunk: { moduleIds: readonly string[] }): string {
+const NATIVE_ONLY_ENTRIES = [/\/src\/lib\/data-source\/local\/sale-report-pdf\.ts$/];
+
+/**
+ * `chunkFileNames` of the web build: a chunk made only of native-only modules, or whose entry point is a
+ * native-only entry, goes to `NATIVE_CHUNKS_DIR`; any other chunk (even one that mixes both) keeps Vite's
+ * default name.
+ */
+export function nativeChunkFileNames(chunk: {
+  moduleIds: readonly string[];
+  facadeModuleId?: string | null;
+}): string {
+  const { facadeModuleId } = chunk;
+  const nativeEntry = !!facadeModuleId && NATIVE_ONLY_ENTRIES.some((pattern) => pattern.test(facadeModuleId));
   const nativeOnly = chunk.moduleIds.length > 0 && chunk.moduleIds.every(isNativeOnlyModule);
-  return nativeOnly ? `${NATIVE_CHUNKS_DIR}[name]-[hash].js` : 'assets/[name]-[hash].js';
+  return nativeEntry || nativeOnly ? `${NATIVE_CHUNKS_DIR}[name]-[hash].js` : 'assets/[name]-[hash].js';
 }
 
 /**

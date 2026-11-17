@@ -63,6 +63,23 @@ function isNativeOnlyImport(file: string, specifier: string): boolean {
   return path?.startsWith(`${LIB}/native-`) === true && !path.slice(LIB.length + 1).includes('/');
 }
 
+const LOCAL = join(LIB, 'data-source/local');
+const SALE_REPORT_PDF_CHUNK = join(LOCAL, 'sale-report-pdf.ts');
+/** Packages of the sale report PDF: only its chunk (`local/sale-report-pdf.ts`) may import them statically. */
+const SALE_REPORT_PDF_PACKAGES = ['@ikrive/shared/sale-report-pdf', '@react-pdf/renderer', 'pdf-lib'];
+
+/** Whether `specifier`, imported from `file`, is the sale report PDF module, its dependencies or its chunk. */
+function isSaleReportPdfImport(file: string, specifier: string): boolean {
+  if (SALE_REPORT_PDF_PACKAGES.some((name) => specifier === name || specifier.startsWith(`${name}/`)))
+    return true;
+  const path = specifier.startsWith('@/')
+    ? join(SRC, specifier.slice(2))
+    : specifier.startsWith('.')
+      ? resolve(dirname(file), specifier)
+      : undefined;
+  return path !== undefined && path.replace(/\.ts$/, '') === SALE_REPORT_PDF_CHUNK.replace(/\.ts$/, '');
+}
+
 describe('native-only modules', () => {
   it('finds the native libs and the native app packages', () => {
     expect(nativeLibs.length).toBeGreaterThan(0);
@@ -132,6 +149,58 @@ describe('native-only modules', () => {
       staticImports(readFileSync(file, 'utf8'))
         .filter((specifier) => isNativeOnlyImport(file, specifier))
         .map((specifier) => `${file.slice(SRC.length)} → ${specifier}`),
+    );
+    expect(offenders).toEqual([]);
+  });
+
+  it('sends the local sale report pdf chunk to assets/native/', () => {
+    const shared = '/app/packages/shared/src/sale-report-pdf/index.ts';
+    const reactPdf = packageModuleId('@react-pdf/renderer', '4.9.0', 'lib/react-pdf.browser.js');
+    expect(
+      nativeChunkFileNames({
+        facadeModuleId: SALE_REPORT_PDF_CHUNK,
+        moduleIds: [SALE_REPORT_PDF_CHUNK, shared, reactPdf],
+      }),
+    ).toBe(NATIVE_CHUNK);
+    // Its dependencies alone, or another entry with the same modules, stay in assets/.
+    expect(nativeChunkFileNames({ facadeModuleId: null, moduleIds: [shared, reactPdf] })).toBe(
+      'assets/[name]-[hash].js',
+    );
+    const local = join(LOCAL, 'sale-report.ts');
+    expect(nativeChunkFileNames({ facadeModuleId: local, moduleIds: [local, reactPdf] })).toBe(
+      'assets/[name]-[hash].js',
+    );
+  });
+
+  it('the web imports the sale report pdf module only through import()', () => {
+    const file = join(LOCAL, 'sale-report.ts');
+    const source = [
+      "import { generateSaleReportPdf } from '@ikrive/shared/sale-report-pdf';",
+      "import { pdf } from '@react-pdf/renderer';",
+      "import { PDFDocument } from 'pdf-lib';",
+      "export { fonts } from './sale-report-pdf';",
+      "import { fonts } from '@/lib/data-source/local/sale-report-pdf';",
+      "import type { ReportFontSource } from '@ikrive/shared/sale-report-pdf';",
+      "const kit = await import('./sale-report-pdf');",
+      "import { buildSaleReport } from '@ikrive/shared';",
+      "import { localSettings } from './settings';",
+    ].join('\n');
+    expect(staticImports(source).filter((specifier) => isSaleReportPdfImport(file, specifier))).toEqual([
+      '@ikrive/shared/sale-report-pdf',
+      '@react-pdf/renderer',
+      'pdf-lib',
+      './sale-report-pdf',
+      '@/lib/data-source/local/sale-report-pdf',
+    ]);
+
+    const webFiles = sourceFiles(SRC).filter(
+      (path) =>
+        path !== SALE_REPORT_PDF_CHUNK && !/\.test\.tsx?$/.test(path) && !path.startsWith(join(SRC, 'test/')),
+    );
+    const offenders = webFiles.flatMap((path) =>
+      staticImports(readFileSync(path, 'utf8'))
+        .filter((specifier) => isSaleReportPdfImport(path, specifier))
+        .map((specifier) => `${path.slice(SRC.length)} → ${specifier}`),
     );
     expect(offenders).toEqual([]);
   });

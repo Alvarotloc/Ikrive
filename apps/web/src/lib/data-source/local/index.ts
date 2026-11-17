@@ -9,6 +9,7 @@ import { localFuelLogs } from './fuel-logs';
 import { localMaintenance } from './maintenance';
 import { localNotifications } from './notifications';
 import { unsupported } from './problems';
+import { localSaleReport } from './sale-report';
 import { localSchedules } from './schedules';
 import { createSerialQueue, type SerialQueue } from './serial';
 import { localSettings } from './settings';
@@ -45,8 +46,8 @@ function serialized<G extends Record<string, AsyncMethod>>(queue: SerialQueue, g
  * files and image processing (`deps`). It applies the same `@ikrive/shared` rules as the API and rejects
  * with the same `ApiError` problems. The notifications inbox is filled on the device with the reminders of
  * the API's jobs each time it is listed. What needs a server (channels, iCal feed, public links, admin) or
- * comes in a later version (sale report, import) rejects with a 501; the data export builds the same zip
- * as the API on the device.
+ * comes in a later version (import) rejects with a 501; the data export builds the same zip and the sale
+ * report the same PDF as the API on the device.
  */
 export function createLocalDataSource(db: LocalDb, deps: LocalDeps): DataSource {
   const queue = createSerialQueue();
@@ -61,7 +62,7 @@ export function createLocalDataSource(db: LocalDb, deps: LocalDeps): DataSource 
     attachments: serialized(queue, localAttachments(db, deps)),
     schedules: serialized(queue, localSchedules(db)),
     stats: serialized(queue, localStats(db)),
-    saleReport: { download: reject },
+    saleReport: localSaleReport(db, deps, queue),
     reportShares: { list: reject, create: reject, revoke: reject },
     notifications: serialized(queue, localNotifications(db)),
     notificationChannels: { list: reject, create: reject, update: reject, remove: reject, test: reject },

@@ -23,7 +23,6 @@ import { OdometerTimeline } from '@/features/vehicles/odometer-timeline';
 import { odometerQuery, vehicleQuery } from '@/features/vehicles/queries';
 import { VehicleActions } from '@/features/vehicles/vehicle-actions';
 import { ApiError } from '@/lib/api-client';
-import { isLocalMode } from '@/lib/app-mode';
 import { useFormat } from '@/lib/format';
 
 export const Route = createFileRoute('/_app/vehicles/$vehicleId/')({
@@ -70,8 +69,7 @@ function VehiclePage() {
           </Link>
         </Button>
         <div className="flex flex-wrap gap-2">
-          {/* The sale report (PDF and public links) is not available on the phone until #68. */}
-          {!isLocalMode() && <SaleReportDialog vehicle={vehicle} />}
+          <SaleReportDialog vehicle={vehicle} />
           <Button asChild variant="outline" size="sm">
             <Link to="/vehicles/$vehicleId/edit" params={{ vehicleId }}>
               <Pencil aria-hidden />
