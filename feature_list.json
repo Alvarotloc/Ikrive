@@ -1307,6 +1307,22 @@
       ],
       "sdd": false,
       "status": "pending"
+    },
+    {
+      "id": 78,
+      "name": "release-v0-2-0",
+      "phase": "8",
+      "title": "Release v0.2.0",
+      "description": "Preparar la release v0.2.0 con todo lo integrado desde v0.1.0, sobre todo la app Android en sus dos modos («Mi servidor» y «En este teléfono»). Incluye CHANGELOG y versión de los package.json. El tag v0.2.0 y la publicación solo se hacen con el «merge» explícito del humano y con los cuatro secretos de firma Android configurados en el repo (docs/mobile.md).",
+      "acceptance": [
+        "CHANGELOG.md tiene la sección [0.2.0] con fecha, en formato Keep a Changelog, que recoge los cambios relevantes para el usuario desde v0.1.0 (app Android, modo servidor y modo local, notificaciones y calendario nativos, informe de venta y export en local…) agrupados por tema, y [Unreleased] queda vacío",
+        "Los enlaces de comparación del final de CHANGELOG.md (si existen) incluyen v0.2.0",
+        "La versión de todos los package.json del monorepo es 0.2.0",
+        "docs/ y el README no contienen referencias desactualizadas a la versión que deban apuntar a 0.2.0",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
+      "status": "in_progress"
     }
   ]
 }
