@@ -79,6 +79,41 @@ vi.mock('@/lib/native-app-state', () => ({
   },
 }));
 
+/**
+ * The sale report PDF chunk: the Node kit (fonts as data URLs instead of asset URLs). `gate`, when set,
+ * holds the generation until it settles; `fail` makes it reject.
+ *
+ * Under jsdom, react-pdf's layout engine (yoga) loads its WebAssembly with `fetch('data:…')`, as in the
+ * WebView. `mockApi` would reject it as an unmocked request, so data URLs are answered here while rendering.
+ */
+const reportPdf = vi.hoisted(() => ({ gate: null as Promise<void> | null, fail: false }));
+vi.mock('@/lib/data-source/local/sale-report-pdf', async () => {
+  const { nodeSaleReportPdf } = await import('@/test/node-sale-report-pdf');
+  const dataUrlResponse = (url: string) => {
+    const [header = '', base64 = ''] = url.split(',');
+    const type = header.slice('data:'.length).split(';')[0] ?? '';
+    const bytes = Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
+    return new Response(bytes, { headers: { 'content-type': type } });
+  };
+  return {
+    fonts: nodeSaleReportPdf.fonts,
+    generateSaleReportPdf: async (...args: Parameters<typeof nodeSaleReportPdf.generateSaleReportPdf>) => {
+      if (reportPdf.gate) await reportPdf.gate;
+      if (reportPdf.fail) throw new Error('Render failed');
+      const apiFetch = globalThis.fetch;
+      vi.stubGlobal('fetch', (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = input instanceof Request ? input.url : String(input);
+        return url.startsWith('data:') ? Promise.resolve(dataUrlResponse(url)) : apiFetch(input, init);
+      });
+      try {
+        return await nodeSaleReportPdf.generateSaleReportPdf(...args);
+      } finally {
+        vi.stubGlobal('fetch', apiFetch);
+      }
+    },
+  };
+});
+
 /** The share sheet of `downloadBlob` in the native app. */
 const nativeFiles = vi.hoisted(() => ({ saveFile: vi.fn(), openFile: vi.fn() }));
 vi.mock('@/lib/native-files', () => nativeFiles);
@@ -93,6 +128,9 @@ beforeAll(async () => {
     import('@/lib/native-storage'),
     import('@/lib/data-source/local/canvas-images'),
   ]);
+  // After the others, not alongside them: imported concurrently with the local `DataSource`, its mock
+  // would not be the module that `localSaleReport` loads with `import()`.
+  await import('@/lib/data-source/local/sale-report-pdf');
 });
 
 /** The local `DataSource`, to add data before rendering. */
@@ -142,6 +180,8 @@ describe('local mode', () => {
     vi.useRealTimers();
     vi.unstubAllEnvs();
     nativeFiles.saveFile.mockReset();
+    reportPdf.gate = null;
+    reportPdf.fail = false;
     native.getNotificationPermission.mockReset();
     native.requestNotificationPermission.mockReset();
     native.showNotifications.mockReset();
@@ -385,13 +425,13 @@ describe('local mode', () => {
     );
   });
 
-  it('vehicle page shows the photo picker and hides the sale report', async () => {
+  it('vehicle page shows the photo picker and the sale report', async () => {
     mockObjectUrls();
     const vehicle = await (await localData()).vehicles.create({ make: 'Seat', model: 'Ibiza' });
     const { user } = await renderApp(`/vehicles/${vehicle.id}`);
 
     expect(await screen.findByRole('heading', { name: 'Seat Ibiza', level: 1 })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Informe de venta/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Informe de venta' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('link', { name: 'Editar' }));
 
@@ -413,6 +453,69 @@ describe('local mode', () => {
     // The photo is read from the device and shown as a `blob:` URL, never by its `local://` URL.
     await waitFor(() => expect(document.querySelector('img[src^="blob:"]')).not.toBeNull());
     expect(document.querySelector('img[src^="local:"]')).toBeNull();
+  });
+
+  it('sale report dialog hides the public links', async () => {
+    const local = await localData();
+    const vehicle = await local.vehicles.create({ make: 'Seat', model: 'Ibiza', plate: '1234BCD' });
+    const listShares = vi.spyOn(local.reportShares, 'list');
+    const { user } = await renderApp(`/vehicles/${vehicle.id}`);
+
+    await user.click(await screen.findByRole('button', { name: 'Informe de venta' }));
+
+    const dialog = await screen.findByRole('dialog', { name: 'Informe de venta' });
+    expect(within(dialog).getByRole('checkbox', { name: 'Ocultar matrícula' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('checkbox', { name: /Incluir facturas/ })).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Descargar' })).toBeEnabled();
+    expect(within(dialog).queryByText('Compartir con un enlace')).not.toBeInTheDocument();
+    expect(within(dialog).queryByRole('button', { name: 'Crear enlace' })).not.toBeInTheDocument();
+    expect(listShares).not.toHaveBeenCalled();
+  });
+
+  it('downloads the sale report pdf through the share sheet', async () => {
+    nativeFiles.saveFile.mockResolvedValue(undefined);
+    let release = () => {};
+    reportPdf.gate = new Promise((resolve) => {
+      release = resolve;
+    });
+    const vehicle = await (await localData()).vehicles.create({ make: 'Seat', model: 'Ibiza' });
+    const { user } = await renderApp(`/vehicles/${vehicle.id}`);
+    await user.click(await screen.findByRole('button', { name: 'Informe de venta' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Informe de venta' });
+
+    await user.click(within(dialog).getByRole('button', { name: 'Descargar' }));
+
+    expect(await within(dialog).findByRole('button', { name: 'Generando…' })).toBeDisabled();
+    expect(nativeFiles.saveFile).not.toHaveBeenCalled();
+
+    await act(async () => release());
+
+    await waitFor(() => expect(nativeFiles.saveFile).toHaveBeenCalledTimes(1));
+    const [name, blob] = nativeFiles.saveFile.mock.calls[0] ?? [];
+    expect(name).toBe(`ikrive-seat-ibiza-${todayIn(DEFAULT_USER_SETTINGS.timezone)}.pdf`);
+    expect(blob.type).toBe('application/pdf');
+    expect(new TextDecoder().decode(new Uint8Array(await blob.arrayBuffer()).slice(0, 5))).toBe('%PDF-');
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(
+      screen.queryByText('No se ha podido generar el informe', { exact: false }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows a toast when the local sale report fails', async () => {
+    reportPdf.fail = true;
+    const vehicle = await (await localData()).vehicles.create({ make: 'Seat', model: 'Ibiza' });
+    const { user } = await renderApp(`/vehicles/${vehicle.id}`);
+    await user.click(await screen.findByRole('button', { name: 'Informe de venta' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Informe de venta' });
+
+    await user.click(within(dialog).getByRole('button', { name: 'Descargar' }));
+
+    expect(
+      await screen.findByText('No se ha podido generar el informe. Inténtalo de nuevo en unos segundos.'),
+    ).toBeInTheDocument();
+    expect(nativeFiles.saveFile).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog', { name: 'Informe de venta' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Descargar' })).toBeEnabled();
   });
 
   it('maintenance shows attachments', async () => {

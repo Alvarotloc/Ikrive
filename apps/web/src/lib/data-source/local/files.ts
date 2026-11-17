@@ -1,5 +1,7 @@
 import { detectAttachmentType } from '@ikrive/shared';
+import type { AnnexImage } from '@ikrive/shared/sale-report-pdf';
 import { problem } from './problems';
+import type { LoadSaleReportPdf } from './sale-report';
 
 /** Where the local `DataSource` keeps its files: the app's private storage on the device, a map in the tests. */
 export interface LocalFileStore {
@@ -30,12 +32,19 @@ export interface LocalImages {
   toWebpPhoto(data: Uint8Array): Promise<Uint8Array>;
   /** Oriented, ≤ 320 px, WebP q 0.7. */
   toWebpThumbnail(data: Uint8Array): Promise<Uint8Array>;
+  /**
+   * Invoice image of the sale report: oriented, ≤ 2000 px, JPEG q 0.85 from a JPEG and PNG otherwise.
+   * Rejects when it does not decode.
+   */
+  toAnnexImage(data: Uint8Array, mimeType: string): Promise<AnnexImage>;
 }
 
 /** What the local `DataSource` needs from the device besides its database. */
 export interface LocalDeps {
   files: LocalFileStore;
   images: LocalImages;
+  /** Loads the sale report PDF chunk; `import('./sale-report-pdf')` by default, the Node kit in the tests. */
+  saleReportPdf?: LoadSaleReportPdf;
 }
 
 /** Upload limit of the local mode, the API's default (`maxUploadMb` of its client config). */

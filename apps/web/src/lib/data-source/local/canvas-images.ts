@@ -1,3 +1,4 @@
+import type { AnnexImage } from '@ikrive/shared/sale-report-pdf';
 import type { LocalImages } from './files';
 
 /** A decoded image: an `ImageBitmap` on the device. */
@@ -11,8 +12,8 @@ export interface DecodedImage {
 /** A canvas that draws a decoded image scaled to its size and encodes itself. */
 export interface ImageCanvas<I extends DecodedImage> {
   draw(image: I): void;
-  /** `null` when the canvas cannot be encoded. */
-  toBlob(type: string, quality: number): Promise<Blob | null>;
+  /** `null` when the canvas cannot be encoded. `quality` only applies to lossy types. */
+  toBlob(type: string, quality?: number): Promise<Blob | null>;
 }
 
 /** What `createCanvasImages` needs from the browser, replaced by doubles in the tests (Node has no canvas). */
@@ -50,28 +51,36 @@ export function fitInside(width: number, height: number, max: number): { width: 
 /** Decoding with the EXIF orientation applied, as `sharp().rotate()` does in the API. */
 const DECODE_OPTIONS: ImageBitmapOptions = { imageOrientation: 'from-image' };
 
+/** Longest side of an invoice image appended to the sale report, as `toAnnexImage` of the API. */
+const ANNEX_MAX_SIZE = 2000;
+
 /**
  * `LocalImages` over the WebView: decodes with `createImageBitmap` (EXIF orientation applied), draws on a
  * canvas of at most the requested size and encodes it as WebP. A WebView that cannot encode WebP returns
- * another format; the local `DataSource` rejects it (`assertWebp`).
+ * another format; the local `DataSource` rejects it (`assertWebp`). Invoice images of the sale report are
+ * encoded as JPEG (from JPEG) or PNG instead, the formats pdf-lib embeds.
  */
 export function createCanvasImages(env: CanvasEnv<DecodedImage> = browserEnv): LocalImages {
   const decode = (data: Uint8Array) => env.decode(new Blob([data.slice()]), DECODE_OPTIONS);
 
-  const toWebp = async (data: Uint8Array, max: number, quality: number) => {
+  const recode = async (data: Uint8Array, max: number, type: string, quality?: number) => {
     const image = await decode(data);
     let canvas: ImageCanvas<DecodedImage>;
+    let size: { width: number; height: number };
     try {
-      const size = fitInside(image.width, image.height, max);
+      size = fitInside(image.width, image.height, max);
       canvas = env.createCanvas(size.width, size.height);
       canvas.draw(image);
     } finally {
       image.close();
     }
-    const blob = await canvas.toBlob('image/webp', quality);
+    const blob = await canvas.toBlob(type, quality);
     if (!blob) throw new Error('The image could not be encoded');
-    return new Uint8Array(await blob.arrayBuffer());
+    return { data: new Uint8Array(await blob.arrayBuffer()), ...size };
   };
+
+  const toWebp = async (data: Uint8Array, max: number, quality: number) =>
+    (await recode(data, max, 'image/webp', quality)).data;
 
   return {
     async assertDecodable(data) {
@@ -79,5 +88,11 @@ export function createCanvasImages(env: CanvasEnv<DecodedImage> = browserEnv): L
     },
     toWebpPhoto: (data) => toWebp(data, 1600, 0.8),
     toWebpThumbnail: (data) => toWebp(data, 320, 0.7),
+    async toAnnexImage(data, mimeType): Promise<AnnexImage> {
+      if (mimeType === 'image/jpeg') {
+        return { format: 'jpeg', ...(await recode(data, ANNEX_MAX_SIZE, 'image/jpeg', 0.85)) };
+      }
+      return { format: 'png', ...(await recode(data, ANNEX_MAX_SIZE, 'image/png')) };
+    },
   };
 }

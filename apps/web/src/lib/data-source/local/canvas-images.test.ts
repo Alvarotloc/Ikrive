@@ -3,6 +3,7 @@ import { webpBytes } from '@/test/fake-images';
 import { type CanvasEnv, createCanvasImages, type DecodedImage, fitInside } from './canvas-images';
 
 const JPEG = Uint8Array.from([0xff, 0xd8, 0xff, 0xe0, 0x01, 0x02]);
+const PNG = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
 /**
  * A browser without canvas: decodes every image as `width`×`height` (or rejects with `fail`) and records
@@ -13,7 +14,7 @@ function fakeEnv({ width = 4000, height = 3000, fail = false, output = webpBytes
     decoded: [] as { bytes: Uint8Array; options: ImageBitmapOptions }[],
     closed: 0,
     canvases: [] as { width: number; height: number; drawn: boolean; closedWhenDrawn: number }[],
-    encoded: [] as { type: string; quality: number }[],
+    encoded: [] as { type: string; quality?: number }[],
   };
   const env: CanvasEnv<DecodedImage> = {
     async decode(blob, options) {
@@ -90,5 +91,57 @@ describe('canvas images', () => {
     await expect(images.toWebpThumbnail(JPEG)).rejects.toThrow('could not be decoded');
     expect(calls.canvases).toEqual([]);
     expect(calls.encoded).toEqual([]);
+  });
+
+  it('recodes jpeg annex images as jpeg within 2000 px', async () => {
+    const { env, calls } = fakeEnv({ width: 4000, height: 3000, output: JPEG });
+    const images = createCanvasImages(env);
+
+    expect(await images.toAnnexImage(JPEG, 'image/jpeg')).toEqual({
+      data: JPEG,
+      format: 'jpeg',
+      width: 2000,
+      height: 1500,
+    });
+    expect(calls.canvases).toEqual([{ width: 2000, height: 1500, drawn: true, closedWhenDrawn: 0 }]);
+    expect(calls.encoded).toEqual([{ type: 'image/jpeg', quality: 0.85 }]);
+    expect(calls.closed).toBe(1);
+  });
+
+  it('recodes other annex images as png', async () => {
+    const { env, calls } = fakeEnv({ width: 1000, height: 5000, output: PNG });
+    const images = createCanvasImages(env);
+
+    expect(await images.toAnnexImage(webpBytes(), 'image/webp')).toEqual({
+      data: PNG,
+      format: 'png',
+      width: 400,
+      height: 2000,
+    });
+    expect(await images.toAnnexImage(PNG, 'image/png')).toMatchObject({ format: 'png' });
+    expect(calls.encoded.map((call) => call.type)).toEqual(['image/png', 'image/png']);
+  });
+
+  it('never enlarges small annex images', async () => {
+    const { env, calls } = fakeEnv({ width: 640, height: 480, output: JPEG });
+    const images = createCanvasImages(env);
+
+    expect(await images.toAnnexImage(JPEG, 'image/jpeg')).toMatchObject({ width: 640, height: 480 });
+    expect(calls.canvases).toEqual([{ width: 640, height: 480, drawn: true, closedWhenDrawn: 0 }]);
+  });
+
+  it('decodes annex images with the EXIF orientation', async () => {
+    const { env, calls } = fakeEnv({ width: 3000, height: 4000, output: JPEG });
+    const images = createCanvasImages(env);
+
+    // A portrait photo stored landscape with an EXIF rotation: the decoded (rotated) size is used.
+    expect(await images.toAnnexImage(JPEG, 'image/jpeg')).toMatchObject({ width: 1500, height: 2000 });
+    expect(calls.decoded).toEqual([{ bytes: JPEG, options: { imageOrientation: 'from-image' } }]);
+
+    const failing = fakeEnv({ fail: true });
+    await expect(createCanvasImages(failing.env).toAnnexImage(JPEG, 'image/jpeg')).rejects.toThrow(
+      'could not be decoded',
+    );
+    expect(failing.calls.encoded).toEqual([]);
   });
 });

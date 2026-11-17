@@ -4,6 +4,12 @@ import type { LocalImages } from '@/lib/data-source/local/files';
 /** Marker that makes an image with a valid signature fail to decode (a truncated or garbage file). */
 export const CORRUPT = 'CORRUPT';
 
+/** A real 1×1 PNG: what the fake `toAnnexImage` returns, so pdf-lib can embed it. */
+export const PNG_1X1 = Uint8Array.from(
+  atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='),
+  (c) => c.charCodeAt(0),
+);
+
 /** The smallest bytes `detectAttachmentType` takes for a WebP, followed by `tag`. */
 export const webpBytes = (tag = '') => new TextEncoder().encode(`RIFF\0\0\0\0WEBPVP8 ${tag}`);
 
@@ -34,5 +40,9 @@ export function fakeImages({ output }: { output?: Uint8Array } = {}): FakeImages
     assertDecodable: decode,
     toWebpPhoto: (data) => recode(data, 1600),
     toWebpThumbnail: (data) => recode(data, 320),
+    async toAnnexImage(data) {
+      await decode(data);
+      return { data: PNG_1X1, format: 'png', width: 1, height: 1 };
+    },
   };
 }

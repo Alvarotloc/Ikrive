@@ -14,6 +14,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Warning } from '@/components/warning';
+import { isLocalMode } from '@/lib/app-mode';
 import { useDownloadSaleReport } from './queries';
 import { ReportSharesSection } from './report-shares-section';
 import { hidesAnything } from './sale-report';
@@ -27,7 +28,10 @@ const NO_OPTIONS: SaleReportOptions = {
   includeInvoices: false,
 };
 
-/** «Sale report» button and the dialog with its privacy options, the PDF download and the public links. */
+/**
+ * «Sale report» button and the dialog with its privacy options, the PDF download and the public links.
+ * In local mode the PDF is generated on the phone and there are no public links (they need a server).
+ */
 export function SaleReportDialog({ vehicle }: { vehicle: ReportVehicle }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -93,9 +97,13 @@ function SaleReportForm({ vehicle, onDownloaded }: { vehicle: ReportVehicle; onD
           {hiding && options.includeInvoices && <Warning>{t('saleReport.invoicesWarning')}</Warning>}
         </div>
       </div>
-      <hr />
       {/* Inside the form so the link uses the same checked options; its buttons are `type="button"`. */}
-      <ReportSharesSection vehicleId={vehicle.id} options={options} />
+      {!isLocalMode() && (
+        <>
+          <hr />
+          <ReportSharesSection vehicleId={vehicle.id} options={options} />
+        </>
+      )}
       {/* Last, below the links, so the dialog ends with its actions; it still submits the download form. */}
       <DialogFooter className="border-t pt-5">
         <DialogClose asChild>

@@ -1,14 +1,23 @@
 import { rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { todayIn } from '@ikrive/shared';
+import { fitImage } from '@ikrive/shared/sale-report-pdf';
+import {
+  CROSS_MAINTENANCE,
+  CROSS_NOW,
+  CROSS_OPTIONS,
+  CROSS_READINGS,
+  CROSS_SETTINGS,
+  CROSS_VEHICLE,
+  crossScenarioFiles,
+} from '@ikrive/shared/sale-report-pdf/cross-scenario';
 import { eq } from 'drizzle-orm';
 import { PageSizes, PDFDocument } from 'pdf-lib';
 import sharp from 'sharp';
 import { extractText } from 'unpdf';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { loadConfig } from '../src/config';
 import { attachments } from '../src/db/schema';
-import { fitImage } from '../src/modules/reports/pdf/annexes';
 import { createTestApp, signUp } from './helpers';
 
 type TestApp = Awaited<ReturnType<typeof createTestApp>>['app'];
@@ -627,5 +636,54 @@ describe('sale report invoices', () => {
 
     const warned = warnings().filter((entry) => entry.vehicleId === vehicle.id);
     expect(warned.map((entry) => entry.attachmentId)).toEqual([corrupt]);
+  });
+});
+
+describe('cross-mode sale report', () => {
+  it('matches the cross-mode sale report', async () => {
+    // Only `Date` is faked: Fastify and Better Auth keep their real timers.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(CROSS_NOW);
+    try {
+      // The local annex budget (`LOCAL_MAX_ANNEX_MB`); the API's default stays at 100.
+      const { app, db, cookie } = await setupWithLogs({ REPORT_MAX_ANNEX_MB: '25' });
+      const settings = await app.inject({
+        method: 'PATCH',
+        url: '/api/settings',
+        headers: { cookie },
+        payload: CROSS_SETTINGS,
+      });
+      expect(settings.statusCode).toBe(200);
+      const vehicle = await createVehicle(app, cookie, CROSS_VEHICLE);
+      const api = vehicleApi(app, cookie, vehicle.id);
+      for (const reading of CROSS_READINGS) {
+        const response = await app.inject({
+          method: 'POST',
+          url: `/api/vehicles/${vehicle.id}/odometer`,
+          headers: { cookie },
+          payload: reading,
+        });
+        expect(response.statusCode).toBe(201);
+      }
+      const records = new Map<string, string>();
+      for (const { key, ...record } of CROSS_MAINTENANCE) records.set(key, await api.addMaintenance(record));
+      for (const file of await crossScenarioFiles()) {
+        const id = await api.attach(records.get(file.record) ?? '', Buffer.from(file.data), file.name);
+        if (file.storedSize !== undefined) {
+          db.update(attachments).set({ size: file.storedSize }).where(eq(attachments.id, id)).run();
+        }
+      }
+
+      const query = new URLSearchParams(
+        Object.entries(CROSS_OPTIONS).map(([key, value]) => [key, String(value)]),
+      ).toString();
+      const text = await pdfText(await api.report(`?${query}`));
+
+      await expect(text).toMatchFileSnapshot(
+        '../../../packages/shared/src/sale-report-pdf/__snapshots__/cross-report.txt',
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

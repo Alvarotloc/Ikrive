@@ -10,6 +10,7 @@ export * from './domain/odometer-writes';
 export * from './domain/reminders';
 export * from './domain/report-shares';
 export * from './domain/sale-report';
+export * from './domain/sale-report-fonts';
 export * from './domain/schedules';
 export * from './domain/stats';
 export * from './domain/vehicle-identifiers';
