@@ -43,7 +43,7 @@ Ikrive es una aplicación open source y autoalojada (Docker) para gestionar tus 
 | 5. Repostajes y estadísticas | ✅ Hecha |
 | 6. Informe de venta | ✅ Hecha |
 | 7. Pulido y release v0.1.0 | ✅ Hecha |
-| 8. App móvil | ⏳ Pendiente |
+| 8. App móvil | ⏳ En curso |
 
 **Pendientes conocidos:**
 - Ninguno. La imagen se publica en `ghcr.io/alvarotloc/ikrive` al empujar un tag `v*` (`.github/workflows/release.yml`).
@@ -233,7 +233,7 @@ Los enums ya están definidos en `packages/shared/src/enums.ts`.
   - **`mobile-local-files` (#65):** adjuntos y foto del vehículo en el dispositivo, con miniaturas hechas con canvas.
   - **`mobile-local-export` (#66):** zip de export/import de la fase 7 generado en el cliente; es el paso del modo local a un servidor.
   - **`mobile-local-reminders` (#67):** recordatorios y aviso de km sin jobs (ver decisiones). Implementada: el `DataSource` local los genera al listar la bandeja (arranque, vuelta a primer plano con el `resume` de `@capacitor/app` y la consulta de la campana cada 60 s); campana, notificaciones de Android y día/hora del aviso en Ajustes también en local.
-  - **`mobile-local-sale-report` (#68):** PDF del informe de venta en el dispositivo.
+  - **`mobile-local-sale-report` (#68):** PDF del informe de venta en el dispositivo. Implementada: la maquetación, el render (react-pdf) y los anexos (pdf-lib) están en `@ikrive/shared/sale-report-pdf`, que usan la API y el modo local; en el teléfono se carga con `import()` (chunk en `assets/native/`, fuera del precache), las facturas imagen se preparan con canvas y el presupuesto de anexos es de 25 MB (100 MB por defecto en la API). «Compartir con un enlace» sigue oculto en local.
 - **Decisiones de la etapa 2** (2026-11-12):
   - **Recordatorios y aviso de km sin jobs:** se calculan al abrir la app o volver a primer plano, con funciones puras de `packages/shared` (las mismas reglas que los jobs del servidor), se guardan en la bandeja local y se muestran con las notificaciones locales de #52.
   - **Enlaces públicos:** el modo local oculta «compartir enlace» del informe y el feed iCal; quedan la descarga del PDF del informe y «Añadir al calendario» nativo.
