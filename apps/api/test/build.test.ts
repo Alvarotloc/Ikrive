@@ -3,9 +3,9 @@ import { createRequire, isBuiltin } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { REPORT_FONT_FILES } from '@ikrive/shared';
 import { build } from 'tsup';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { REPORT_FONT_FILES } from '../src/modules/reports/pdf/font-files';
 import { createBuildOptions, OPTIONAL_UNBUNDLED, RUNTIME_EXTERNALS, runtimeManifest } from '../tsup.config';
 
 interface Metafile {

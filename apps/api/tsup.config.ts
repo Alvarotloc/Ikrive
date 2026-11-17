@@ -3,7 +3,8 @@ import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, type Options } from 'tsup';
-import { REPORT_FONT_FILES } from './src/modules/reports/pdf/font-files';
+// Relative path: tsup loads this config with Node, which cannot run the TypeScript package index.
+import { REPORT_FONT_FILES } from '../../packages/shared/src/domain/sale-report-fonts';
 
 /**
  * Packages left out of the bundle and installed in the image (`dist/package.json`): native binaries

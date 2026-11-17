@@ -1,6 +1,6 @@
-import type { SaleReport, SaleReportColumn, SaleReportRow } from '@ikrive/shared';
 import { Document, Line, Page, Polyline, StyleSheet, Svg, Text, View } from '@react-pdf/renderer';
-import { REPORT_FONTS } from './fonts';
+import type { SaleReport, SaleReportColumn, SaleReportRow } from '../domain/sale-report';
+import { REPORT_FONTS } from '../domain/sale-report-fonts';
 
 /** Brand tokens (`docs/PLAN.md` › Diseño). */
 const COLORS = {

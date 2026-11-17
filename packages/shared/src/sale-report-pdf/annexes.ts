@@ -1,8 +1,18 @@
-import { buffer } from 'node:stream/consumers';
 import { PageSizes, PDFDocument } from 'pdf-lib';
-import { type AnnexImage, toAnnexImage } from '../../../lib/images';
-import type { FileStorage } from '../../../lib/storage';
-import type { AttachmentRow } from '../../attachments/repository';
+
+/** An invoice image ready to be embedded: oriented, downsized and in a format pdf-lib embeds. */
+export interface AnnexImage {
+  data: Uint8Array;
+  format: 'jpeg' | 'png';
+  width: number;
+  height: number;
+}
+
+/**
+ * Prepares an invoice image for the report (`sharp` in the API, canvas on the phone): oriented, at most
+ * 2000 px on its longest side and re-encoded as JPEG (from JPEG) or PNG. Rejects when it does not decode.
+ */
+export type AnnexImageNormalizer = (data: Uint8Array, mimeType: string) => Promise<AnnexImage>;
 
 /** An attachment already read and validated, ready to be appended to the report. */
 export type LoadedAnnex = { kind: 'pdf'; doc: PDFDocument } | ({ kind: 'image' } & AnnexImage);
@@ -11,15 +21,15 @@ const [A4_WIDTH, A4_HEIGHT] = PageSizes.A4;
 const IMAGE_MARGIN = 36;
 
 /**
- * Reads an attachment and prepares it for `appendAnnexes`. Throws when it cannot be appended: missing
- * file, corrupt or encrypted PDF, PDF without pages, or image that does not decode.
+ * Prepares the bytes of an attachment for `appendAnnexes`. Throws when it cannot be appended: corrupt or
+ * encrypted PDF, PDF without pages, or image that does not decode.
  */
 export async function loadAnnex(
-  row: Pick<AttachmentRow, 'mimeType' | 'storageKey'>,
-  storage: FileStorage,
+  bytes: Uint8Array,
+  mimeType: string,
+  toAnnexImage: AnnexImageNormalizer,
 ): Promise<LoadedAnnex> {
-  const bytes = await buffer(storage.read(row.storageKey));
-  if (row.mimeType !== 'application/pdf') return { kind: 'image', ...(await toAnnexImage(bytes)) };
+  if (mimeType !== 'application/pdf') return { kind: 'image', ...(await toAnnexImage(bytes, mimeType)) };
 
   // Without `ignoreEncryption`, an encrypted PDF throws instead of producing unreadable pages.
   const source = await PDFDocument.load(bytes, { updateMetadata: false });
@@ -45,7 +55,10 @@ export function fitImage(
  * Appends the annexes after the report pages, in the given order: every page of each PDF, and each
  * image on its own A4 page (landscape when the image is).
  */
-export async function appendAnnexes(reportPdf: Buffer, annexes: readonly LoadedAnnex[]): Promise<Buffer> {
+export async function appendAnnexes(
+  reportPdf: Uint8Array,
+  annexes: readonly LoadedAnnex[],
+): Promise<Uint8Array> {
   const doc = await PDFDocument.load(reportPdf, { updateMetadata: false });
   for (const annex of annexes) {
     if (annex.kind === 'pdf') {
@@ -66,5 +79,5 @@ export async function appendAnnexes(reportPdf: Buffer, annexes: readonly LoadedA
       height: box.height,
     });
   }
-  return Buffer.from(await doc.save());
+  return doc.save();
 }

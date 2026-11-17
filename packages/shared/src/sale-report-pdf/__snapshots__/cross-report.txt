@@ -1,0 +1,30 @@
+I N F O R M E D E V E N TA
+Seat Ibiza
+Emitido el 17 nov 2026
+Vehículo
+Marca y modelo Seat Ibiza FR 1.0 TSI
+Año 2019
+Combustible Gasolina
+Número de bastidor (VIN) VSSZZZ6JZKR000001
+Fecha de emisión 17 nov 2026
+Resumen
+Kilometraje actual 52.000 km
+Media anual 15.807 km
+Mantenimientos 2
+Gasto en mantenimiento 509,90 €
+Histórico del cuentakilómetros
+52.000 km
+30.000 km
+10 ene 2024 1 jun 2025
+Historial de mantenimiento
+Fecha Kilometraje Categoría Título Coste Anexos
+1 mar 2024 31.000 km Aceite Cambio de aceite 89,90 € A1, A2
+10 feb 2025 48.000 km Neumáticos Neumáticos 420,00 € A3
+Facturas anexadas
+A1 · 1 mar 2024 · Cambio de aceite · factura-aceite.pdf
+A2 · 1 mar 2024 · Cambio de aceite · factura-rota.pdf
+No se pudo anexar este archivo.
+A3 · 10 feb 2025 · Neumáticos · neumaticos.pdf
+No se anexó: se superó el tamaño máximo del informe.
+Ikrive · Informe de venta 1 / 1
+Factura de prueba

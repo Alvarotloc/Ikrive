@@ -1,19 +1,15 @@
-import {
-  buildSaleReport,
-  type SaleReportAttachment,
-  type SaleReportMaintenance,
-  type SaleReportOptions,
-  todayIn,
-} from '@ikrive/shared';
+import { buffer } from 'node:stream/consumers';
+import { type SaleReportOptions, todayIn } from '@ikrive/shared';
+import { generateSaleReportPdf } from '@ikrive/shared/sale-report-pdf';
 import type { FastifyBaseLogger } from 'fastify';
 import { NotFoundError } from '../../lib/errors';
+import { toAnnexImage } from '../../lib/images';
 import type { FileStorage } from '../../lib/storage';
 import type { AttachmentsRepository } from '../attachments/repository';
 import type { MaintenanceRepository } from '../maintenance/repository';
 import type { SettingsService } from '../settings/service';
 import type { VehiclesRepository } from '../vehicles/repository';
-import { appendAnnexes, type LoadedAnnex, loadAnnex } from './pdf/annexes';
-import { renderSaleReportPdf } from './pdf/render';
+import { resolveReportFont } from './pdf/fonts';
 
 interface ReportsServiceDeps {
   vehicles: VehiclesRepository;
@@ -55,69 +51,52 @@ export function createReportsService({
       // which is also the table order of the report.
       const records = maintenance.listByVehicle(vehicleId).reverse();
 
-      // Keyed by attachment id: the PDF follows `report.annexes.items`, not the loading order.
-      const loaded = new Map<string, LoadedAnnex>();
-      let remaining = maxAnnexBytes;
-      const annexesOf = async (recordId: string): Promise<SaleReportAttachment[]> => {
-        const result: SaleReportAttachment[] = [];
-        for (const row of attachments.listByEntity('maintenance', recordId)) {
-          const attachment = { id: row.id, name: row.originalName };
-          // `size` is the exact size of the stored file: the limit is checked without reading it.
-          if (row.size > remaining) {
-            log.warn(
-              { vehicleId, attachmentId: row.id },
-              'Sale report: attachment skipped, report annex size limit reached',
-            );
-            result.push({ ...attachment, skipped: 'size_limit' });
-            continue;
-          }
-          try {
-            loaded.set(row.id, await loadAnnex(row, storage));
-          } catch (err) {
-            log.warn(
-              { vehicleId, attachmentId: row.id, err },
-              'Sale report: attachment could not be annexed',
-            );
-            result.push({ ...attachment, skipped: 'unreadable' });
-            continue;
-          }
-          // An unreadable attachment adds nothing to the PDF, so it does not use up the budget.
-          remaining -= row.size;
-          result.push({ ...attachment, skipped: null });
-        }
-        return result;
-      };
-
-      const reportMaintenance: SaleReportMaintenance[] = [];
-      for (const { id, date, odometer, category, title, cost, includeInReport } of records) {
-        // Attachments of excluded records are never read, and none at all without `includeInvoices`.
-        const withAttachments = options.includeInvoices && includeInReport;
-        reportMaintenance.push({
-          date,
-          odometer,
-          category,
-          title,
-          cost,
-          includeInReport,
-          attachments: withAttachments ? await annexesOf(id) : [],
-        });
-      }
-
-      const report = buildSaleReport({
-        vehicle,
-        readings: vehicles.listReadings(vehicleId).map(({ date, value }) => ({ date, value })),
-        maintenance: reportMaintenance,
-        settings: ownerSettings,
-        options,
-        issuedOn: todayIn(ownerSettings.timezone),
-      });
-      const pdf = await renderSaleReportPdf(report);
-      // Skipped annexes (with a notice) were never loaded, so they are not in the map.
-      const annexes = (report.annexes?.items ?? []).flatMap((item) => {
-        const annex = item.notice === null ? loaded.get(item.id) : undefined;
-        return annex ? [annex] : [];
-      });
-      return { fileName: report.fileName, pdf: annexes.length > 0 ? await appendAnnexes(pdf, annexes) : pdf };
+      const { fileName, pdf } = await generateSaleReportPdf(
+        {
+          vehicle,
+          readings: vehicles.listReadings(vehicleId).map(({ date, value }) => ({ date, value })),
+          maintenance: records.map(({ id, date, odometer, category, title, cost, includeInReport }) => ({
+            id,
+            date,
+            odometer,
+            category,
+            title,
+            cost,
+            includeInReport,
+          })),
+          settings: ownerSettings,
+          options,
+          issuedOn: todayIn(ownerSettings.timezone),
+        },
+        {
+          fonts: (font) => resolveReportFont(font.family, font.file),
+          maxAnnexBytes,
+          attachmentsOf: (recordId) =>
+            attachments.listByEntity('maintenance', recordId).map((row) => ({
+              id: row.id,
+              name: row.originalName,
+              mimeType: row.mimeType,
+              size: row.size,
+              storageKey: row.storageKey,
+            })),
+          readAnnex: async (file) => buffer(storage.read(file.storageKey)),
+          toAnnexImage: (data) => toAnnexImage(Buffer.from(data.buffer, data.byteOffset, data.byteLength)),
+          onAnnexSkipped(file, reason, err) {
+            if (reason === 'size_limit') {
+              log.warn(
+                { vehicleId, attachmentId: file.id },
+                'Sale report: attachment skipped, report annex size limit reached',
+              );
+            } else {
+              log.warn(
+                { vehicleId, attachmentId: file.id, err },
+                'Sale report: attachment could not be annexed',
+              );
+            }
+          },
+        },
+      );
+      return { fileName, pdf: Buffer.from(pdf) };
     },
   };
 }
