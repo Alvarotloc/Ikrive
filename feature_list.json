@@ -1107,7 +1107,7 @@
       "phase": "8",
       "title": "Modo local: PDF del informe de venta",
       "description": "Etapa 2 de la fase 8 (parte 5 de 5). Va después de #65. saleReport.download en modo local genera el PDF en el dispositivo a partir de buildSaleReport de packages/shared, con las facturas como anexos.",
-      "status": "pending",
+      "status": "in_progress",
       "sdd": true,
       "acceptance": [
         "En modo local se puede descargar el PDF del informe de venta con el mismo contenido que el de la API",
