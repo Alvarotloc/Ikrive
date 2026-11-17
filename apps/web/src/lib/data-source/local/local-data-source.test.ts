@@ -498,9 +498,6 @@ describe('local DataSource', () => {
       local.reportShares.list(vehicle.id),
       local.reportShares.create(vehicle.id, options),
       local.reportShares.revoke(vehicle.id, 'share'),
-      local.notifications.list(),
-      local.notifications.markRead('n'),
-      local.notifications.markAllRead(),
       local.notificationChannels.list(),
       local.notificationChannels.create({
         type: 'ntfy',

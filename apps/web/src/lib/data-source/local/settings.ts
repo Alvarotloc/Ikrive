@@ -11,7 +11,7 @@ type SettingsRow = typeof userSettings.$inferSelect;
 const toDto = ({ userId: _userId, ...settings }: SettingsRow): UserSettings => settings;
 
 /** The local user's settings row, created with the defaults if it is missing (as the API's `get`). */
-async function settingsRow(db: LocalDb): Promise<SettingsRow> {
+export async function settingsRow(db: LocalDb): Promise<SettingsRow> {
   const row = await db.select().from(userSettings).where(eq(userSettings.userId, LOCAL_USER_ID)).get();
   if (row) return row;
   return db.insert(userSettings).values({ userId: LOCAL_USER_ID }).returning().get();
