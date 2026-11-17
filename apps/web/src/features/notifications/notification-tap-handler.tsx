@@ -2,6 +2,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useEffect } from 'react';
 import { meQuery } from '@/features/auth/queries';
+import { activateLocalDataSource } from '@/features/mobile/local-mode';
+import { isLocalMode } from '@/lib/app-mode';
 import { parseNotificationTapData } from './device-notifications';
 import { useMarkNotificationRead } from './queries';
 
@@ -23,6 +25,8 @@ export function NotificationTapHandler() {
     const open = async (extra: unknown) => {
       const tap = parseNotificationTapData(extra);
       if (!tap) return;
+      // Started by the tap, the app can get here before `/_app` installs the local `DataSource`.
+      if (isLocalMode()) await activateLocalDataSource();
       const me = await queryClient.fetchQuery(meQuery);
       if (me?.id !== tap.userId) return;
       // Fails if the session expired (401) or the notification is gone (404): nothing to open then.

@@ -7,6 +7,7 @@ import { LOCAL_MAX_UPLOAD_MB, type LocalDeps } from './files';
 import { localFiles } from './files-get';
 import { localFuelLogs } from './fuel-logs';
 import { localMaintenance } from './maintenance';
+import { localNotifications } from './notifications';
 import { unsupported } from './problems';
 import { localSchedules } from './schedules';
 import { createSerialQueue, type SerialQueue } from './serial';
@@ -42,9 +43,10 @@ function serialized<G extends Record<string, AsyncMethod>>(queue: SerialQueue, g
 /**
  * The `DataSource` of the mobile app's local mode, over the SQLite database of the device (`db`) and its
  * files and image processing (`deps`). It applies the same `@ikrive/shared` rules as the API and rejects
- * with the same `ApiError` problems. What needs a server (notifications, channels, iCal feed, public links,
- * admin) or comes in a later version (sale report, import) rejects with a 501; the data export builds the
- * same zip as the API on the device.
+ * with the same `ApiError` problems. The notifications inbox is filled on the device with the reminders of
+ * the API's jobs each time it is listed. What needs a server (channels, iCal feed, public links, admin) or
+ * comes in a later version (sale report, import) rejects with a 501; the data export builds the same zip
+ * as the API on the device.
  */
 export function createLocalDataSource(db: LocalDb, deps: LocalDeps): DataSource {
   const queue = createSerialQueue();
@@ -61,7 +63,7 @@ export function createLocalDataSource(db: LocalDb, deps: LocalDeps): DataSource 
     stats: serialized(queue, localStats(db)),
     saleReport: { download: reject },
     reportShares: { list: reject, create: reject, revoke: reject },
-    notifications: { list: reject, markRead: reject, markAllRead: reject },
+    notifications: serialized(queue, localNotifications(db)),
     notificationChannels: { list: reject, create: reject, update: reject, remove: reject, test: reject },
     calendarFeed: { get: reject, enable: reject, disable: reject },
     dataPortability: { import: reject, ...localDataPortability(db, deps, queue) },

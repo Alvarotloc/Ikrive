@@ -87,6 +87,7 @@
     "reminderHourHint": "We will notify you from this time in your time zone.",
     "reminderHourInfoLabel": "More about the reminder time",
     "reminderHourInfo": "The app checks reminders every hour on the hour. Each reminder is sent only once, at the first check from this time in your time zone. If the server was off at that time, it arrives at the next check that same day.",
+    "reminderHourInfoLocal": "The app checks reminders when you open it, when you come back to it and every minute while it is open. Each reminder is sent only once, at the first check from this time in your time zone. With the app closed they are not checked.",
     "theme": "Theme",
     "themes": {
       "system": "System",
@@ -493,6 +494,7 @@
   "deviceNotifications": {
     "title": "Phone notifications",
     "description": "New notifications show up as Android notifications while the app is open. To get them with the app closed, add a notification channel.",
+    "descriptionLocal": "New notifications show up as Android notifications when you open the app or come back to it.",
     "checking": "Checking the permission…",
     "granted": "On: new notifications will show up on this phone.",
     "prompt": "Off: the app is not allowed to show notifications yet.",

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { isLocalMode } from '@/lib/app-mode';
 import type { DevicePermission } from '@/lib/native-notifications';
 import { markPermissionAsked } from './device-notifications';
 
@@ -45,7 +46,9 @@ export function DeviceNotificationsSection() {
     <Card>
       <CardHeader>
         <CardTitle>{t('deviceNotifications.title')}</CardTitle>
-        <CardDescription>{t('deviceNotifications.description')}</CardDescription>
+        <CardDescription>
+          {t(isLocalMode() ? 'deviceNotifications.descriptionLocal' : 'deviceNotifications.description')}
+        </CardDescription>
       </CardHeader>
       <CardContent className="grid justify-items-start gap-3">
         <p role="status" className="text-sm">

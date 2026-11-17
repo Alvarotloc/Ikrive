@@ -1091,7 +1091,7 @@
       "phase": "8",
       "title": "Modo local: recordatorios y aviso de km",
       "description": "Etapa 2 de la fase 8 (parte 4 de 5). Va después de #54. Sin jobs: los recordatorios de planes y el aviso de km se calculan al abrir la app o volver a primer plano con las funciones puras de packages/shared, se guardan en la bandeja local y se muestran con las notificaciones locales de #52.",
-      "status": "pending",
+      "status": "done",
       "sdd": true,
       "acceptance": [
         "En modo local, al abrir la app o volver a primer plano se generan los mismos recordatorios y avisos de km que generarían los jobs del servidor, sin duplicados",
@@ -1292,6 +1292,21 @@
       ],
       "sdd": false,
       "status": "done"
+    },
+    {
+      "id": 77,
+      "name": "local-calendar-link",
+      "phase": "8",
+      "title": "Modo local: «Añadir al calendario» sin enlace a localhost",
+      "description": "Detectado al especificar #67 (mobile-local-reminders). En modo local, el evento que genera «Añadir al calendario» (apps/web/src/features/schedules/add-to-calendar.tsx, baseUrl: getServerUrl() ?? window.location.origin) lleva en la descripción la línea «Ficha del vehículo» y la URL apuntando a https://localhost/vehicles/<id>, que no abre nada fuera de la app. Pendiente anotado en specs/mobile-local-core/design.md.",
+      "acceptance": [
+        "En modo local, el evento (iCal descargado y evento nativo) no incluye la línea «Ficha del vehículo» ni la URL",
+        "En modo servidor y en la web el evento no cambia",
+        "Hay tests que cubren ambos modos",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
+      "status": "pending"
     }
   ]
 }

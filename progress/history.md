@@ -684,3 +684,12 @@
 - **Tests:** `locales.test.ts` › `en uses English quotation marks, not Spanish angle quotes` (falla con el texto anterior). Web 576. `pnpm harness --full` en verde.
 - **Revisión:** APPROVED a la primera (`progress/review_en-angle-quotes.md`), sin avisos.
 - **Gate 2:** «merge» del humano → PR.
+
+## 2026-11-17 — #67 mobile-local-reminders
+
+- **Rama:** `feat/mobile-local-reminders`. Etapa 2 de la fase 8 (parte 4 de 5). Dos `Explore` (`progress/explore_mobile-local-reminders_{server,web-local}.md`). Gate 1 aprobada sin cambios; «Añadir al calendario» en local → #77 `local-calendar-link`.
+- **Cambios:** `local/notifications.ts`: `list()` genera antes de leer (en la misma operación de la cola serie) los recordatorios de planes y el aviso de km con las funciones puras de shared y los ajustes del usuario local (`reminderHour`, `odometerReminderWeekday`, `timezone`); `onConflictDoNothing` sobre `dedupeKey`; `markRead`/`markAllRead`. Disparadores: arranque (campana), `resume` de `@capacitor/app` (`lib/native-app-state.ts`, native-only, `LocalRemindersRefresh` invalida la bandeja) y el `refetchInterval` de 60 s. En local: campana, `DeviceNotificationsSync`, tarjeta «Notificaciones del teléfono», día/hora del aviso en Ajustes con ayuda propia; el toque espera a `activateLocalDataSource()` (arranque en frío).
+- **Tests:** `local-notifications.test.ts`, `local-reminders-refresh.test.tsx`, `native-app-state.test.ts`, `local-mode.test.tsx` (sustituye a los de ocultar). Web 601, API 370. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED a la primera (`progress/review_mobile-local-reminders.md`); desviaciones aceptadas: test del toque en frío desde `/welcome`, permiso pedido también en local.
+- **Prueba en dispositivo:** APK debug instalada con `adb` y datos de prueba sembrados en la SQLite del móvil (copia de seguridad previa). Todo OK salvo el aviso de km: `max("odometer_readings"."date")` sin alias no lo lee el plugin Android (`Couldn't read row 0 column -1`) y rompía todo `list()` en el día/hora del aviso (diagnosticado vía CDP en la WebView). Arreglo: alias + guarda en `test/memory-sqlite.ts` que rechaza columnas con `.` como el plugin; re-review APPROVED; aviso de km verificado en el móvil.
+- **Gate 2:** «merge» del humano → PR.

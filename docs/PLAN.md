@@ -232,7 +232,7 @@ Los enums ya están definidos en `packages/shared/src/enums.ts`.
   - **`mobile-local-core` (#54):** datos en SQLite en el dispositivo, sin cuenta ni servidor, con una implementación local de la interfaz de #53. Ajustes, vehículos, km, repostajes, mantenimientos, planes y estadísticas. Lo que aún no existe en local se oculta.
   - **`mobile-local-files` (#65):** adjuntos y foto del vehículo en el dispositivo, con miniaturas hechas con canvas.
   - **`mobile-local-export` (#66):** zip de export/import de la fase 7 generado en el cliente; es el paso del modo local a un servidor.
-  - **`mobile-local-reminders` (#67):** recordatorios y aviso de km sin jobs (ver decisiones).
+  - **`mobile-local-reminders` (#67):** recordatorios y aviso de km sin jobs (ver decisiones). Implementada: el `DataSource` local los genera al listar la bandeja (arranque, vuelta a primer plano con el `resume` de `@capacitor/app` y la consulta de la campana cada 60 s); campana, notificaciones de Android y día/hora del aviso en Ajustes también en local.
   - **`mobile-local-sale-report` (#68):** PDF del informe de venta en el dispositivo.
 - **Decisiones de la etapa 2** (2026-11-12):
   - **Recordatorios y aviso de km sin jobs:** se calculan al abrir la app o volver a primer plano, con funciones puras de `packages/shared` (las mismas reglas que los jobs del servidor), se guardan en la bandeja local y se muestran con las notificaciones locales de #52.

@@ -87,6 +87,7 @@
     "reminderHourHint": "Te avisaremos a partir de esta hora en tu zona horaria.",
     "reminderHourInfoLabel": "Más información sobre la hora de los recordatorios",
     "reminderHourInfo": "La app revisa los recordatorios cada hora en punto. Cada aviso llega una sola vez, en la primera revisión a partir de esta hora en tu zona horaria. Si el servidor estaba apagado a esa hora, llegará en la siguiente revisión del mismo día.",
+    "reminderHourInfoLocal": "La app revisa los recordatorios al abrirla, al volver a ella y cada minuto mientras está abierta. Cada aviso llega una sola vez, en la primera revisión a partir de esta hora en tu zona horaria. Con la app cerrada no se revisan.",
     "theme": "Tema",
     "themes": {
       "system": "Sistema",
@@ -493,6 +494,7 @@
   "deviceNotifications": {
     "title": "Notificaciones del teléfono",
     "description": "Los avisos nuevos salen como notificaciones de Android mientras la app está abierta. Para recibirlos con la app cerrada, añade un canal de notificación.",
+    "descriptionLocal": "Los avisos nuevos salen como notificaciones de Android al abrir la app o volver a ella.",
     "checking": "Comprobando el permiso…",
     "granted": "Activadas: los avisos nuevos se mostrarán en este teléfono.",
     "prompt": "Desactivadas: la app todavía no tiene permiso para mostrar notificaciones.",
