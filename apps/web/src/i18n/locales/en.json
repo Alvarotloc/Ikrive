@@ -124,6 +124,11 @@
   "files": {
     "shareTitle": "Save or share"
   },
+  "camera": {
+    "take": "Take photo",
+    "input": "Take a photo with the camera",
+    "denied": "Ikrive isn't allowed to use the camera. Turn it on in Settings › Apps › Ikrive › Permissions, or choose an image or file you already have."
+  },
   "validation": {
     "required": "This field is required.",
     "minLength_one": "Must be at least {{count}} character long.",
@@ -246,7 +251,9 @@
       "change": "Change photo",
       "remove": "Remove photo",
       "saved": "Photo updated",
-      "invalid": "That image couldn't be used. Try a smaller JPG, PNG or WebP."
+      "invalid": "That image couldn't be used. Try a smaller JPG, PNG or WebP.",
+      "gallery": "Choose from gallery",
+      "fileInput": "Choose vehicle photo"
     }
   },
   "odometer": {

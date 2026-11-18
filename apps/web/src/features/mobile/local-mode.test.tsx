@@ -2,6 +2,7 @@ import { DEFAULT_USER_SETTINGS, dataExportSchema, todayIn } from '@ikrive/shared
 import { act, screen, waitFor, within } from '@testing-library/react';
 import type { AsyncRemoteCallback } from 'drizzle-orm/sqlite-proxy';
 import { strFromU8, unzipSync } from 'fflate';
+import { toast } from 'sonner';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MODE_KEY, setLocalMode } from '@/lib/app-mode';
 import { dataSource, setDataSource } from '@/lib/data-source';
@@ -158,6 +159,10 @@ async function seedOverdue(titles: string[] = ['Cambio de aceite']) {
   return { local, vehicle };
 }
 
+/** A JPEG as the camera or the gallery hands it over (only its magic bytes). */
+const jpeg = (name: string) =>
+  new File([Uint8Array.from([0xff, 0xd8, 0xff, 0xe0, 0x00])], name, { type: 'image/jpeg' });
+
 /** The bell's button, by its unread count. */
 const bell = (unread: number) => screen.findByRole('button', { name: `Notificaciones, ${unread} sin leer` });
 
@@ -177,6 +182,8 @@ describe('local mode', () => {
   });
 
   afterEach(() => {
+    // Sonner keeps toasts in a module-level store and replays the active ones to every new Toaster.
+    toast.dismiss();
     vi.useRealTimers();
     vi.unstubAllEnvs();
     nativeFiles.saveFile.mockReset();
@@ -436,15 +443,12 @@ describe('local mode', () => {
     await user.click(screen.getByRole('link', { name: 'Editar' }));
 
     expect(await screen.findByRole('heading', { name: 'Editar vehículo' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Añadir foto' })).toBeInTheDocument();
-    const input = document.querySelector<HTMLInputElement>('input[type="file"]');
-    if (!input) throw new Error('No photo input');
-    const jpeg = new File([Uint8Array.from([0xff, 0xd8, 0xff, 0xe0, 0x00])], 'IMG_0001.jpg', {
-      type: 'image/jpeg',
-    });
-    await user.upload(input, jpeg);
+    // The native app is a touch device: the gallery button sits next to «Take photo».
+    expect(screen.getByRole('button', { name: 'Hacer foto' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Elegir de la galería' })).toBeInTheDocument();
+    await user.upload(screen.getByLabelText('Elegir foto del vehículo'), jpeg('IMG_0001.jpg'));
 
-    expect(await screen.findByRole('button', { name: 'Cambiar foto' })).toBeInTheDocument();
+    expect(await screen.findByText('Foto actualizada')).toBeInTheDocument();
     expect(storage.store?.keys()).toEqual([expect.stringMatching(/^vehicles\/.+\.webp$/)]);
 
     await user.click(screen.getByRole('button', { name: 'Cancelar' }));
@@ -531,6 +535,8 @@ describe('local mode', () => {
     await user.click(screen.getByRole('button', { name: 'Añadir mantenimiento' }));
     const form = await screen.findByRole('dialog');
     expect(within(form).getByText('Facturas')).toBeInTheDocument();
+    expect(within(form).getByRole('button', { name: 'Añadir facturas' })).toBeInTheDocument();
+    expect(within(form).getByRole('button', { name: 'Hacer foto' })).toBeInTheDocument();
     await user.click(within(form).getByRole('button', { name: 'Cancelar' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
 
@@ -553,6 +559,41 @@ describe('local mode', () => {
 
     expect(await screen.findByText('Este mantenimiento todavía no tiene facturas.')).toBeInTheDocument();
     expect(storage.store?.keys()).toEqual([]);
+  });
+
+  it('takes the vehicle photo with the camera in local mode', async () => {
+    mockObjectUrls();
+    const vehicle = await (await localData()).vehicles.create({ make: 'Seat', model: 'Ibiza' });
+    const { user } = await renderApp(`/vehicles/${vehicle.id}/edit`);
+
+    expect(await screen.findByRole('heading', { name: 'Editar vehículo' })).toBeInTheDocument();
+    await user.upload(screen.getByLabelText('Hacer una foto con la cámara'), jpeg('JPEG_20261118.jpg'));
+
+    expect(await screen.findByText('Foto actualizada')).toBeInTheDocument();
+    expect(storage.store?.keys()).toEqual([expect.stringMatching(/^vehicles\/.+\.webp$/)]);
+    expect((await dataSource().vehicles.get(vehicle.id)).photoUrl).not.toBeNull();
+  });
+
+  it('takes an invoice photo with the camera in local mode', async () => {
+    mockObjectUrls();
+    const local = await localData();
+    const vehicle = await local.vehicles.create({ make: 'Seat', model: 'Ibiza' });
+    await local.maintenance.create(vehicle.id, { date: '2024-03-01', category: 'other', title: 'Revisión' });
+    const { user } = await renderApp(`/vehicles/${vehicle.id}`);
+
+    await user.click(await screen.findByRole('button', { name: 'Facturas de «Revisión»' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(
+      await within(dialog).findByText('Este mantenimiento todavía no tiene facturas.'),
+    ).toBeInTheDocument();
+
+    await user.upload(
+      within(dialog).getByLabelText('Hacer una foto con la cámara'),
+      jpeg('JPEG_20261118.jpg'),
+    );
+
+    expect(await within(dialog).findByText('JPEG_20261118.jpg')).toBeInTheDocument();
+    expect(storage.store?.keys()).toEqual([expect.stringMatching(/^attachments\/.+/)]);
   });
 
   it('an activation forgotten while opening never installs its DataSource', async () => {

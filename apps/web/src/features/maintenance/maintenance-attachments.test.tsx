@@ -2,11 +2,12 @@ import type { Attachment } from '@ikrive/shared';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { useState } from 'react';
 import { Toaster, toast } from 'sonner';
-import { afterEach, describe, expect, it, type Mock, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import {
   type MockResponse,
   type MockRoutes,
   mockApi,
+  mockMediaQuery,
   mockObjectUrls,
   renderWithProviders,
   setServerMode,
@@ -104,7 +105,16 @@ const jpeg = (): MockResponse => ({ body: new Blob(['jpeg'], { type: 'image/jpeg
 const fileInput = () => screen.getByLabelText('Elegir facturas');
 const helpText = 'PDF, JPG, PNG o WebP · máx. 1 MB';
 
+const cameraInput = () => screen.getByLabelText('Hacer una foto con la cámara');
+const cameraPhoto = (size = 10) =>
+  new File([new Uint8Array(size)], 'JPEG_20261118.jpg', { type: 'image/jpeg' });
+
 describe('MaintenanceAttachmentsDialog', () => {
+  // A desktop by default (`useCanCapture`); the camera tests switch to a touch device.
+  beforeEach(() => {
+    mockMediaQuery(false);
+  });
+
   // Sonner keeps toasts in a module-level store and replays the active ones to every new Toaster.
   afterEach(() => {
     toast.dismiss();
@@ -553,6 +563,77 @@ describe('MaintenanceAttachmentsDialog', () => {
       );
 
       expect(await screen.findByText('No se ha podido abrir el archivo')).toBeInTheDocument();
+    });
+  });
+
+  describe('camera', () => {
+    it('offers take photo next to upload invoices on a touch device', async () => {
+      mockMediaQuery(true);
+      setup({ [`GET ${BASE}`]: { body: [] } });
+
+      await screen.findByText(helpText);
+      expect(screen.getByRole('button', { name: 'Subir facturas' })).toBeEnabled();
+      expect(screen.getByRole('button', { name: 'Hacer foto' })).toBeEnabled();
+      const camera = cameraInput();
+      expect(camera).toHaveAttribute('type', 'file');
+      expect(camera).toHaveAttribute('capture', 'environment');
+      expect(camera).toHaveAttribute('accept', 'image/*');
+      expect(camera).not.toHaveAttribute('multiple');
+      // The file picker is still the one for PDFs and several files.
+      expect(fileInput()).toHaveAttribute('multiple');
+      expect(fileInput()).not.toHaveAttribute('capture');
+    });
+
+    it('uploads an invoice photo taken with the camera', async () => {
+      mockMediaQuery(true);
+      const { user, fetchMock } = setup({
+        [`GET ${BASE}`]: { body: [] },
+        [`POST ${BASE}`]: { status: 201, body: image },
+      });
+
+      await screen.findByText(helpText);
+      await user.upload(cameraInput(), cameraPhoto());
+
+      expect(await screen.findByText('1 factura subida')).toBeInTheDocument();
+      expect(uploadedNames(fetchMock)).toEqual(['JPEG_20261118.jpg']);
+    });
+
+    it('rejects a camera photo over the limit without uploading it', async () => {
+      mockMediaQuery(true);
+      const { user, fetchMock } = setup({
+        [`GET ${BASE}`]: { body: [] },
+        [`POST ${BASE}`]: { status: 201, body: image },
+      });
+
+      await screen.findByText(helpText);
+      await user.upload(cameraInput(), cameraPhoto(1024 * 1024 + 1));
+
+      expect(
+        await screen.findByText('«JPEG_20261118.jpg» supera el tamaño máximo de 1 MB.'),
+      ).toBeInTheDocument();
+      expect(uploadedNames(fetchMock)).toEqual([]);
+    });
+
+    it('shows the unsupported type error for a camera photo the API rejects with 415', async () => {
+      mockMediaQuery(true);
+      const { user } = setup({ [`GET ${BASE}`]: { body: [] }, [`POST ${BASE}`]: problem(415) });
+
+      await screen.findByText(helpText);
+      await user.upload(cameraInput(), cameraPhoto());
+
+      expect(
+        await screen.findByText('«JPEG_20261118.jpg» no es un tipo admitido: solo PDF, JPG, PNG o WebP.'),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/factura subida/)).not.toBeInTheDocument();
+    });
+
+    it('desktop: hides take photo', async () => {
+      setup({ [`GET ${BASE}`]: { body: [] } });
+
+      await screen.findByText(helpText);
+      expect(screen.getByRole('button', { name: 'Subir facturas' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Hacer foto' })).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Hacer una foto con la cámara')).not.toBeInTheDocument();
     });
   });
 });
