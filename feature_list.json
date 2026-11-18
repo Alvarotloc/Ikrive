@@ -1339,6 +1339,23 @@
       ],
       "sdd": false,
       "status": "pending"
+    },
+    {
+      "id": 80,
+      "name": "mobile-local-export-ranged-reads",
+      "phase": "8",
+      "title": "Modo local: leer los adjuntos del export por rangos",
+      "description": "Detectado en la prueba en dispositivo de #75 (mobile-local-export-streaming). Con 442 MB de adjuntos el export funciona, pero el renderer del WebView llega a ~1,07 GB en diente de sierra: native-storage.read lee cada adjunto entero como base64 (~5× su tamaño en transitorios: base64 nativo y JS, atob, Uint8Array, Blob y fileBytes), y la basura se acumula entre pasadas del GC. En un móvil con poca RAM podría quedarse sin memoria. Se leen los adjuntos y fotos del export en trozos (Filesystem.readFile con offset/length, alternativa 2 descartada en specs/mobile-local-export-streaming/design.md) y se pasan al zip según llegan, con la misma contrapresión que #75. Fuera de alcance: hacer el zip en código nativo (más rápido, pero más Java), que se valoraría solo si la lentitud (~5 min para ~500 MB) molesta.",
+      "acceptance": [
+        "En la app nativa en modo local, el export lee cada adjunto y foto por rangos y nunca tiene un fichero entero en memoria ni en base64",
+        "El pico retenido del export no depende del tamaño del mayor fichero: como mucho unos pocos trozos (test con almacén simulado que mide bytes retenidos)",
+        "El zip es idéntico en contenido al de #75 (mismas entradas, bytes y sha256) y lo acepta POST /api/me/import",
+        "En la web y con el almacén en memoria el export sigue funcionando como en #75",
+        "Prueba en el móvil con ~400 MB de adjuntos de 15–20 MB: el pico del renderer del WebView baja claramente frente a ~1,07 GB de #75, y se documenta",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
     }
   ]
 }
