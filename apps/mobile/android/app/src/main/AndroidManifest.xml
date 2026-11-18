@@ -42,6 +42,15 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Photos taken with <input capture>: Capacitor asks for it the first time the camera opens. -->
+    <uses-permission android:name="android.permission.CAMERA" />
     <!-- Declared by @capacitor/local-notifications: the app only shows immediate, inexact notifications. -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" tools:node="remove" />
+
+    <!-- Android 11+ package visibility: without it Capacitor finds no camera app and opens the file picker. -->
+    <queries>
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE" />
+        </intent>
+    </queries>
 </manifest>
