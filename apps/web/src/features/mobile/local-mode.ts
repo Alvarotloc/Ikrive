@@ -11,8 +11,8 @@ import { httpDataSource } from '@/lib/data-source/http';
 let local: Promise<DataSource> | null = null;
 
 /**
- * Opens the device database and builds its `DataSource` with the device file store and the canvas image
- * processing; these modules are only loaded in local mode.
+ * Opens the device database and builds its `DataSource` with the device file store, the canvas image
+ * processing and the export file of the device; these modules are only loaded in local mode.
  */
 async function openLocalDataSource(): Promise<DataSource> {
   const [
@@ -20,15 +20,18 @@ async function openLocalDataSource(): Promise<DataSource> {
     { createDeviceFileStore },
     { createCanvasImages },
     { createLocalDataSource, openLocalDatabase },
+    { openDeviceExportSink },
   ] = await Promise.all([
     import('@/lib/native-sqlite'),
     import('@/lib/native-storage'),
     import('@/lib/data-source/local/canvas-images'),
     import('@/lib/data-source/local'),
+    import('@/lib/native-export'),
   ]);
   return createLocalDataSource(await openLocalDatabase(await openDeviceDatabase()), {
     files: createDeviceFileStore(),
     images: createCanvasImages(),
+    exportSink: openDeviceExportSink,
   });
 }
 

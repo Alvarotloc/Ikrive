@@ -17,7 +17,7 @@ import {
 import { vehicleTitle } from '@/features/vehicles/display';
 import { ApiError } from '@/lib/api-client';
 import { isLocalMode } from '@/lib/app-mode';
-import { downloadBlob } from '@/lib/download';
+import { saveExportedFile } from '@/lib/download';
 import { useFormat } from '@/lib/format';
 import { isServerMode } from '@/lib/server';
 import { IMPORT_ACCEPT, importErrorKey } from './import';
@@ -78,8 +78,7 @@ export function DataPortabilitySection() {
 
   const startExport = async () => {
     try {
-      const { blob, fileName } = await exportData.mutateAsync();
-      await downloadBlob(fileName ?? EXPORT_FALLBACK_NAME, blob);
+      await saveExportedFile(await exportData.mutateAsync(), EXPORT_FALLBACK_NAME);
     } catch {
       toast.error(t(local ? 'dataPortability.errors.export' : 'common.fileError'));
     }

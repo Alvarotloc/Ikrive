@@ -13,12 +13,14 @@ import {
   type DataExportInputRows,
   photoExportPath,
   todayIn,
+  type UserSettings,
 } from '@ikrive/shared';
-import { createDataExportZip } from '@ikrive/shared/data-export-zip';
+import { streamDataExportZip } from '@ikrive/shared/data-export-zip';
 import { and, asc, eq, getTableColumns, inArray, type SQL, sql } from 'drizzle-orm';
 import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
-import type { DataSource, DownloadedFile } from '../types';
+import type { DataSource, ExportedFile } from '../types';
 import type { LocalDb } from './database';
+import { type LocalExportSink, openMemoryExportSink } from './export-sink';
 import { fileBytes, type LocalDeps, MissingFileError } from './files';
 import { problem } from './problems';
 import type { SerialQueue } from './serial';
@@ -110,13 +112,18 @@ export async function loadLocalExportRows(db: LocalDb): Promise<DataExportInputR
 
 /**
  * `dataPortability` of the local `DataSource`: the export zip of the API (`data.json` + attachments +
- * photos) built on the phone with the shared builder and zip writer. Only the reads of the database go
- * through `queue`; the files are read one at a time and added to the zip as they come, `data.json` last.
- * A file missing from the device is left out, as the API does; any other read failure aborts with a 500.
+ * photos) built on the phone with the shared builder and the streaming zip writer. Only the reads of the
+ * database go through `queue`; the files are read one at a time and added to the zip as they come,
+ * `data.json` last. A file missing from the device is left out, as the API does; any other read failure
+ * aborts with a 500.
+ *
+ * The zip goes to `exportSink` (a file of the device in the native app, a `Blob` by default) piece by
+ * piece: every piece of a file is written before the next file is read, so what is held at any time is
+ * one file and its zip headers, whatever the size of the whole zip. A failed export discards its target.
  */
 export function localDataPortability(
   db: LocalDb,
-  { files }: Pick<LocalDeps, 'files'>,
+  { files, exportSink = openMemoryExportSink }: Pick<LocalDeps, 'files' | 'exportSink'>,
   queue: SerialQueue,
 ): Pick<DataSource['dataPortability'], 'export'> {
   /** The bytes of `key`, or `null` when the file is not on the device. */
@@ -129,41 +136,66 @@ export function localDataPortability(
     }
   };
 
+  /** Builds the zip into `sink`; rejects on the first failure, leaving `sink` to the caller. */
+  const writeZip = async (sink: LocalExportSink, rows: DataExportInputRows, settings: UserSettings) => {
+    // fflate hands the pieces over synchronously and the sink writes them asynchronously: they wait
+    // here, and `flush` empties the queue before anything else is read.
+    const pending: Uint8Array[] = [];
+    const zip = streamDataExportZip((chunk) => pending.push(chunk));
+    const flush = async () => {
+      for (let chunk = pending.shift(); chunk; chunk = pending.shift()) {
+        try {
+          await sink.write(chunk);
+        } catch {
+          throw problem(500, 'Internal Server Error', 'Could not write the export');
+        }
+      }
+    };
+
+    const attachmentIds = new Set<string>();
+    for (const row of rows.attachments) {
+      const bytes = await read(row.storageKey, row.mimeType);
+      if (!bytes) continue;
+      zip.addFile(attachmentExportPath(row.id, row.mimeType), bytes);
+      attachmentIds.add(row.id);
+      await flush();
+    }
+    const photoVehicleIds = new Set<string>();
+    for (const row of rows.vehicles) {
+      if (row.photo === null) continue;
+      const bytes = await read(row.photo, 'image/webp');
+      if (!bytes) continue;
+      zip.addFile(photoExportPath(row.id), bytes);
+      photoVehicleIds.add(row.id);
+      await flush();
+    }
+
+    const { document } = buildDataExport({
+      rows,
+      settings,
+      appVersion: LOCAL_APP_VERSION,
+      exportedAt: new Date(),
+      present: { attachmentIds, photoVehicleIds },
+    });
+    zip.finish(document);
+    await flush();
+  };
+
   return {
-    async export(): Promise<DownloadedFile> {
+    async export(): Promise<ExportedFile> {
       const { rows, settings } = await queue.run(async () => ({
         rows: await loadLocalExportRows(db),
         settings: await localSettings(db).get(),
       }));
 
-      const zip = createDataExportZip();
-      const attachmentIds = new Set<string>();
-      for (const row of rows.attachments) {
-        const bytes = await read(row.storageKey, row.mimeType);
-        if (!bytes) continue;
-        zip.addFile(attachmentExportPath(row.id, row.mimeType), bytes);
-        attachmentIds.add(row.id);
+      const sink = await exportSink(`ikrive-export-${todayIn(settings.timezone)}.zip`);
+      try {
+        await writeZip(sink, rows, settings);
+        return await sink.close();
+      } catch (error) {
+        await sink.abort();
+        throw error;
       }
-      const photoVehicleIds = new Set<string>();
-      for (const row of rows.vehicles) {
-        if (row.photo === null) continue;
-        const bytes = await read(row.photo, 'image/webp');
-        if (!bytes) continue;
-        zip.addFile(photoExportPath(row.id), bytes);
-        photoVehicleIds.add(row.id);
-      }
-
-      const { document } = buildDataExport({
-        rows,
-        settings,
-        appVersion: LOCAL_APP_VERSION,
-        exportedAt: new Date(),
-        present: { attachmentIds, photoVehicleIds },
-      });
-      return {
-        blob: new Blob(zip.finish(document), { type: 'application/zip' }),
-        fileName: `ikrive-export-${todayIn(settings.timezone)}.zip`,
-      };
     },
   };
 }

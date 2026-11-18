@@ -1,5 +1,6 @@
 import { detectAttachmentType } from '@ikrive/shared';
 import type { AnnexImage } from '@ikrive/shared/sale-report-pdf';
+import type { OpenExportSink } from './export-sink';
 import { problem } from './problems';
 import type { LoadSaleReportPdf } from './sale-report';
 
@@ -45,6 +46,11 @@ export interface LocalDeps {
   images: LocalImages;
   /** Loads the sale report PDF chunk; `import('./sale-report-pdf')` by default, the Node kit in the tests. */
   saleReportPdf?: LoadSaleReportPdf;
+  /**
+   * Where the data export writes its zip: a file of the device in the native app
+   * (`openDeviceExportSink`), a `Blob` in memory by default (`openMemoryExportSink`).
+   */
+  exportSink?: OpenExportSink;
 }
 
 /** Upload limit of the local mode, the API's default (`maxUploadMb` of its client config). */

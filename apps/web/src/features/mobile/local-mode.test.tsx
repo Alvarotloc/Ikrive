@@ -7,6 +7,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { MODE_KEY, setLocalMode } from '@/lib/app-mode';
 import { dataSource, setDataSource } from '@/lib/data-source';
 import { httpDataSource } from '@/lib/data-source/http';
+import type { MeasuringExportSink } from '@/test/measuring-export-sink';
 import type { MemoryFileStore } from '@/test/memory-file-store';
 import { createMemorySqlite } from '@/test/memory-sqlite';
 import { mockApi, mockMediaQuery, mockObjectUrls } from '@/test/render';
@@ -119,6 +120,18 @@ vi.mock('@/lib/data-source/local/sale-report-pdf', async () => {
 const nativeFiles = vi.hoisted(() => ({ saveFile: vi.fn(), openFile: vi.fn() }));
 vi.mock('@/lib/native-files', () => nativeFiles);
 
+/** The export file of the device: a sink that keeps the zip «on disk», and its share sheet. */
+const nativeExport = vi.hoisted(() => ({
+  sink: null as MeasuringExportSink | null,
+  shareExportFile: vi.fn(),
+}));
+vi.mock('@/lib/native-export', async () => {
+  const { createMeasuringExportSink } = await import('@/test/measuring-export-sink');
+  const sink = createMeasuringExportSink();
+  nativeExport.sink = sink;
+  return { openDeviceExportSink: sink.open, shareExportFile: nativeExport.shareExportFile };
+});
+
 // The local mode loads its `DataSource` with `import()` (drizzle, the schema, the bundled migrations and the
 // domains). Transformed by Vite on first use, that can take more than the 1 s of a `findBy*` on a loaded
 // machine, so it is loaded here, before any test renders, as `renderApp` does with the route chunks.
@@ -128,6 +141,7 @@ beforeAll(async () => {
     import('@/lib/native-sqlite'),
     import('@/lib/native-storage'),
     import('@/lib/data-source/local/canvas-images'),
+    import('@/lib/native-export'),
   ]);
   // After the others, not alongside them: imported concurrently with the local `DataSource`, its mock
   // would not be the module that `localSaleReport` loads with `import()`.
@@ -187,6 +201,7 @@ describe('local mode', () => {
     vi.useRealTimers();
     vi.unstubAllEnvs();
     nativeFiles.saveFile.mockReset();
+    nativeExport.shareExportFile.mockReset();
     reportPdf.gate = null;
     reportPdf.fail = false;
     native.getNotificationPermission.mockReset();
@@ -364,19 +379,23 @@ describe('local mode', () => {
   });
 
   it('exports the local data through the share sheet', async () => {
-    nativeFiles.saveFile.mockResolvedValue(undefined);
+    nativeExport.shareExportFile.mockResolvedValue(undefined);
     const vehicle = await (await localData()).vehicles.create({ make: 'Seat', model: 'Ibiza' });
     const { user } = await renderApp('/settings');
 
     await user.click(await screen.findByRole('button', { name: 'Descargar mis datos' }));
 
-    await waitFor(() => expect(nativeFiles.saveFile).toHaveBeenCalledTimes(1));
-    const [name, blob] = nativeFiles.saveFile.mock.calls[0] ?? [];
-    expect(name).toBe(`ikrive-export-${todayIn(DEFAULT_USER_SETTINGS.timezone)}.zip`);
-    expect(blob.type).toBe('application/zip');
-    const entries = unzipSync(new Uint8Array(await blob.arrayBuffer()));
+    await waitFor(() => expect(nativeExport.shareExportFile).toHaveBeenCalledTimes(1));
+    const name = `ikrive-export-${todayIn(DEFAULT_USER_SETTINGS.timezone)}.zip`;
+    expect(nativeExport.shareExportFile).toHaveBeenCalledWith({
+      fileName: name,
+      uri: `file:///cache/exports/${name}`,
+      path: `exports/${name}`,
+    });
+    const entries = unzipSync(nativeExport.sink?.written() ?? new Uint8Array());
     const document = dataExportSchema.parse(JSON.parse(strFromU8(entries['data.json'] ?? new Uint8Array())));
     expect(document.vehicles.map((v) => v.id)).toEqual([vehicle.id]);
+    expect(nativeFiles.saveFile).not.toHaveBeenCalled();
     expect(screen.queryByText('No se ha podido generar el export')).not.toBeInTheDocument();
     expect(await screen.findByRole('button', { name: 'Descargar mis datos' })).toBeEnabled();
   });
@@ -400,7 +419,21 @@ describe('local mode', () => {
     await user.click(await screen.findByRole('button', { name: 'Descargar mis datos' }));
 
     expect(await screen.findByText('No se ha podido generar el export')).toBeInTheDocument();
+    expect(nativeExport.sink?.aborted).toBe(true);
+    expect(nativeExport.shareExportFile).not.toHaveBeenCalled();
     expect(nativeFiles.saveFile).not.toHaveBeenCalled();
+  });
+
+  it('shows a toast when sharing the export fails', async () => {
+    nativeExport.shareExportFile.mockRejectedValue(new Error('No Activity found'));
+    await (await localData()).vehicles.create({ make: 'Seat', model: 'Ibiza' });
+    const { user } = await renderApp('/settings');
+
+    await user.click(await screen.findByRole('button', { name: 'Descargar mis datos' }));
+
+    expect(await screen.findByText('No se ha podido generar el export')).toBeInTheDocument();
+    expect(nativeExport.shareExportFile).toHaveBeenCalledTimes(1);
+    expect(nativeExport.sink?.aborted).toBe(false);
   });
 
   it('settings show reminder preferences and save them', async () => {

@@ -1,3 +1,4 @@
+import type { ExportedFile } from './data-source/types';
 import { isNativeApp } from './platform';
 
 /**
@@ -42,4 +43,17 @@ export async function openBlob(blob: Blob, fileName: string): Promise<void> {
   link.remove();
   // The new tab loads the URL after the click: keep it alive for a while.
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+/**
+ * Saves the data export. A file of the device (local mode of the native app) is shared from that file
+ * (`native-export.ts`, loaded only then); a `Blob` goes to `downloadBlob` as `fileName`, or `fallbackName`
+ * when it has none.
+ */
+export async function saveExportedFile(file: ExportedFile, fallbackName: string): Promise<void> {
+  if ('uri' in file) {
+    const { shareExportFile } = await import('./native-export');
+    return shareExportFile(file);
+  }
+  return downloadBlob(file.fileName ?? fallbackName, file.blob);
 }

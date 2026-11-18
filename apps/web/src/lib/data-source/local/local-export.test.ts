@@ -3,17 +3,19 @@ import { strFromU8, unzipSync } from 'fflate';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/lib/api-client';
 import { fakeImages } from '@/test/fake-images';
+import { createMeasuringExportSink, type MeasuringExportSink } from '@/test/measuring-export-sink';
 import { createMemoryFileStore, type MemoryFileStore } from '@/test/memory-file-store';
 import { createMemorySqlite } from '@/test/memory-sqlite';
-import type { DataSource } from '../types';
+import type { DataSource, DownloadedFile } from '../types';
 import { LOCAL_APP_VERSION } from './data-export';
-import { createLocalDataSource, openLocalDatabase } from './index';
+import { createLocalDataSource, type LocalDb, openLocalDatabase } from './index';
 
+let db: LocalDb;
 let local: DataSource;
 let store: MemoryFileStore;
 
 beforeEach(async () => {
-  const db = await openLocalDatabase(createMemorySqlite());
+  db = await openLocalDatabase(createMemorySqlite());
   store = createMemoryFileStore();
   local = createLocalDataSource(db, { files: store, images: fakeImages() });
 });
@@ -29,9 +31,17 @@ const JPEG = Uint8Array.from([0xff, 0xd8, 0xff, 0xe0, ...encode('jpeg')]);
 
 const file = (data: Uint8Array, name: string) => new File([data.slice()], name);
 
+/** The export of `local`, which must be a `Blob` (no device target): what #66 returned. */
+async function exportBlob(): Promise<DownloadedFile> {
+  const exported = await local.dataPortability.export();
+  if (!('blob' in exported)) throw new Error(`Expected a Blob, got the device file ${exported.uri}`);
+  return exported;
+}
+
 /** Entries of the exported zip and its parsed `data.json`. */
-async function unzip(blob: Blob) {
-  const entries = unzipSync(new Uint8Array(await blob.arrayBuffer()));
+async function unzip(zip: Blob | Uint8Array) {
+  const bytes = zip instanceof Blob ? new Uint8Array(await zip.arrayBuffer()) : zip;
+  const entries = unzipSync(bytes);
   const document = JSON.parse(strFromU8(entries['data.json'] ?? new Uint8Array())) as DataExport;
   return { entries, document };
 }
@@ -84,7 +94,7 @@ describe('local data export', () => {
     await local.settings.update({ currency: 'USD', distanceUnit: 'mi' });
     const { vehicle, empty, schedule, record, pdf, jpeg } = await seed();
 
-    const { blob } = await local.dataPortability.export();
+    const { blob } = await exportBlob();
 
     expect(blob.type).toBe('application/zip');
     const { document } = await unzip(blob);
@@ -155,7 +165,7 @@ describe('local data export', () => {
     vi.setSystemTime(new Date('2026-03-01T23:30:00Z'));
     await local.settings.update({ timezone: 'Pacific/Kiritimati' });
 
-    const { fileName } = await local.dataPortability.export();
+    const { fileName } = await exportBlob();
 
     expect(todayIn('Pacific/Kiritimati')).toBe('2026-03-02');
     expect(fileName).toBe('ikrive-export-2026-03-02.zip');
@@ -168,7 +178,7 @@ describe('local data export', () => {
       (ext) => store.keys().find((key) => key.endsWith(ext)) ?? '',
     );
 
-    const { entries } = await unzip((await local.dataPortability.export()).blob);
+    const { entries } = await unzip((await exportBlob()).blob);
 
     expect(Object.keys(entries).sort()).toEqual(
       [
@@ -191,7 +201,7 @@ describe('local data export', () => {
     await store.remove(photoKey);
     await store.remove(pdfKey);
 
-    const { entries, document } = await unzip((await local.dataPortability.export()).blob);
+    const { entries, document } = await unzip((await exportBlob()).blob);
 
     expect(dataExportSchema.safeParse(document).error).toBeUndefined();
     expect(Object.keys(entries).sort()).toEqual([`attachments/${jpeg.id}.jpg`, 'data.json']);
@@ -211,5 +221,118 @@ describe('local data export', () => {
       status: 500,
       detail: 'Could not read a file of the export',
     });
+  });
+});
+
+const MIB = 1024 * 1024;
+
+/** A PDF of `size` bytes whose content tells it apart from the others. */
+const bigPdf = (size: number, fill: number) => {
+  const data = new Uint8Array(size).fill(fill);
+  data.set(encode('%PDF-1.7\n'));
+  return data;
+};
+
+describe('local data export to a device target', () => {
+  let sink: MeasuringExportSink;
+  let device: DataSource;
+
+  beforeEach(() => {
+    sink = createMeasuringExportSink();
+    device = createLocalDataSource(db, { files: store, images: fakeImages(), exportSink: sink.open });
+  });
+
+  /** A vehicle with one maintenance record carrying `count` PDFs of 1 MiB. */
+  async function seedBigFiles(count: number) {
+    const vehicle = await local.vehicles.create({ make: 'Seat', model: 'Ibiza' });
+    const record = await local.maintenance.create(vehicle.id, {
+      date: '2024-03-01',
+      category: 'oil_change',
+      title: 'Cambio de aceite',
+    });
+    for (let i = 0; i < count; i++) {
+      await local.attachments.upload(vehicle.id, record.id, file(bigPdf(MIB, i + 1), `f${i}.pdf`));
+    }
+  }
+
+  it('writes each file to the sink before reading the next one', async () => {
+    await seedBigFiles(8);
+    const reads: { size: number; received: number }[] = [];
+    store.onRead = (key) => {
+      reads.push({ size: store.bytes(key)?.length ?? 0, received: sink.received });
+    };
+
+    await device.dataPortability.export();
+
+    expect(reads).toHaveLength(8);
+    let before = 0;
+    for (const read of reads) {
+      expect(read.received).toBeGreaterThanOrEqual(before);
+      before += read.size;
+    }
+    expect(sink.received).toBeGreaterThan(8 * MIB);
+  });
+
+  it('keeps at most one file read and not yet written', async () => {
+    await seedBigFiles(8);
+    let held = 0;
+    const measure = () => {
+      held = Math.max(held, store.bytesRead - sink.received);
+    };
+    store.onRead = measure;
+    sink.onWrite = measure;
+
+    await device.dataPortability.export();
+
+    expect(store.bytesRead).toBe(8 * MIB);
+    expect(sink.received).toBeGreaterThan(8 * MIB);
+    expect(held).toBeGreaterThan(0);
+    expect(held).toBeLessThanOrEqual(MIB);
+  });
+
+  it('writes the same zip as the in-memory export', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-03-01T10:00:00Z'));
+    await seed();
+
+    const { blob, fileName } = await exportBlob();
+    const exported = await device.dataPortability.export();
+
+    expect(exported).toEqual({
+      fileName,
+      uri: `file:///cache/exports/${fileName}`,
+      path: `exports/${fileName}`,
+    });
+    expect(sink.written()).toEqual(new Uint8Array(await blob.arrayBuffer()));
+    const { document } = await unzip(sink.written());
+    expect(dataExportSchema.safeParse(document).error).toBeUndefined();
+    expect(sink.events.at(-1)).toBe('close');
+    expect(sink.aborted).toBe(false);
+  });
+
+  it('aborts the sink when a file cannot be read', async () => {
+    await seed();
+    store.failOn.add('read');
+
+    expect(await problemOf(device.dataPortability.export())).toMatchObject({
+      status: 500,
+      detail: 'Could not read a file of the export',
+    });
+    expect(sink.aborted).toBe(true);
+    expect(sink.events).not.toContain('close');
+  });
+
+  it('rejects with a 500 and aborts the sink when writing fails', async () => {
+    await seed();
+    sink.failWrites = true;
+
+    expect(await problemOf(device.dataPortability.export())).toEqual({
+      type: 'about:blank',
+      title: 'Internal Server Error',
+      status: 500,
+      detail: 'Could not write the export',
+    });
+    expect(sink.aborted).toBe(true);
+    expect(sink.written()).toHaveLength(0);
   });
 });
