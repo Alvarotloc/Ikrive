@@ -11,7 +11,7 @@ import {
   dataImportSummarySchema,
   photoExportPath,
 } from '@ikrive/shared';
-import { createDataExportZip } from '@ikrive/shared/data-export-zip';
+import { streamDataExportZip } from '@ikrive/shared/data-export-zip';
 import { and, count, eq, inArray, sql } from 'drizzle-orm';
 import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
 import sharp from 'sharp';
@@ -382,13 +382,14 @@ const referencedPaths = (document: DataExport) =>
   ]);
 
 /**
- * A user's export zip built like the phone does in local mode: the shared builder and zip writer,
- * the files read one by one from `uploads/` and `data.json` last.
+ * A user's export zip built like the phone does in local mode: the shared builder and the streaming zip
+ * writer, the files read one by one from `uploads/` and `data.json` last.
  */
 function clientBuiltZip(db: Db, dataDir: string, userId: string) {
   const rows = createDataExportRepository(db).load(userId);
   const settings = createSettingsService(createSettingsRepository(db)).get(userId);
-  const zip = createDataExportZip();
+  const chunks: Uint8Array[] = [];
+  const zip = streamDataExportZip((chunk) => chunks.push(chunk));
   const read = (key: string) => readFileSync(join(dataDir, 'uploads', key));
   const attachmentIds = new Set<string>();
   for (const row of rows.attachments) {
@@ -408,7 +409,8 @@ function clientBuiltZip(db: Db, dataDir: string, userId: string) {
     exportedAt: new Date(),
     present: { attachmentIds, photoVehicleIds },
   });
-  return { document, zip: Buffer.concat(zip.finish(document)) };
+  zip.finish(document);
+  return { document, zip: Buffer.concat(chunks) };
 }
 
 const DEFAULT_LIMITS: ImportLimits = {

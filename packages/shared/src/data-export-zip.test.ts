@@ -1,6 +1,6 @@
 import { strFromU8, Unzip, UnzipInflate } from 'fflate';
 import { describe, expect, it } from 'vitest';
-import { createDataExportZip } from './data-export-zip';
+import { createDataExportZip, streamDataExportZip } from './data-export-zip';
 import { DATA_EXPORT_FORMAT_VERSION, type DataExport } from './schemas/data-export';
 import { DEFAULT_USER_SETTINGS } from './schemas/settings';
 
@@ -66,5 +66,42 @@ describe('createDataExportZip', () => {
 
     expect(json?.compression).toBe(8);
     expect(strFromU8(json?.data ?? new Uint8Array())).toBe(JSON.stringify(document, null, 2));
+  });
+});
+
+describe('streamDataExportZip', () => {
+  it('streams the chunks of a file before addFile returns', () => {
+    const received: Uint8Array[] = [];
+    const zip = streamDataExportZip((chunk) => received.push(chunk));
+    const path = 'attachments/a1.pdf';
+    const data = new Uint8Array(4096).fill(3);
+    zip.addFile(path, data);
+    const afterAdd = concat(received);
+
+    expect(afterAdd.length).toBeGreaterThanOrEqual(data.length);
+    // Local header (30 bytes + the name), then the bytes of the file: none of them waits for `finish`.
+    const start = 30 + path.length;
+    expect(afterAdd.subarray(start, start + data.length)).toEqual(data);
+
+    const beforeFinish = received.length;
+    zip.finish(document);
+    const entries = readEntries(received);
+    expect(received.length).toBeGreaterThan(beforeFinish);
+    expect(entries.get(path)).toEqual({ compression: 0, data });
+  });
+
+  it('streams the same bytes as createDataExportZip', () => {
+    const pdf = new Uint8Array([0x25, 0x50, 0x44, 0x46, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    const webp = new Uint8Array(1024).fill(9);
+    const received: Uint8Array[] = [];
+    const stream = streamDataExportZip((chunk) => received.push(chunk));
+    const collected = createDataExportZip();
+    for (const zip of [stream, collected]) {
+      zip.addFile('attachments/a1.pdf', pdf);
+      zip.addFile('photos/v1.webp', webp);
+    }
+    stream.finish(document);
+
+    expect(concat(received)).toEqual(concat(collected.finish(document)));
   });
 });
