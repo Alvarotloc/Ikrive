@@ -720,3 +720,12 @@
 - **Revisión:** CHANGES_REQUESTED en la ronda 1 solo por T15 sin marcar; APPROVED en la ronda 2 (`progress/review_camera-capture.md`).
 - **Prueba en dispositivo:** APK debug (JDK 21) instalada con `adb`; checklist completa OK (concedido en servidor y local, cancelar, denegar, «no volver a preguntar», activar en Ajustes; permiso revocado con `pm revoke` + `clear-permission-flags` para repetir).
 - **Gate 2:** «merge» del humano → PR.
+
+## 2026-11-18 — #75 mobile-local-export-streaming
+
+- **Rama:** `feat/mobile-local-export-streaming`. Fase 8. Dos `Explore` (`progress/explore_mobile-local-export-streaming_{pipeline,native-fs}.md`). Gate 1 aprobada con un cambio propuesto por el leader: R15, cerrar la hoja de compartir no borra el fichero (Android da «Share canceled» con destinos translúcidos como Quick Share que siguen leyéndolo; `SharePlugin.java`, flag `stopped`).
+- **Cambios:** `streamDataExportZip(onChunk)` en `@ikrive/shared/data-export-zip` (`createDataExportZip` pasa a ser su envoltorio, sin cambios para la API). En local, `export()` usa un `LocalExportSink` inyectado por `LocalDeps` con cola `pending` y contrapresión (no se lee el siguiente fichero hasta escribir los trozos pendientes); `openMemoryExportSink` en la web/tests. En el dispositivo, `lib/native-export.ts` (native-only): `rmdir` de `Cache/exports/`, `appendFile` en porciones de 512 KiB, `DeviceFile` compartido desde su `file://`; se borra si falla el export o `Share` (no al cancelar). `saveExportedFile` en `download.ts`; `bytesToBase64` extraído de `native-files.ts`. Sin textos nuevos.
+- **Tests:** `measuring-export-sink.ts` (bytes leídos − escritos ≤ un fichero), `native-export.test.ts` (disco simulado), `local-export`, `download`, `local-mode`, `data-export-zip`, `data-import` (API). Web 661, API 371, shared 185. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED a la primera (`progress/review_mobile-local-export-streaming.md`); avisos: detección de writes sin `await` depende del orden de microtareas, error de preparación de `exports/` no es Problem.
+- **Prueba en dispositivo:** APK debug con `adb` (HONOR, modo local), copia de seguridad previa en `~/ikrive-backups/2026-11-18-pre-75/`, 28 PDF sembrados (442 MB). Dos exports OK (~5 min cada uno), zip de 496 MB con 38/38 sha256 correctos, importado con 201 en una API local. Memoria: app ≤ 405 MB; renderer del WebView en diente de sierra hasta ~1,07 GB sin crecer entre exports. Datos restaurados (sha256 idéntico).
+- **Gate 2:** «merge» del humano → PR.
