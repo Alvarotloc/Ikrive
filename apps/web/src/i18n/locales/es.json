@@ -124,6 +124,11 @@
   "files": {
     "shareTitle": "Guardar o compartir"
   },
+  "camera": {
+    "take": "Hacer foto",
+    "input": "Hacer una foto con la cámara",
+    "denied": "Ikrive no tiene permiso para usar la cámara. Actívalo en Ajustes › Aplicaciones › Ikrive › Permisos, o elige una imagen o un archivo ya guardado."
+  },
   "validation": {
     "required": "Este campo es obligatorio.",
     "minLength_one": "Debe tener al menos {{count}} carácter.",
@@ -246,7 +251,9 @@
       "change": "Cambiar foto",
       "remove": "Quitar foto",
       "saved": "Foto actualizada",
-      "invalid": "No se pudo usar esa imagen. Prueba con un JPG, PNG o WebP más pequeño."
+      "invalid": "No se pudo usar esa imagen. Prueba con un JPG, PNG o WebP más pequeño.",
+      "gallery": "Elegir de la galería",
+      "fileInput": "Elegir foto del vehículo"
     }
   },
   "odometer": {

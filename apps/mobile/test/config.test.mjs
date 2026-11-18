@@ -68,3 +68,31 @@ test('removes the exact alarm permission and declares no calendar permissions', 
   // The phone calendar opens the system new-event screen: no calendar permissions.
   assert.doesNotMatch(manifest, /READ_CALENDAR|WRITE_CALENDAR/);
 });
+
+test('declares the CAMERA permission and the image capture query', () => {
+  const manifest = read('android/app/src/main/AndroidManifest.xml');
+  // Capacitor's file chooser asks for it the first time an <input capture> opens the camera.
+  assert.match(manifest, /<uses-permission\s+android:name="android\.permission\.CAMERA"\s*\/>/);
+  // Android 11+ package visibility: without it resolveActivity() finds no camera app.
+  assert.match(
+    manifest,
+    /<queries>\s*<intent>\s*<action\s+android:name="android\.media\.action\.IMAGE_CAPTURE"\s*\/>\s*<\/intent>\s*<\/queries>/,
+  );
+});
+
+test('registers the camera permission plugin', () => {
+  const javaDir = 'android/app/src/main/java/com/ikrive/app';
+  const activity = read(`${javaDir}/MainActivity.java`);
+  const register = activity.indexOf('registerPlugin(CameraPermissionPlugin.class);');
+  const superOnCreate = activity.indexOf('super.onCreate(');
+  assert.ok(register >= 0, 'registerPlugin(CameraPermissionPlugin.class) missing');
+  assert.ok(superOnCreate > register, 'the plugin must be registered before super.onCreate');
+
+  const plugin = read(`${javaDir}/CameraPermissionPlugin.java`);
+  assert.match(plugin, /@CapacitorPlugin\(\s*name = "CameraPermission"/);
+  assert.match(
+    plugin,
+    /@Permission\(\s*alias = "camera",\s*strings = \{\s*Manifest\.permission\.CAMERA\s*\}\s*\)/,
+  );
+  assert.match(plugin, /class CameraPermissionPlugin extends Plugin\b/);
+});

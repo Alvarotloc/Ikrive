@@ -57,3 +57,15 @@ test('documents the phone calendar and local notifications', () => {
   assert.match(doc, /canales/);
   for (const channel of ['ntfy', 'Gotify', 'Apprise', 'webhook']) assert.ok(doc.includes(channel), channel);
 });
+
+test('documents the camera permission', () => {
+  const doc = read('docs/mobile.md');
+  assert.match(doc, /\*\*Cámara\.\*\*/);
+  assert.match(doc, /Hacer foto/);
+  // Asked the first time; if denied, a warning and where to turn it on.
+  assert.match(doc, /La primera vez, Android pide permiso para usar la cámara/);
+  assert.match(doc, /Ajustes › Aplicaciones › Ikrive › Permisos/);
+  // The gallery and the files keep working.
+  assert.match(doc, /Elegir de la galería/);
+  assert.match(doc, /siguen funcionando/);
+});

@@ -118,6 +118,15 @@ describe('native-only modules', () => {
     expect(nativeChunkFileNames({ moduleIds: [lib] })).toBe(NATIVE_CHUNK);
   });
 
+  it('sends the camera module to assets/native/', () => {
+    const lib = join(LIB, 'native-camera.ts');
+    expect(nativeLibs).toContain(lib);
+    expect(nativeChunkFileNames({ moduleIds: [lib] })).toBe(NATIVE_CHUNK);
+    // Its chunk also holds @capacitor/core's registerPlugin: still native-only.
+    const core = packageModuleId('@capacitor/core', '8.6.0', 'dist/index.js');
+    expect(nativeChunkFileNames({ moduleIds: [lib, core] })).toBe(NATIVE_CHUNK);
+  });
+
   it('detects static imports of native-only code and ignores type-only and dynamic ones', () => {
     const file = join(SRC, 'features/calendar/actions.ts');
     const source = [

@@ -2,8 +2,8 @@ import { DEFAULT_USER_SETTINGS, type MaintenanceRecord, type VehicleStatus } fro
 import { screen, within } from '@testing-library/react';
 import { Suspense } from 'react';
 import { Toaster, toast } from 'sonner';
-import { afterEach, describe, expect, it, type Mock } from 'vitest';
-import { type MockRoutes, mockApi, renderWithProviders } from '@/test/render';
+import { afterEach, beforeEach, describe, expect, it, type Mock } from 'vitest';
+import { type MockRoutes, mockApi, mockMediaQuery, renderWithProviders } from '@/test/render';
 import { MaintenanceSection } from './maintenance-timeline';
 
 const record = (overrides: Partial<MaintenanceRecord>): MaintenanceRecord => ({
@@ -84,6 +84,11 @@ const chip = (name: string) =>
   within(screen.getByRole('navigation', { name: 'Filtrar por categoría' })).getByRole('button', { name });
 
 describe('MaintenanceSection', () => {
+  // A desktop (`useCanCapture` in the invoice pickers reads `matchMedia`, which jsdom lacks).
+  beforeEach(() => {
+    mockMediaQuery(false);
+  });
+
   // Sonner keeps toasts in a module-level store and replays the active ones to every new Toaster.
   afterEach(() => {
     toast.dismiss();

@@ -2,11 +2,17 @@ import { DEFAULT_USER_SETTINGS, type MaintenanceRecord, type MaintenanceSchedule
 import { screen, waitFor } from '@testing-library/react';
 import { Suspense, useState } from 'react';
 import { Toaster, toast } from 'sonner';
-import { afterEach, describe, expect, it, type Mock } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, type Mock } from 'vitest';
 import { SchedulesSection } from '@/features/schedules/schedules-section';
 import i18n from '@/i18n';
 import { queryKeys } from '@/lib/query-keys';
-import { type MockResponse, type MockRoutes, mockApi, renderWithProviders } from '@/test/render';
+import {
+  type MockResponse,
+  type MockRoutes,
+  mockApi,
+  mockMediaQuery,
+  renderWithProviders,
+} from '@/test/render';
 import { MaintenanceFormDialog } from './maintenance-form';
 
 // Same formatter as `useFormat` in Spanish.
@@ -105,6 +111,11 @@ const label = {
 };
 
 describe('MaintenanceFormDialog', () => {
+  // A desktop by default (`useCanCapture`): no camera button next to the invoices.
+  beforeEach(() => {
+    mockMediaQuery(false);
+  });
+
   // Sonner keeps toasts in a module-level store and replays the active ones to every new Toaster.
   afterEach(() => {
     toast.dismiss();
@@ -314,6 +325,28 @@ describe('MaintenanceFormDialog', () => {
       expect(requests(fetchMock, 'POST', '/vehicles/v1/maintenance')).toHaveLength(1);
       expect(uploadedNames(fetchMock, ATTACHMENTS)).toEqual(['a.pdf', 'b.pdf']);
       // The record is created before any invoice is sent.
+      const order = fetchMock.mock.calls.map(([url, init]) => `${init?.method} ${String(url)}`);
+      expect(order.indexOf('POST /api/vehicles/v1/maintenance')).toBeLessThan(
+        order.indexOf(`POST /api${ATTACHMENTS}`),
+      );
+    });
+
+    it('uploads an invoice photo taken with the camera after creating the record', async () => {
+      mockMediaQuery(true);
+      const { user, fetchMock } = setup({
+        'POST /vehicles/v1/maintenance': { status: 201, body: created },
+        [`POST ${ATTACHMENTS}`]: { status: 201, body: attachmentBody('JPEG_20261118.jpg') },
+      });
+
+      await user.type(screen.getByLabelText(label.title), 'ITV');
+      const photo = new File([new Uint8Array(10)], 'JPEG_20261118.jpg', { type: 'image/jpeg' });
+      await user.upload(screen.getByLabelText('Hacer una foto con la cámara'), photo);
+      expect(screen.getByText('JPEG_20261118.jpg')).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+      expect(await screen.findByText('Mantenimiento añadido')).toBeInTheDocument();
+      expect(await screen.findByText('1 factura subida')).toBeInTheDocument();
+      expect(uploadedNames(fetchMock, ATTACHMENTS)).toEqual(['JPEG_20261118.jpg']);
       const order = fetchMock.mock.calls.map(([url, init]) => `${init?.method} ${String(url)}`);
       expect(order.indexOf('POST /api/vehicles/v1/maintenance')).toBeLessThan(
         order.indexOf(`POST /api${ATTACHMENTS}`),
