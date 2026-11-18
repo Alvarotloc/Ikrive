@@ -710,3 +710,13 @@
 - **Revisión:** APPROVED en la tercera ronda (`progress/review_release-v0-2-0.md`). Ronda 1: guía y README presentaban como futuro el export y el PDF locales. Ronda 2: error del leader al trasladar un aviso del reviewer sin comprobarlo («Añadir al calendario» sí existe en local; solo falta el enlace, #77).
 - **Secretos:** el repo no tenía ninguno; el humano configuró los cuatro `ANDROID_*` (PKCS12, misma contraseña para almacén y clave). Se decide mantener `allowBackup="true"`.
 - **Gate 2:** «merge» del humano → PR. El tag `v0.2.0` se sube después, con confirmación explícita.
+
+## 2026-11-18 — #73 camera-capture
+
+- **Rama:** `feat/camera-capture`. Fase 8. Sin `Explore`; el `spec-author` verificó el comportamiento de `BridgeWebChromeClient` en `@capacitor/android` 8.6.0 (cámara solo con `capture` y `accept` que contiene `image/*`; pide `CAMERA` él solo; `<queries>` de `IMAGE_CAPTURE` necesario con targetSdk 36). Gate 1 aprobada sin cambios; las fotos que Capacitor deja en `Pictures` → #79 `camera-photo-cleanup`.
+- **Cambios:** manifest con `CAMERA` y `<queries>`; plugin propio `CameraPermission` (solo `checkPermissions`) registrado en `MainActivity`. Web: `useCanCapture` (`isNativeApp() || (pointer: coarse)`), `CameraCaptureButton` (input `capture="environment"`, aviso de permiso en `cancel` si no está concedido, `lib/native-camera.ts` en `assets/native/`), «Hacer foto» / «Elegir de la galería» en `PhotoPicker` y «Hacer foto» en `AttachmentPicker` por el mismo `onFiles`. Textos en es/en y viñeta «Cámara» en `docs/mobile.md`.
+- **Tests:** `photo-picker.test.tsx` (nuevo), `native-camera.test.ts`, `use-can-capture.test.tsx`, `maintenance-attachments`, `maintenance-form`, `local-mode`, `native-only`, config/docs de mobile. Web 643, API 371. `pnpm harness --full` en verde.
+- **Implementación:** la primera ejecución del implementer la cortó el sistema (auto mode sin veredicto) a mitad de T7; se reanudó sin problemas.
+- **Revisión:** CHANGES_REQUESTED en la ronda 1 solo por T15 sin marcar; APPROVED en la ronda 2 (`progress/review_camera-capture.md`).
+- **Prueba en dispositivo:** APK debug (JDK 21) instalada con `adb`; checklist completa OK (concedido en servidor y local, cancelar, denegar, «no volver a preguntar», activar en Ajustes; permiso revocado con `pm revoke` + `clear-permission-flags` para repetir).
+- **Gate 2:** «merge» del humano → PR.
