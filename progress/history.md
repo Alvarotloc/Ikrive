@@ -729,3 +729,12 @@
 - **Revisión:** APPROVED a la primera (`progress/review_mobile-local-export-streaming.md`); avisos: detección de writes sin `await` depende del orden de microtareas, error de preparación de `exports/` no es Problem.
 - **Prueba en dispositivo:** APK debug con `adb` (HONOR, modo local), copia de seguridad previa en `~/ikrive-backups/2026-11-18-pre-75/`, 28 PDF sembrados (442 MB). Dos exports OK (~5 min cada uno), zip de 496 MB con 38/38 sha256 correctos, importado con 201 en una API local. Memoria: app ≤ 405 MB; renderer del WebView en diente de sierra hasta ~1,07 GB sin crecer entre exports. Datos restaurados (sha256 idéntico).
 - **Gate 2:** «merge» del humano → PR.
+
+## 2026-11-19 — #71 api-photo-avif
+
+- **Rama:** `feat/api-photo-avif` (`sdd: false`). Detectado al redactar #65: la API anunciaba AVIF pero lo rechazaba (`sharp` lo informa como `heif`).
+- **Cambios:** el `sharp` empaquetado (0.35.5, libheif + aom, sin HEVC) decodifica AVIF, así que se acepta. `isSupportedPhoto` en `apps/api/src/lib/images.ts` admite `heif` solo con compresión `av1` (HEIC sigue en 400). Texto del 400 compartido en `UNSUPPORTED_PHOTO_MESSAGE` (`packages/shared/src/domain/files.ts`), usado por la API y el modo local; `detectPhotoFormat` detecta AVIF por las marcas de `ftyp`, así que el modo local también lo acepta.
+- **Tests:** API con un AVIF generado con `sharp` (→ WebP) y HEIC sintético (AVIF reetiquetado) → 400; unit test de `isSupportedPhoto` con `hevc`; shared y web local. API 373, web 662. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED a la primera (`progress/review_api-photo-avif.md`); avisos: HEIC end-to-end sintético (no hay codificador HEVC), `isAvif` no trata cajas `ftyp` con tamaño 0/1.
+- **Spec de #65:** a petición del humano, notas en `specs/mobile-local-files/` (requirements R11, design decisión 1 y fuera de alcance, tasks T2) que remiten a #71.
+- **Gate 2:** «merge» del humano → PR.
