@@ -72,7 +72,7 @@ Textos nuevos (es):
 2. **Primera ejecución silenciosa**, igual que en modo servidor: lo que ya está pendiente al instalar esta versión (o al entrar en local por primera vez) aparece en la campana pero no como notificación de Android. A partir de ahí, cada aviso nuevo sí.
 3. **Ajustes en local**: vuelven el día del aviso de km y la hora (sustituye a R34 de `mobile-local-core`; su test `settings hide reminder preferences` se reemplaza). Canales y feed iCal siguen ocultos.
 4. **El listener de `resume` solo se monta en modo local**: en modo servidor el comportamiento no cambia.
-5. **«Añadir al calendario» en local queda fuera de alcance.** El enlace `https://localhost/vehicles/<id>` de la descripción del evento (`add-to-calendar.tsx`, `getServerUrl() ?? origin`) no tiene que ver con los recordatorios ni con el `acceptance` de #67. Propuesta: una feature `sdd: false` aparte (p. ej. omitir la línea «Ficha del vehículo» y la `URL` cuando `config.localBaseUrl`).
+5. **«Añadir al calendario» en local queda fuera de alcance.** El enlace `https://localhost/vehicles/<id>` de la descripción del evento (`add-to-calendar.tsx`, `getServerUrl() ?? origin`) no tiene que ver con los recordatorios ni con el `acceptance` de #67. Propuesta: una feature `sdd: false` aparte (p. ej. omitir la línea «Ficha del vehículo» y la `URL` cuando `config.localBaseUrl`). _(Hecho en #77 `local-calendar-link`.)_
 
 ## Tamaño
 

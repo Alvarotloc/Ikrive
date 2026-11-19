@@ -122,7 +122,7 @@ Sin cambios de contrato HTTP ni de BD (las migraciones solo se mueven).
 - **`RETURNING` y transacciones del plugin**: `run` abre una transacción propia salvo `transaction=false`; dentro de `BEGIN` fallaría. Lo cubren el test de `native-sqlite.ts` con el plugin simulado (R14) y los de la base en memoria (R19); el comportamiento real del plugin solo se comprueba con la checklist manual que el humano ejecuta en el dispositivo antes de Gate 2. Si falla, vuelve a `in_progress`.
 - **Dos copias de `drizzle-orm`** (api, db, web): mismos rangos para que pnpm resuelva una sola versión.
 - **Ruta de `import.meta.glob`** fuera de `apps/web`: Vite la admite (el workspace está en `server.fs.allow`); si no, alias en `vite.config.ts`.
-- **Enlace de «Añadir al calendario»** en local apunta a `https://localhost/…` (`getServerUrl() ?? origin`): inofensivo, se revisa con #67/#68.
+- **Enlace de «Añadir al calendario»** en local apunta a `https://localhost/…` (`getServerUrl() ?? origin`): inofensivo, se revisa con #67/#68. _(Resuelto en #77 `local-calendar-link`: en modo local el evento sale sin la línea «Ficha del vehículo» ni la URL.)_
 
 ## Fuera de alcance
 
