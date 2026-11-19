@@ -14,7 +14,11 @@ const GIF87 = bytes('GIF87a', [0x08, 0x00]);
 const GIF89 = bytes('GIF89a', [0x08, 0x00]);
 const TIFF_LE = bytes([0x49, 0x49, 0x2a, 0x00, 0x08, 0x00]);
 const TIFF_BE = bytes([0x4d, 0x4d, 0x00, 0x2a, 0x00, 0x08]);
-const AVIF = bytes([0x00, 0x00, 0x00, 0x1c], 'ftypavif');
+const AVIF = bytes([0x00, 0x00, 0x00, 0x1c], 'ftypavif', [0, 0, 0, 0], 'mif1avifmiaf');
+const AVIF_COMPATIBLE = bytes([0x00, 0x00, 0x00, 0x18], 'ftypmif1', [0, 0, 0, 0], 'mif1avif');
+const AVIS = bytes([0x00, 0x00, 0x00, 0x14], 'ftypavis', [0, 0, 0, 0], 'msf1');
+const HEIC = bytes([0x00, 0x00, 0x00, 0x18], 'ftypheic', [0, 0, 0, 0], 'mif1heic');
+const AVIF_OUTSIDE_FTYP = bytes([0x00, 0x00, 0x00, 0x14], 'ftypheic', [0, 0, 0, 0], 'mif1avif');
 const BMP = bytes('BM', [0x36, 0x00, 0x00, 0x00]);
 const TEXT = bytes('just some text, not a PDF');
 
@@ -47,7 +51,10 @@ describe('files', () => {
     expect(detectPhotoFormat(GIF89)).toBe('gif');
     expect(detectPhotoFormat(TIFF_LE)).toBe('tiff');
     expect(detectPhotoFormat(TIFF_BE)).toBe('tiff');
-    for (const data of [AVIF, BMP, TEXT, PDF, new Uint8Array(0)]) {
+    expect(detectPhotoFormat(AVIF)).toBe('avif');
+    expect(detectPhotoFormat(AVIF_COMPATIBLE)).toBe('avif');
+    expect(detectPhotoFormat(AVIS)).toBe('avif');
+    for (const data of [HEIC, AVIF_OUTSIDE_FTYP, bytes('ftypavif'), BMP, TEXT, PDF, new Uint8Array(0)]) {
       expect(detectPhotoFormat(data)).toBeNull();
     }
   });
