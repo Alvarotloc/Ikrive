@@ -53,7 +53,7 @@ export function MaintenanceAttachmentsDialog({
       <DialogContent className="max-h-[90dvh] max-w-lg overflow-y-auto">
         <div className="grid gap-1">
           <DialogTitle>{t('maintenance.attachments.title')}</DialogTitle>
-          <DialogDescription className="break-words">{record.title}</DialogDescription>
+          <DialogDescription>{record.title}</DialogDescription>
         </div>
         {/* Mounted only while open, so the queries run when the dialog opens. */}
         <MaintenanceAttachments vehicleId={vehicleId} record={record} restoredFile={restoredFile} />
@@ -267,9 +267,7 @@ function DeleteAttachmentDialog({
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
-        <AlertDialogTitle className="break-words">
-          {t('maintenance.attachments.deleteTitle', { name })}
-        </AlertDialogTitle>
+        <AlertDialogTitle>{t('maintenance.attachments.deleteTitle', { name })}</AlertDialogTitle>
         <AlertDialogDescription>{t('maintenance.attachments.deleteDescription')}</AlertDialogDescription>
         <DialogFooter>
           <AlertDialogCancel asChild>
