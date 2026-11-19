@@ -28,7 +28,7 @@ SI no se puede guardar el marcador ENTONCES el sistema DEBE haber abierto la cá
 CUANDO se monta el layout autenticado de la app nativa por primera vez en el proceso y hay un marcador, el sistema DEBE leer la foto de la cámara como un `File` `image/jpeg` con el nombre del fichero. Lo hace una sola vez por proceso.
 
 ## R5
-CUANDO se recupera una foto con destino `vehicle-photo`, el sistema DEBE abrir `/vehicles/$vehicleId/edit` y subirla como foto del vehículo por el mismo camino que una foto recién hecha (`PhotoPicker`, toast «Foto guardada»).
+CUANDO se recupera una foto con destino `vehicle-photo`, el sistema DEBE abrir `/vehicles/$vehicleId/edit` y subirla como foto del vehículo por el mismo camino que una foto recién hecha (`PhotoPicker`, toast «Foto actualizada»).
 
 ## R6
 CUANDO se recupera una foto con destino `invoice`, el sistema DEBE abrir la ficha del vehículo con el diálogo de facturas de ese mantenimiento y subirla como factura por el mismo camino que una foto recién hecha (`useAttachmentUpload`).
