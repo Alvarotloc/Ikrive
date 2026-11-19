@@ -1,4 +1,5 @@
 import { isNativeApp } from '@/lib/platform';
+import { pendingCaptureCutoff } from './camera-restore';
 
 /**
  * Native app only: deletes the photos the camera left on the device in earlier runs (`removeCameraPhotos`),
@@ -8,13 +9,18 @@ import { isNativeApp } from '@/lib/platform';
  * failed upload keeps its photo until the app is closed. It never runs while the app is open, as coming back
  * from the camera is a resume too and would delete the photo just taken. On the web (and the PWA) it does
  * nothing and loads nothing.
+ *
+ * A valid pending capture (`camera-restore`: Android killed the app while the camera was open) moves the cut
+ * back to when its camera opened, so the photo it waits for survives until `CameraRestoreHandler` reads it.
+ * That handler removes the capture, so the next start without one deletes the photo like any other.
  */
 export async function cleanUpCameraPhotos(): Promise<void> {
   if (!isNativeApp()) return;
   const startedAt = Date.now();
   try {
     const native = await import('@/lib/native-camera');
-    await native.removeCameraPhotos(startedAt);
+    const before = Math.min(startedAt, (await pendingCaptureCutoff()) ?? startedAt);
+    await native.removeCameraPhotos(before);
   } catch {
     // No photos folder yet, or the plugin failed: the next start tries again.
   }

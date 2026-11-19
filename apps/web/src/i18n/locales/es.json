@@ -127,7 +127,9 @@
   "camera": {
     "take": "Hacer foto",
     "input": "Hacer una foto con la cámara",
-    "denied": "Ikrive no tiene permiso para usar la cámara. Actívalo en Ajustes › Aplicaciones › Ikrive › Permisos, o elige una imagen o un archivo ya guardado."
+    "denied": "Ikrive no tiene permiso para usar la cámara. Actívalo en Ajustes › Aplicaciones › Ikrive › Permisos, o elige una imagen o un archivo ya guardado.",
+    "restoreFailed": "No se ha podido recuperar la foto de la cámara. Vuelve a hacerla.",
+    "restoredLostInvoices": "Hemos recuperado la foto, pero las otras facturas que habías añadido se han perdido. Vuelve a añadirlas."
   },
   "validation": {
     "required": "Este campo es obligatorio.",

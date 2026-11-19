@@ -33,10 +33,27 @@ interface MaintenanceFormDialogProps {
   record?: MaintenanceRecord;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Creating only: the form as it was when Android killed the app with the camera open, and its photo. */
+  restored?: RestoredDraft;
+}
+
+/** A create form recovered with its camera photo (`camera-restore`). */
+export interface RestoredDraft {
+  draft: MaintenanceFormInput;
+  /** The photo, added as a pending invoice. */
+  file: File;
+  /** Other invoices had been chosen: they lived only in memory and are gone. */
+  lostInvoices: boolean;
 }
 
 /** Create or edit a maintenance record in a dialog. */
-export function MaintenanceFormDialog({ vehicleId, record, open, onOpenChange }: MaintenanceFormDialogProps) {
+export function MaintenanceFormDialog({
+  vehicleId,
+  record,
+  open,
+  onOpenChange,
+  restored,
+}: MaintenanceFormDialogProps) {
   const { t } = useTranslation();
   // While saving (and uploading the invoices of a new record) Escape, outside clicks and Cancel are
   // ignored: closing would unmount the form and lose the toasts of the rest of the batch.
@@ -49,6 +66,7 @@ export function MaintenanceFormDialog({ vehicleId, record, open, onOpenChange }:
         <MaintenanceForm
           vehicleId={vehicleId}
           record={record}
+          restored={record ? undefined : restored}
           onBusyChange={setBusy}
           onDone={() => onOpenChange(false)}
         />
@@ -60,11 +78,13 @@ export function MaintenanceFormDialog({ vehicleId, record, open, onOpenChange }:
 function MaintenanceForm({
   vehicleId,
   record,
+  restored,
   onBusyChange,
   onDone,
 }: {
   vehicleId: string;
   record: MaintenanceRecord | undefined;
+  restored: RestoredDraft | undefined;
   onBusyChange: (busy: boolean) => void;
   onDone: () => void;
 }) {
@@ -82,9 +102,20 @@ function MaintenanceForm({
   const [uploadingInvoices, setUploadingInvoices] = useState(false);
   const form = useForm<MaintenanceFormInput, unknown, MaintenanceFormValues>({
     resolver: zodResolver(maintenanceFormSchema),
-    defaultValues: defaultsFrom(record),
+    defaultValues: restored?.draft ?? defaultsFrom(record),
   });
   const { errors, isSubmitting } = form.formState;
+
+  // The recovered photo becomes a pending invoice, once (StrictMode runs effects twice). Nothing is saved
+  // until «Save».
+  const restoredFile = useRef<File>(undefined);
+  useEffect(() => {
+    if (!restored || restoredFile.current === restored.file) return;
+    restoredFile.current = restored.file;
+    const chosen = acceptFiles([restored.file]).map((file) => ({ key: nextKey.current++, file }));
+    setPending((current) => [...current, ...chosen]);
+    if (restored.lostInvoices) toast(t('camera.restoredLostInvoices'));
+  });
 
   useEffect(() => onBusyChange(isSubmitting), [isSubmitting, onBusyChange]);
   useEffect(() => () => onBusyChange(false), [onBusyChange]);
@@ -193,6 +224,12 @@ function MaintenanceForm({
               const chosen = acceptFiles(files).map((file) => ({ key: nextKey.current++, file }));
               setPending((current) => [...current, ...chosen]);
             }}
+            restoreTarget={() => ({
+              kind: 'invoice-draft',
+              vehicleId,
+              draft: form.getValues(),
+              pendingCount: pending.length,
+            })}
           />
           {pending.length > 0 && (
             <ul className="grid gap-1">

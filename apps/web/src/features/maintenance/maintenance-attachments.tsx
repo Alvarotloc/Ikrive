@@ -1,7 +1,7 @@
 import type { Attachment, MaintenanceRecord } from '@ikrive/shared';
 import { useQuery } from '@tanstack/react-query';
 import { Download, FileText, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { ApiImage } from '@/components/api-image';
@@ -35,6 +35,8 @@ interface MaintenanceAttachmentsDialogProps {
   record: RecordRef;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** A camera photo recovered after Android killed the app (`camera-restore`): uploaded when it opens. */
+  restoredFile?: File;
 }
 
 /** Invoices of a maintenance record: list, upload and delete. */
@@ -43,6 +45,7 @@ export function MaintenanceAttachmentsDialog({
   record,
   open,
   onOpenChange,
+  restoredFile,
 }: MaintenanceAttachmentsDialogProps) {
   const { t } = useTranslation();
   return (
@@ -53,13 +56,21 @@ export function MaintenanceAttachmentsDialog({
           <DialogDescription className="break-words">{record.title}</DialogDescription>
         </div>
         {/* Mounted only while open, so the queries run when the dialog opens. */}
-        <MaintenanceAttachments vehicleId={vehicleId} record={record} />
+        <MaintenanceAttachments vehicleId={vehicleId} record={record} restoredFile={restoredFile} />
       </DialogContent>
     </Dialog>
   );
 }
 
-function MaintenanceAttachments({ vehicleId, record }: { vehicleId: string; record: RecordRef }) {
+function MaintenanceAttachments({
+  vehicleId,
+  record,
+  restoredFile,
+}: {
+  vehicleId: string;
+  record: RecordRef;
+  restoredFile: File | undefined;
+}) {
   const { t } = useTranslation();
   const { data: attachments, isPending, isError } = useQuery(attachmentsQuery(vehicleId, record.id));
   const { maxUploadMb, acceptFiles, uploadFiles } = useAttachmentUpload(vehicleId);
@@ -79,6 +90,14 @@ function MaintenanceAttachments({ vehicleId, record }: { vehicleId: string; reco
     }
   };
 
+  // The recovered photo goes through the same upload as one just taken, once (StrictMode runs effects twice).
+  const restored = useRef<File>(undefined);
+  useEffect(() => {
+    if (!restoredFile || restored.current === restoredFile) return;
+    restored.current = restoredFile;
+    void onFiles([restoredFile]);
+  });
+
   return (
     <div className="grid gap-5">
       <AttachmentPicker
@@ -87,6 +106,7 @@ function MaintenanceAttachments({ vehicleId, record }: { vehicleId: string; reco
         disabled={uploading}
         busy={uploading}
         onFiles={onFiles}
+        restoreTarget={() => ({ kind: 'invoice', vehicleId, recordId: record.id })}
       />
       {isPending ? (
         <p className="text-sm text-muted-foreground">{t('common.loading')}</p>

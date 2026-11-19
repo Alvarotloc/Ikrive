@@ -3,6 +3,7 @@ import { type ComponentProps, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { type CaptureTarget, forgetCapture, rememberCapture } from '@/features/mobile/camera-restore';
 import { isNativeApp } from '@/lib/platform';
 
 type ButtonProps = ComponentProps<typeof Button>;
@@ -14,6 +15,11 @@ interface CameraCaptureButtonProps {
   disabled?: boolean;
   size?: ButtonProps['size'];
   variant?: ButtonProps['variant'];
+  /**
+   * Where the photo goes, read when the button is pressed. In the native app it is written down before the
+   * camera opens, so the photo can still reach it if Android kills the app meanwhile (`camera-restore`).
+   */
+  restoreTarget?: () => CaptureTarget;
 }
 
 /**
@@ -23,6 +29,9 @@ interface CameraCaptureButtonProps {
  * In the native app Capacitor asks for the CAMERA permission when the input opens the camera; if it is
  * denied, the input only gets `cancel`, like a camera closed without a photo. Capacitor only opens the camera
  * with the permission granted, so `cancel` without it means there was no camera: warn where to turn it on.
+ *
+ * With `restoreTarget`, the native app also writes the pending capture as the camera opens (without waiting:
+ * the input must be clicked in the same gesture) and removes it on `change` and `cancel`.
  */
 export function CameraCaptureButton({
   inputLabel,
@@ -30,6 +39,7 @@ export function CameraCaptureButton({
   disabled,
   size,
   variant,
+  restoreTarget,
 }: CameraCaptureButtonProps) {
   const { t } = useTranslation();
   const input = useRef<HTMLInputElement>(null);
@@ -40,6 +50,7 @@ export function CameraCaptureButton({
     // Subscribed by hand: React does not guarantee `onCancel` on an <input>.
     const onCancel = async () => {
       if (!isNativeApp()) return;
+      void forgetCapture();
       try {
         const { isCameraGranted } = await import('@/lib/native-camera');
         if (!(await isCameraGranted())) toast.error(t('camera.denied'));
@@ -66,6 +77,7 @@ export function CameraCaptureButton({
           const file = event.target.files?.[0];
           // Cleared so taking another photo fires `change` again.
           event.target.value = '';
+          if (isNativeApp()) void forgetCapture();
           if (file) onFile(file);
         }}
       />
@@ -74,7 +86,11 @@ export function CameraCaptureButton({
         size={size}
         variant={variant}
         disabled={disabled}
-        onClick={() => input.current?.click()}
+        onClick={() => {
+          // Not awaited (it never rejects): the camera opens in this same click, or the WebView refuses to.
+          if (isNativeApp() && restoreTarget) void rememberCapture(restoreTarget());
+          input.current?.click();
+        }}
       >
         <Camera aria-hidden />
         {t('camera.take')}

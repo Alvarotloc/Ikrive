@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { CameraCaptureButton } from '@/components/camera-capture-button';
 import { Button } from '@/components/ui/button';
+import { useRestoredCapture } from '@/features/mobile/camera-restore';
 import { ApiError } from '@/lib/api-client';
 import { useCanCapture } from '@/lib/use-can-capture';
 import { VehiclePhoto } from './dossier';
@@ -13,7 +14,8 @@ import { useRemoveVehiclePhoto, useUploadVehiclePhoto } from './queries';
 /**
  * Vehicle photo with upload and remove buttons. The `DataSource` (the API, or the phone in local mode)
  * orients, resizes and recodes it, which strips its metadata. On a touch device it also offers «Take photo»,
- * which goes through the same upload, and the file button becomes «Choose from gallery».
+ * which goes through the same upload, and the file button becomes «Choose from gallery». A camera photo
+ * recovered after Android killed the app (`camera-restore`) goes through that upload too.
  */
 export function PhotoPicker({ vehicle }: { vehicle: Vehicle }) {
   const { t } = useTranslation();
@@ -38,6 +40,11 @@ export function PhotoPicker({ vehicle }: { vehicle: Vehicle }) {
       if (input.current) input.current.value = '';
     }
   };
+
+  useRestoredCapture(
+    (target) => target.kind === 'vehicle-photo' && target.vehicleId === vehicle.id,
+    (capture) => void onFile(capture.file),
+  );
 
   return (
     <div className="relative overflow-hidden rounded-lg border">
@@ -70,6 +77,7 @@ export function PhotoPicker({ vehicle }: { vehicle: Vehicle }) {
             variant="outline"
             disabled={busy}
             onFile={onFile}
+            restoreTarget={() => ({ kind: 'vehicle-photo', vehicleId: vehicle.id })}
           />
         )}
         <Button size="sm" variant="outline" disabled={busy} onClick={() => input.current?.click()}>

@@ -12,6 +12,7 @@ import type { MemoryFileStore } from '@/test/memory-file-store';
 import { createMemorySqlite } from '@/test/memory-sqlite';
 import { mockApi, mockMediaQuery, mockObjectUrls } from '@/test/render';
 import { renderApp } from '@/test/render-app';
+import { forgetRestoreRun } from './camera-restore';
 import { activateLocalDataSource, forgetLocalDataSource } from './local-mode';
 
 /**
@@ -116,6 +117,16 @@ vi.mock('@/lib/data-source/local/sale-report-pdf', async () => {
   };
 });
 
+/** The camera: the pending capture left when Android killed the app, and the photo in `Pictures`. */
+const nativeCamera = vi.hoisted(() => ({
+  isCameraGranted: vi.fn(async () => true),
+  savePendingCapture: vi.fn(async (_json: string) => {}),
+  readPendingCapture: vi.fn(async (): Promise<string | null> => null),
+  clearPendingCapture: vi.fn(async () => {}),
+  readCameraPhotoSince: vi.fn(async (_openedAt: number): Promise<File | null> => null),
+}));
+vi.mock('@/lib/native-camera', () => nativeCamera);
+
 /** The share sheet of `downloadBlob` in the native app. */
 const nativeFiles = vi.hoisted(() => ({ saveFile: vi.fn(), openFile: vi.fn() }));
 vi.mock('@/lib/native-files', () => nativeFiles);
@@ -193,6 +204,8 @@ describe('local mode', () => {
     mockMediaQuery(true);
     // No route: any request would fail the test.
     fetchMock = mockApi({});
+    // Each test is a new app run.
+    forgetRestoreRun();
   });
 
   afterEach(() => {
@@ -209,6 +222,11 @@ describe('local mode', () => {
     native.showNotifications.mockReset();
     native.tap.listener = null;
     appState.resume = null;
+    nativeCamera.readPendingCapture.mockReset();
+    nativeCamera.readPendingCapture.mockResolvedValue(null);
+    nativeCamera.readCameraPhotoSince.mockReset();
+    nativeCamera.readCameraPhotoSince.mockResolvedValue(null);
+    nativeCamera.clearPendingCapture.mockClear();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -627,6 +645,67 @@ describe('local mode', () => {
 
     expect(await within(dialog).findByText('JPEG_20261118.jpg')).toBeInTheDocument();
     expect(storage.store?.keys()).toEqual([expect.stringMatching(/^attachments\/.+/)]);
+  });
+
+  it('restores a camera photo as the vehicle photo in local mode', async () => {
+    mockObjectUrls();
+    const vehicle = await (await localData()).vehicles.create({ make: 'Seat', model: 'Ibiza' });
+    const openedAt = Date.UTC(2026, 10, 19, 10, 15, 30);
+    nativeCamera.readPendingCapture.mockResolvedValue(
+      JSON.stringify({ target: { kind: 'vehicle-photo', vehicleId: vehicle.id }, mode: 'local', openedAt }),
+    );
+    nativeCamera.readCameraPhotoSince.mockResolvedValue(jpeg('JPEG_20261119_101540_1.jpg'));
+    const { router } = await renderApp('/');
+
+    expect(await screen.findByText('Foto actualizada')).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe(`/vehicles/${vehicle.id}/edit`);
+    expect(nativeCamera.readCameraPhotoSince).toHaveBeenCalledExactlyOnceWith(openedAt);
+    expect(storage.store?.keys()).toEqual([expect.stringMatching(/^vehicles\/.+\.webp$/)]);
+    expect((await dataSource().vehicles.get(vehicle.id)).photoUrl).not.toBeNull();
+    expect(nativeCamera.clearPendingCapture).toHaveBeenCalledTimes(1);
+  });
+
+  it('restores an invoice draft and saves it with its invoice in local mode', async () => {
+    mockObjectUrls();
+    const local = await localData();
+    const vehicle = await local.vehicles.create({ make: 'Seat', model: 'Ibiza' });
+    const draft = {
+      date: '2024-03-01',
+      odometer: '',
+      category: 'inspection',
+      title: 'ITV',
+      description: '',
+      workshop: 'Estación de Getafe',
+      cost: '',
+      includeInReport: true,
+      scheduleId: '',
+    };
+    nativeCamera.readPendingCapture.mockResolvedValue(
+      JSON.stringify({
+        target: { kind: 'invoice-draft', vehicleId: vehicle.id, draft, pendingCount: 0 },
+        mode: 'local',
+        openedAt: Date.UTC(2026, 10, 19, 10, 15, 30),
+      }),
+    );
+    nativeCamera.readCameraPhotoSince.mockResolvedValue(jpeg('JPEG_20261119_101540_1.jpg'));
+    const { user, router } = await renderApp('/');
+
+    const form = await screen.findByRole('dialog', { name: 'Añadir mantenimiento' });
+    expect(router.state.location.pathname).toBe(`/vehicles/${vehicle.id}`);
+    expect(within(form).getByLabelText('Título')).toHaveValue('ITV');
+    expect(within(form).getByText('JPEG_20261119_101540_1.jpg')).toBeInTheDocument();
+    // Nothing is saved until «Save».
+    expect(await local.maintenance.list(vehicle.id)).toEqual([]);
+    expect(storage.store?.keys()).toEqual([]);
+
+    await user.click(within(form).getByRole('button', { name: 'Guardar' }));
+
+    expect(await screen.findByText('1 factura subida')).toBeInTheDocument();
+    const [saved] = await local.maintenance.list(vehicle.id);
+    expect(saved).toMatchObject({ title: 'ITV', category: 'inspection', workshop: 'Estación de Getafe' });
+    expect(storage.store?.keys()).toEqual([expect.stringMatching(/^attachments\/.+\.jpg$/)]);
+    const attachments = await local.attachments.list(vehicle.id, saved?.id ?? '');
+    expect(attachments.map((attachment) => attachment.originalName)).toEqual(['JPEG_20261119_101540_1.jpg']);
   });
 
   it('an activation forgotten while opening never installs its DataSource', async () => {
