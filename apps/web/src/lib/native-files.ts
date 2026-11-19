@@ -38,6 +38,12 @@ export function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
+/** Bytes of the base64 the Filesystem plugin returns on the device (works in Node and the WebView). */
+export function base64ToBytes(base64: string): Uint8Array<ArrayBuffer> {
+  const binary = atob(base64);
+  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+}
+
 /** Base64 without the `data:` prefix, as the Filesystem plugin expects it (works in Node and the WebView). */
 export async function blobToBase64(blob: Blob): Promise<string> {
   return bytesToBase64(new Uint8Array(await blob.arrayBuffer()));
