@@ -2,6 +2,7 @@ import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import sharp from 'sharp';
 import { describe, expect, it } from 'vitest';
+import { isSupportedPhoto } from '../src/lib/images';
 import { createTestApp, incompleteMultipart, signUp } from './helpers';
 
 type TestApp = Awaited<ReturnType<typeof createTestApp>>['app'];
@@ -212,6 +213,57 @@ describe('vehicles', () => {
 
     await app.inject({ method: 'DELETE', url: `/api/vehicles/${vehicle.id}`, headers: { cookie } });
     expect(existsSync(photoDir) ? readdirSync(photoDir) : []).toHaveLength(0);
+  });
+
+  it('accepts an AVIF photo and rejects a HEIC one with 400', async () => {
+    const { app } = await createTestApp();
+    const { cookie } = await signUp(app);
+    const vehicle = await createVehicle(app, cookie);
+    const upload = (file: Buffer, filename: string, mimetype: string) => {
+      const { payload, headers } = multipart(file, filename, mimetype);
+      return app.inject({
+        method: 'PUT',
+        url: `/api/vehicles/${vehicle.id}/photo`,
+        payload,
+        headers: { ...headers, cookie },
+      });
+    };
+    const avif = await sharp({ create: { width: 64, height: 32, channels: 3, background: '#c5e8e0' } })
+      .avif()
+      .toBuffer();
+    expect(await sharp(avif).metadata()).toMatchObject({ format: 'heif', compression: 'av1' });
+
+    const uploaded = await upload(avif, 'photo.avif', 'image/avif');
+    expect(uploaded.statusCode).toBe(200);
+    const photo = await app.inject({ method: 'GET', url: uploaded.json().photoUrl, headers: { cookie } });
+    expect(photo.headers['content-type']).toBe('image/webp');
+    expect(await sharp(photo.rawPayload).metadata()).toMatchObject({ format: 'webp', width: 64, height: 32 });
+
+    // The bundled sharp cannot encode HEVC, so the HEIC is the AVIF relabelled as HEIC: same rejection path.
+    const heic = Buffer.from(
+      avif.toString('latin1').replaceAll('avif', 'heic').replaceAll('av01', 'hvc1'),
+      'latin1',
+    );
+    const rejected = await upload(heic, 'photo.heic', 'image/heic');
+    expect(rejected.statusCode).toBe(400);
+    expect(rejected.json().detail).toBe(
+      'The file is not a supported image (JPEG, PNG, WebP, AVIF, GIF or TIFF)',
+    );
+    expect(
+      (await app.inject({ method: 'GET', url: `/api/vehicles/${vehicle.id}`, headers: { cookie } })).json(),
+    ).toMatchObject({ photoUrl: uploaded.json().photoUrl });
+  });
+
+  it('accepts HEIF only when it is AVIF (av1)', () => {
+    expect(isSupportedPhoto({ format: 'heif', compression: 'av1' })).toBe(true);
+    expect(isSupportedPhoto({ format: 'heif', compression: 'hevc' })).toBe(false);
+    expect(isSupportedPhoto({ format: 'heif', compression: undefined })).toBe(false);
+    for (const format of ['jpeg', 'png', 'webp', 'gif', 'tiff'] as const) {
+      expect(isSupportedPhoto({ format, compression: undefined })).toBe(true);
+    }
+    for (const format of ['svg', 'pdf', 'raw', undefined] as const) {
+      expect(isSupportedPhoto({ format, compression: undefined })).toBe(false);
+    }
   });
 
   it('rejects a photo upload that never completes', async () => {

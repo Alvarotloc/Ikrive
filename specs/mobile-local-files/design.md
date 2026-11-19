@@ -132,6 +132,7 @@ UI: mismos componentes y estados que en modo servidor (placeholder `bg-muted` mi
 ## Decisiones a validar
 
 1. **Tipos de foto en local: JPEG, PNG, WebP y GIF (primer fotograma).** La API declara JPEG, PNG, WebP, AVIF, GIF y TIFF, pero en la práctica rechaza AVIF (`sharp` lo reporta como `heif`, que no está en `SUPPORTED_FORMATS` de `apps/api/src/lib/images.ts`; comprobado con el `sharp` instalado). El modo local detecta por bytes mágicos los mismos formatos que la API acepta de verdad (`detectPhotoFormat`: JPEG, PNG, WebP, GIF, TIFF); TIFF no lo decodifica el WebView y termina en el mismo 400. El texto del 400 es el de la API, que menciona AVIF. Corregir AVIF en la API queda fuera de alcance (sería otra feature `sdd: false`).
+   > **Actualizado en #71 `api-photo-avif`:** la API acepta ya AVIF (`heif` con compresión `av1`) y sigue rechazando HEIC. El modo local detecta AVIF por las marcas de la caja `ftyp` y el texto del 400 es una constante compartida, `UNSUPPORTED_PHOTO_MESSAGE` (`packages/shared/src/domain/files.ts`).
 2. **Miniatura al vuelo** (no se guarda), igual que la API (ver alternativas).
 3. **Fallo al borrar un fichero tras confirmar la transacción:** no rechaza la operación (la fila ya no existe y la UI debe reflejarlo); el fichero queda huérfano. La API, en cambio, respondería 500 tras borrar la fila.
 4. **`detectPhotoFormat` en `@ikrive/shared` sin que la API lo use:** la API sigue validando con `sharp.metadata()` para no cambiar su comportamiento.
@@ -147,4 +148,4 @@ UI: mismos componentes y estados que en modo servidor (placeholder `bg-muted` mi
 
 ## Fuera de alcance
 
-Export del zip con adjuntos y fotos (#66), PDF del informe con anexos (#68), barrido de ficheros huérfanos, copia de seguridad del dispositivo, corregir AVIF en la API, app iOS.
+Export del zip con adjuntos y fotos (#66), PDF del informe con anexos (#68), barrido de ficheros huérfanos, copia de seguridad del dispositivo, app iOS. _(Corregir AVIF en la API se hizo en #71.)_

@@ -41,7 +41,7 @@ SI, en modo local, el vehículo, el mantenimiento o el adjunto de una operación
 CUANDO, en modo local, se sube la foto de un vehículo, el sistema DEBE aplicar la orientación EXIF, reducirla a 1600 px en su lado mayor sin ampliarla, recodificarla a WebP, guardarla como `vehicles/<uuid>.webp`, borrar la foto anterior y devolver el vehículo con una URL local de la foto que cambia con cada foto.
 
 ## R11
-SI, en modo local, la foto no es JPEG, PNG, WebP, GIF ni TIFF por sus bytes mágicos o no se puede decodificar ENTONCES el sistema DEBE rechazar con un Problem 400 `The file is not a supported image (JPEG, PNG, WebP, AVIF, GIF or TIFF)` sin cambiar la foto guardada.
+SI, en modo local, la foto no es JPEG, PNG, WebP, AVIF, GIF ni TIFF por sus bytes mágicos o no se puede decodificar ENTONCES el sistema DEBE rechazar con un Problem 400 `The file is not a supported image (JPEG, PNG, WebP, AVIF, GIF or TIFF)` sin cambiar la foto guardada. _(AVIF añadido en #71 `api-photo-avif`.)_
 
 ## R12
 SI el recodificado de una foto o de una miniatura no produce un WebP (por sus bytes mágicos) ENTONCES el sistema DEBE rechazar sin guardar nada.
