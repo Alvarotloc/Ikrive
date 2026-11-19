@@ -4,6 +4,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './i18n';
 import './index.css';
+import { cleanUpCameraPhotos } from './features/mobile/camera-photo-cleanup';
 import { RouteErrorScreen } from './features/pwa/route-error';
 import { serviceWorker } from './features/pwa/service-worker';
 import { isNativeApp } from './lib/platform';
@@ -26,6 +27,8 @@ const router = createRouter({
 
 // The native build has no service worker (the APK ships its assets); the web registers it.
 if (!isNativeApp()) serviceWorker.register();
+// The native app deletes the camera photos left by its previous runs (a no-op on the web).
+void cleanUpCameraPhotos();
 
 declare module '@tanstack/react-router' {
   interface Register {

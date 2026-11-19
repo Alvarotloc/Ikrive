@@ -68,4 +68,7 @@ test('documents the camera permission', () => {
   // The gallery and the files keep working.
   assert.match(doc, /Elegir de la galería/);
   assert.match(doc, /siguen funcionando/);
+  // The photos left in the app folder are deleted the next time the app starts.
+  assert.match(doc, /files\/Pictures/);
+  assert.match(doc, /la app las borra la siguiente vez que arranca/);
 });

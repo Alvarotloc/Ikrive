@@ -1338,7 +1338,7 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": false,
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 80,
@@ -1355,6 +1355,38 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 81,
+      "name": "camera-process-restore",
+      "phase": "8",
+      "title": "No perder la foto de la cámara cuando Android mata la app",
+      "description": "Detectado al probar #79 en un HONOR. El gestor de memoria del teléfono, iAware (LowMemQuick), mata con SIGKILL el proceso de la app (~427 MB) y el del WebView en cuanto se abre la cámara. Al volver arranca un proceso nuevo y se pierde el resultado del <input capture>. Pasa cada vez que la app de la cámara arranca en frío: la primera foto tras abrir la app y también después de que el sistema cierre la cámara (visto 3 veces el 2026-11-19 en la prueba de #79; dumpsys activity exit-info: reason=SIGNALED status=9, description iAwareR[LowMemQuick](previous), rss 380–427 MB). Mientras tanto, la limpieza de #79 borra en el siguiente arranque la foto que hizo la cámara. Posibles soluciones: @capacitor/camera con App.addListener('appRestoredResult'), que devuelve el resultado tras la muerte del proceso, o reducir la memoria que usa la app. Lo decide el spec.",
+      "acceptance": [
+        "En la app Android, si el sistema mata el proceso mientras la cámara está abierta, al volver la foto llega al mismo sitio (foto del vehículo o factura del mantenimiento) y se puede guardar, en modo servidor y en modo local",
+        "Si no se puede recuperar la foto, la app avisa con un toast en lugar de fallar en silencio",
+        "La limpieza de #79 no borra la foto pendiente de recuperar",
+        "En la web y la PWA no cambia nada",
+        "Hay tests de la restauración con el plugin simulado, y una prueba en dispositivo con adb shell am kill mientras la cámara está abierta",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 82,
+      "name": "dialog-long-names",
+      "phase": "8",
+      "title": "Los diálogos de confirmación no se desbordan con nombres largos",
+      "description": "El diálogo «¿Eliminar «JPEG_20261119_142310_788339…»?» de las facturas se sale de la pantalla en el móvil: título, descripción y botón «Eliminar» quedan cortados por la derecha. El arreglo va en el AlertDialog compartido (apps/web/src/components/ui/dialog.tsx), así que vale para todos los diálogos que muestran un nombre: facturas, vehículos, usuarios…",
+      "acceptance": [
+        "Con un nombre de fichero de 255 caracteres sin espacios, el título del diálogo se parte en varias líneas y el diálogo no supera el ancho de la pantalla a 360 px",
+        "Los botones siguen visibles y caben enteros",
+        "Hay un test del componente que lo comprueba (clases de corte de palabra y ancho mínimo en el título y el contenido)",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
       "status": "pending"
     }
   ]
