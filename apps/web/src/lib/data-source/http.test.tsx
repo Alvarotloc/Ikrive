@@ -62,7 +62,10 @@ describe('httpDataSource', () => {
       },
     });
 
-    const { blob, fileName } = await httpDataSource.dataPortability.export();
+    const exported = await httpDataSource.dataPortability.export();
+    // The HTTP export is always a `Blob`; only the local mode leaves a file on the device.
+    if (!('blob' in exported)) throw new Error(`Expected a Blob, got the device file ${exported.uri}`);
+    const { blob, fileName } = exported;
 
     expect(fileName).toBe('ikrive-export-2026-11-16.zip');
     expect(blob.type).toBe('application/zip');

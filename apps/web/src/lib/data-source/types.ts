@@ -44,6 +44,18 @@ export interface DownloadedFile {
   fileName: string | null;
 }
 
+/** The local export left on the device (native app): shared from its file, never loaded in memory. */
+export interface DeviceFile {
+  fileName: string;
+  /** `file://` URI of the file. */
+  uri: string;
+  /** Relative to `Directory.Cache`. */
+  path: string;
+}
+
+/** What `dataPortability.export()` gives: a `Blob` (web, server mode) or a file of the device (local mode). */
+export type ExportedFile = DownloadedFile | DeviceFile;
+
 export type VehicleListStatus = NonNullable<VehicleListQuery['status']>;
 
 /**
@@ -137,7 +149,7 @@ export interface DataSource {
   dataPortability: {
     import(file: File): Promise<DataImportSummary>;
     /** The export zip of every piece of the user's data (`data.json` + attachments + photos). */
-    export(): Promise<DownloadedFile>;
+    export(): Promise<ExportedFile>;
   };
   adminUsers: {
     list(): Promise<AdminUser[]>;

@@ -10,6 +10,10 @@ export interface MemoryFileStore extends LocalFileStore {
   bytes(key: string): Uint8Array | undefined;
   /** Operations that reject from now on, to simulate a failing device. */
   failOn: Set<FileStoreOperation>;
+  /** Bytes returned by `read` so far: what has been loaded in memory from the store. */
+  readonly bytesRead: number;
+  /** Called with the key of every `read`, before it is served. */
+  onRead: ((key: string) => void) | null;
 }
 
 /** A `LocalFileStore` over a `Map<key, bytes>`, with the same random keys as the device store. */
@@ -19,8 +23,13 @@ export function createMemoryFileStore(): MemoryFileStore {
   const check = (operation: FileStoreOperation) => {
     if (failOn.has(operation)) throw new Error(`File store ${operation} failed`);
   };
-  return {
+  let bytesRead = 0;
+  const store: MemoryFileStore = {
     failOn,
+    get bytesRead() {
+      return bytesRead;
+    },
+    onRead: null,
     keys: () => [...files.keys()].sort(),
     bytes: (key) => files.get(key),
     async save(folder, data, extension) {
@@ -31,8 +40,10 @@ export function createMemoryFileStore(): MemoryFileStore {
     },
     async read(key, mimeType) {
       check('read');
+      store.onRead?.(key);
       const data = files.get(key);
       if (!data) throw new MissingFileError(key);
+      bytesRead += data.length;
       return new Blob([data.slice()], { type: mimeType });
     },
     async remove(key) {
@@ -40,4 +51,5 @@ export function createMemoryFileStore(): MemoryFileStore {
       files.delete(key);
     },
   };
+  return store;
 }

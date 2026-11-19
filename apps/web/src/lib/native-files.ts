@@ -29,14 +29,18 @@ export function safeFileName(name: string): string {
 /** Bytes per `String.fromCharCode` call: well under the engines' argument limit. */
 const CHUNK = 0x8000;
 
-/** Base64 without the `data:` prefix, as the Filesystem plugin expects it (works in Node and the WebView). */
-export async function blobToBase64(blob: Blob): Promise<string> {
-  const bytes = new Uint8Array(await blob.arrayBuffer());
+/** Base64 of `bytes` without the `data:` prefix, as the Filesystem plugin expects it (Node and the WebView). */
+export function bytesToBase64(bytes: Uint8Array): string {
   let binary = '';
   for (let i = 0; i < bytes.length; i += CHUNK) {
     binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
   }
   return btoa(binary);
+}
+
+/** Base64 without the `data:` prefix, as the Filesystem plugin expects it (works in Node and the WebView). */
+export async function blobToBase64(blob: Blob): Promise<string> {
+  return bytesToBase64(new Uint8Array(await blob.arrayBuffer()));
 }
 
 /** The Share plugin rejects with «Share canceled» when the sheet is closed without a choice. */

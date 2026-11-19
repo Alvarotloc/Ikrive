@@ -12,6 +12,20 @@ export interface DataExportZip {
   finish(document: DataExport): Uint8Array<ArrayBuffer>[];
 }
 
+/** Receives each piece of the zip as soon as fflate produces it (synchronously, in order). */
+export type DataExportZipChunk = (chunk: Uint8Array<ArrayBuffer>) => void;
+
+/** The zip writer that hands every piece to its callback instead of keeping it. */
+export interface DataExportZipStream {
+  /**
+   * Adds `data` stored under `path`. Every piece of the entry (header and data) has reached the
+   * callback when it returns.
+   */
+  addFile(path: string, data: Uint8Array): void;
+  /** Adds `data.json` (deflated, `JSON.stringify(document, null, 2)`) and closes the zip. */
+  finish(document: DataExport): void;
+}
+
 /** `chunk` typed over a plain `ArrayBuffer` (what `Blob` takes); a view, not a copy, as fflate makes them. */
 function ownBuffer(chunk: Uint8Array): Uint8Array<ArrayBuffer> {
   const { buffer } = chunk;
@@ -23,14 +37,15 @@ function ownBuffer(chunk: Uint8Array): Uint8Array<ArrayBuffer> {
 /**
  * Files go in as they are read and `data.json` last, so the caller never holds every loose file and
  * the zip at the same time. The import indexes entries through the central directory: order is free.
+ * Each entry is closed before the next one is added, so the writer keeps nothing: what it gets is
+ * already in `onChunk`.
  */
-export function createDataExportZip(): DataExportZip {
-  const chunks: Uint8Array<ArrayBuffer>[] = [];
+export function streamDataExportZip(onChunk: DataExportZipChunk): DataExportZipStream {
   let failure: Error | null = null;
   // fflate calls back synchronously for `ZipPassThrough`/`ZipDeflate` pushes.
   const zip = new Zip((error, chunk) => {
     if (error) failure = error;
-    else chunks.push(ownBuffer(chunk));
+    else onChunk(ownBuffer(chunk));
   });
   const check = () => {
     if (failure) throw failure;
@@ -49,6 +64,18 @@ export function createDataExportZip(): DataExportZip {
       entry.push(strToU8(JSON.stringify(document, null, 2)), true);
       zip.end();
       check();
+    },
+  };
+}
+
+/** `streamDataExportZip` collecting its chunks, which `finish` returns. */
+export function createDataExportZip(): DataExportZip {
+  const chunks: Uint8Array<ArrayBuffer>[] = [];
+  const zip = streamDataExportZip((chunk) => chunks.push(chunk));
+  return {
+    addFile: (path, data) => zip.addFile(path, data),
+    finish(document) {
+      zip.finish(document);
       return chunks;
     },
   };
