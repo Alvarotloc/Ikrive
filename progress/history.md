@@ -769,3 +769,13 @@
 - **Revisión:** APPROVED a la primera (`progress/review_camera-process-restore.md`); avisos: sin toast si falla `navigate`, ningún test con escritura lenta del marcador, lectura fallida del marcador no lo borra. Texto del toast de R5 alineado a «Foto actualizada» en el spec.
 - **Prueba en dispositivo (T17):** HONOR ABR-NX1 (Android 16), APK debug con JDK 21. Los 3 destinos en local y servidor (API temporal de la rama con BD nueva vía `adb reverse`), R8, cancelar en ambos modos y caso sin muerte: todo OK. `am kill` bastó (9 veces); iAware mató la app solo 3 veces. `mtime` del JPEG 4–11 ms tras `openedAt`; 0 bytes al cancelar. No probados en dispositivo (cubiertos por unit tests): otro modo, destino borrado, sesión caducada. Efecto colateral: se sustituyó la foto del vehículo de prueba «Informe Golf».
 - **Gate 2:** «merge» del humano → PR.
+
+## 2026-11-19 — #82 dialog-long-names
+
+- **Rama:** `feat/dialog-long-names` (`sdd: false`). Detectado al probar #79: el diálogo «¿Eliminar «JPEG_…»?» de las facturas se salía de la pantalla en el móvil.
+- **Causa:** `contentClassName` era un `grid` sin columnas explícitas; la columna `auto` crecía hasta el min-content del nombre sin espacios. `break-words` no reduce el min-content.
+- **Cambios:** `apps/web/src/components/ui/dialog.tsx`: contenido con `min-w-0 grid-cols-[minmax(0,1fr)]`; títulos y descripciones de `Dialog`/`AlertDialog` con `min-w-0 wrap-anywhere`; `DialogFooter` con `min-w-0 sm:flex-wrap`. Quitados dos `break-words` redundantes en `maintenance-attachments.tsx`. Todos los diálogos con nombres heredan el arreglo.
+- **Tests:** `dialog.test.tsx` (4, nombre de 255 caracteres sin espacios). Web 706. `pnpm harness --full` en verde.
+- **Comprobación visual:** DOM replicado con el CSS compilado (Playwright, 360/1280 px, claro/oscuro): «Eliminar» pasa de 45–2874 px a 45–315 px dentro de la tarjeta. Prueba del humano en el HONOR con la APK debug: OK.
+- **Revisión:** APPROVED a la primera (`progress/review_dialog-long-names.md`); avisos: el test no cubre `Dialog` ni `sm:flex-wrap`; `attachment-viewer.tsx:57` conserva un `break-words` sobrante.
+- **Gate 2:** «merge» del humano → PR.
