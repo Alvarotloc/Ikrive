@@ -1372,7 +1372,7 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 82,

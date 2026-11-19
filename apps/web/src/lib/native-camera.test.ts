@@ -1,5 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { CAMERA_PHOTO_NAME, isCameraGranted, removeCameraPhotos } from './native-camera';
+import {
+  CAMERA_PHOTO_NAME,
+  clearPendingCapture,
+  isCameraGranted,
+  PENDING_CAPTURE_PATH,
+  readCameraPhotoSince,
+  readPendingCapture,
+  removeCameraPhotos,
+  savePendingCapture,
+} from './native-camera';
 
 const plugin = vi.hoisted(() => ({ checkPermissions: vi.fn() }));
 /** Names given to `registerPlugin`, recorded when the module is imported (before any mock is reset). */
@@ -11,8 +20,20 @@ vi.mock('@capacitor/core', () => ({
   },
 }));
 
-const filesystem = vi.hoisted(() => ({ readdir: vi.fn(), deleteFile: vi.fn() }));
-vi.mock('@capacitor/filesystem', () => ({ Directory: { External: 'EXTERNAL' }, Filesystem: filesystem }));
+const filesystem = vi.hoisted(() => ({
+  readdir: vi.fn(),
+  deleteFile: vi.fn(),
+  readFile: vi.fn(),
+  writeFile: vi.fn(),
+}));
+vi.mock('@capacitor/filesystem', () => ({
+  Directory: { External: 'EXTERNAL', Data: 'DATA' },
+  Encoding: { UTF8: 'utf8' },
+  Filesystem: filesystem,
+}));
+// `native-files` (its base64 helper) imports these plugins.
+vi.mock('@capacitor/share', () => ({ Share: { share: vi.fn() } }));
+vi.mock('@capacitor-community/file-opener', () => ({ FileOpener: { open: vi.fn() } }));
 
 /** When the app started in these tests (epoch ms, not on a whole second). */
 const STARTED_AT = Date.UTC(2026, 10, 19, 10, 15, 30, 500);
@@ -20,10 +41,10 @@ const STARTED_AT = Date.UTC(2026, 10, 19, 10, 15, 30, 500);
 const EARLIER = STARTED_AT - 60_000;
 
 /** An entry of `Filesystem.readdir` (only the fields the clean-up reads matter). */
-const entry = (name: string, type: 'file' | 'directory' = 'file', mtime = EARLIER) => ({
+const entry = (name: string, type: 'file' | 'directory' = 'file', mtime = EARLIER, size = 1) => ({
   name,
   type,
-  size: 1,
+  size,
   mtime,
   uri: `file:///storage/emulated/0/Android/data/app.ikrive/files/Pictures/${name}`,
 });
@@ -32,6 +53,8 @@ afterEach(() => {
   plugin.checkPermissions.mockReset();
   filesystem.readdir.mockReset();
   filesystem.deleteFile.mockReset();
+  filesystem.readFile.mockReset();
+  filesystem.writeFile.mockReset();
 });
 
 describe('native camera', () => {
@@ -148,5 +171,103 @@ describe('camera photos clean-up', () => {
 
     await expect(removeCameraPhotos(STARTED_AT)).rejects.toThrow('does not exist');
     expect(filesystem.deleteFile).not.toHaveBeenCalled();
+  });
+});
+
+describe('pending capture', () => {
+  /** The plugin's error for a missing file. */
+  const missing = () => new Error('File does not exist.');
+
+  it('saves, reads and clears the pending capture in the app data', async () => {
+    const json = JSON.stringify({ target: { kind: 'vehicle-photo', vehicleId: 'v1' } });
+    filesystem.writeFile.mockResolvedValue({ uri: 'file:///data/camera/pending-capture.json' });
+    filesystem.readFile.mockResolvedValue({ data: json });
+    filesystem.deleteFile.mockResolvedValue(undefined);
+
+    await savePendingCapture(json);
+    await expect(readPendingCapture()).resolves.toBe(json);
+    await clearPendingCapture();
+
+    expect(PENDING_CAPTURE_PATH).toBe('camera/pending-capture.json');
+    expect(filesystem.writeFile).toHaveBeenCalledExactlyOnceWith({
+      path: 'camera/pending-capture.json',
+      data: json,
+      directory: 'DATA',
+      encoding: 'utf8',
+      recursive: true,
+    });
+    expect(filesystem.readFile).toHaveBeenCalledExactlyOnceWith({
+      path: 'camera/pending-capture.json',
+      directory: 'DATA',
+      encoding: 'utf8',
+    });
+    expect(filesystem.deleteFile).toHaveBeenCalledExactlyOnceWith({
+      path: 'camera/pending-capture.json',
+      directory: 'DATA',
+    });
+  });
+
+  it('reads a missing pending capture as null and clears it without error', async () => {
+    filesystem.readFile.mockRejectedValue(missing());
+    filesystem.deleteFile.mockRejectedValue(missing());
+
+    await expect(readPendingCapture()).resolves.toBeNull();
+    await expect(clearPendingCapture()).resolves.toBeUndefined();
+
+    // Any other failure is not «no capture».
+    filesystem.readFile.mockRejectedValue(new Error('Permission denied'));
+    filesystem.deleteFile.mockRejectedValue(new Error('Permission denied'));
+    await expect(readPendingCapture()).rejects.toThrow('Permission denied');
+    await expect(clearPendingCapture()).rejects.toThrow('Permission denied');
+  });
+
+  it('reads the newest non-empty camera photo taken since the camera opened', async () => {
+    // The camera opened half a second into 10:15:30; the photo may carry 10:15:30.000 (whole seconds).
+    const openedAt = STARTED_AT;
+    filesystem.readdir.mockResolvedValue({
+      files: [
+        entry('JPEG_20261119_101400_111.jpg', 'file', EARLIER, 2048),
+        entry('JPEG_20261119_101530_222.jpg', 'file', STARTED_AT - 500, 2048),
+        entry('JPEG_20261119_101540_333.jpg', 'file', STARTED_AT + 10_000, 4096),
+        entry('JPEG_20261119_101545_444.jpg', 'file', STARTED_AT + 15_000, 0),
+        entry('notes.txt', 'file', STARTED_AT + 20_000, 10),
+        entry('JPEG_20261119_101550_555.jpg', 'directory', STARTED_AT + 20_000, 10),
+      ],
+    });
+    const bytes = Uint8Array.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]);
+    filesystem.readFile.mockResolvedValue({ data: Buffer.from(bytes).toString('base64') });
+
+    const photo = await readCameraPhotoSince(openedAt);
+
+    expect(filesystem.readdir).toHaveBeenCalledExactlyOnceWith({ path: 'Pictures', directory: 'EXTERNAL' });
+    expect(filesystem.readFile).toHaveBeenCalledExactlyOnceWith({
+      path: 'Pictures/JPEG_20261119_101540_333.jpg',
+      directory: 'EXTERNAL',
+    });
+    expect(photo).toBeInstanceOf(File);
+    expect(photo?.name).toBe('JPEG_20261119_101540_333.jpg');
+    expect(photo?.type).toBe('image/jpeg');
+    expect(new Uint8Array((await photo?.arrayBuffer()) ?? new ArrayBuffer(0))).toEqual(bytes);
+
+    // Only the one from the start of the second the camera opened in is left: it still counts.
+    filesystem.readdir.mockResolvedValue({
+      files: [
+        entry('JPEG_20261119_101400_111.jpg', 'file', EARLIER, 2048),
+        entry('JPEG_20261119_101530_222.jpg', 'file', STARTED_AT - 500, 2048),
+      ],
+    });
+    expect((await readCameraPhotoSince(openedAt))?.name).toBe('JPEG_20261119_101530_222.jpg');
+  });
+
+  it('finds no camera photo when the camera left only an empty file', async () => {
+    filesystem.readdir.mockResolvedValue({
+      files: [
+        entry('JPEG_20261119_101400_111.jpg', 'file', EARLIER, 2048),
+        entry('JPEG_20261119_101540_222.jpg', 'file', STARTED_AT + 10_000, 0),
+      ],
+    });
+
+    await expect(readCameraPhotoSince(STARTED_AT)).resolves.toBeNull();
+    expect(filesystem.readFile).not.toHaveBeenCalled();
   });
 });

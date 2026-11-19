@@ -17,9 +17,10 @@ import {
   AlertDialogTrigger,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { useRestoredCapture } from '@/features/mobile/camera-restore';
 import { useFormat } from '@/lib/format';
 import { MaintenanceAttachmentsDialog } from './maintenance-attachments';
-import { MaintenanceFormDialog } from './maintenance-form';
+import { MaintenanceFormDialog, type RestoredDraft } from './maintenance-form';
 import { maintenanceQuery, useDeleteMaintenance } from './queries';
 import {
   availableCategories,
@@ -33,7 +34,11 @@ import {
 const chipClassName =
   'min-h-9 rounded-full border px-4 py-1.5 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground aria-pressed:border-transparent aria-pressed:bg-primary aria-pressed:text-primary-foreground';
 
-/** Maintenance timeline of a vehicle: category filter, records grouped by year, create, edit and delete. */
+/**
+ * Maintenance timeline of a vehicle: category filter, records grouped by year, create, edit and delete.
+ * A camera photo recovered after Android killed the app (`camera-restore`) reopens the invoices of its
+ * record, or the create form as it was, with the photo.
+ */
 export function MaintenanceSection({ vehicle }: { vehicle: Pick<Vehicle, 'id' | 'status'> }) {
   const { t } = useTranslation();
   const { data: records } = useSuspenseQuery(maintenanceQuery(vehicle.id));
@@ -43,6 +48,9 @@ export function MaintenanceSection({ vehicle }: { vehicle: Pick<Vehicle, 'id' | 
   // The record stays set after closing so the dialog can animate out.
   const [attachmentsFor, setAttachmentsFor] = useState<MaintenanceRecord>();
   const [attachmentsOpen, setAttachmentsOpen] = useState(false);
+  // A recovered camera photo, until its dialog closes.
+  const [restoredInvoice, setRestoredInvoice] = useState<File>();
+  const [restoredDraft, setRestoredDraft] = useState<RestoredDraft>();
   const categories = availableCategories(records);
   const filter = resolveFilter(selected, categories);
   // The selected category lost its last record: go back to "all" for good.
@@ -51,8 +59,31 @@ export function MaintenanceSection({ vehicle }: { vehicle: Pick<Vehicle, 'id' | 
 
   const openForm = (record?: MaintenanceRecord) => {
     setEditing(record);
+    setRestoredDraft(undefined);
     setFormOpen(true);
   };
+  const openAttachments = (record: MaintenanceRecord, restoredFile?: File) => {
+    setAttachmentsFor(record);
+    setRestoredInvoice(restoredFile);
+    setAttachmentsOpen(true);
+  };
+
+  useRestoredCapture(
+    (target) =>
+      target.vehicleId === vehicle.id &&
+      (target.kind === 'invoice-draft' ||
+        (target.kind === 'invoice' && records.some((record) => record.id === target.recordId))),
+    ({ target, file }) => {
+      if (target.kind === 'invoice-draft') {
+        setEditing(undefined);
+        setRestoredDraft({ draft: target.draft, file, lostInvoices: target.pendingCount > 0 });
+        setFormOpen(true);
+      } else if (target.kind === 'invoice') {
+        const record = records.find((candidate) => candidate.id === target.recordId);
+        if (record) openAttachments(record, file);
+      }
+    },
+  );
 
   return (
     <Card>
@@ -93,10 +124,7 @@ export function MaintenanceSection({ vehicle }: { vehicle: Pick<Vehicle, 'id' | 
                       vehicleId={vehicle.id}
                       record={record}
                       onEdit={() => openForm(record)}
-                      onAttachments={() => {
-                        setAttachmentsFor(record);
-                        setAttachmentsOpen(true);
-                      }}
+                      onAttachments={() => openAttachments(record)}
                     />
                   ))}
                 </ol>
@@ -109,14 +137,22 @@ export function MaintenanceSection({ vehicle }: { vehicle: Pick<Vehicle, 'id' | 
         vehicleId={vehicle.id}
         record={editing}
         open={formOpen}
-        onOpenChange={setFormOpen}
+        onOpenChange={(open) => {
+          setFormOpen(open);
+          if (!open) setRestoredDraft(undefined);
+        }}
+        restored={restoredDraft}
       />
       {attachmentsFor && (
         <MaintenanceAttachmentsDialog
           vehicleId={vehicle.id}
           record={attachmentsFor}
           open={attachmentsOpen}
-          onOpenChange={setAttachmentsOpen}
+          onOpenChange={(open) => {
+            setAttachmentsOpen(open);
+            if (!open) setRestoredInvoice(undefined);
+          }}
+          restoredFile={restoredInvoice}
         />
       )}
     </Card>

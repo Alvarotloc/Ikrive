@@ -72,3 +72,24 @@ test('documents the camera permission', () => {
   assert.match(doc, /files\/Pictures/);
   assert.match(doc, /la app las borra la siguiente vez que arranca/);
 });
+
+test('documents the camera photo recovery and the adb test', () => {
+  const doc = read('docs/mobile.md');
+  // Where the photo goes when Android kills the app with the camera open, and what is lost.
+  assert.match(doc, /\*\*Si Android cierra la app con la cámara abierta\.\*\*/);
+  for (const target of ['Foto del vehículo', 'Factura de un mantenimiento', 'Alta de un mantenimiento']) {
+    assert.ok(doc.includes(target), target);
+  }
+  assert.match(doc, /las otras facturas que ya habías añadido se pierden/i);
+  assert.match(doc, /No se ha podido recuperar la foto de la cámara/);
+  assert.match(doc, /La foto recuperada se queda en `Pictures` hasta el siguiente arranque/);
+  // The device test.
+  assert.match(doc, /### Probar en un dispositivo/);
+  assert.match(doc, /adb install -r app-debug\.apk/);
+  assert.match(doc, /adb shell am kill com\.ikrive\.app/);
+  assert.match(doc, /adb shell pidof com\.ikrive\.app/);
+  assert.match(doc, /adb shell ls \/sdcard\/Android\/data\/com\.ikrive\.app\/files\/Pictures/);
+  assert.match(doc, /con servidor y en el modo «En este teléfono»/);
+  assert.match(doc, /\*\*cancela\*\* la cámara/);
+  assert.match(doc, /adb shell dumpsys activity exit-info com\.ikrive\.app/);
+});

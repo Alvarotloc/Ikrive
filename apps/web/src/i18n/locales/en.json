@@ -127,7 +127,9 @@
   "camera": {
     "take": "Take photo",
     "input": "Take a photo with the camera",
-    "denied": "Ikrive isn't allowed to use the camera. Turn it on in Settings › Apps › Ikrive › Permissions, or choose an image or file you already have."
+    "denied": "Ikrive isn't allowed to use the camera. Turn it on in Settings › Apps › Ikrive › Permissions, or choose an image or file you already have.",
+    "restoreFailed": "The camera photo couldn't be recovered. Please take it again.",
+    "restoredLostInvoices": "We recovered the photo, but the other invoices you had added were lost. Please add them again."
   },
   "validation": {
     "required": "This field is required.",

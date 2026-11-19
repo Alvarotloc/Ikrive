@@ -3,6 +3,7 @@ import { useId, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CameraCaptureButton } from '@/components/camera-capture-button';
 import { Button } from '@/components/ui/button';
+import type { CaptureTarget } from '@/features/mobile/camera-restore';
 import { useCanCapture } from '@/lib/use-can-capture';
 import { ATTACHMENT_ACCEPT } from './attachments';
 
@@ -15,6 +16,8 @@ interface AttachmentPickerProps {
   /** An upload is in flight: the button says so. */
   busy?: boolean;
   onFiles: (files: File[]) => void;
+  /** Where a photo taken with «Take photo» goes, should Android kill the app with the camera open. */
+  restoreTarget?: () => CaptureTarget;
 }
 
 /**
@@ -22,7 +25,14 @@ interface AttachmentPickerProps {
  * touch device «Take photo» sits next to it; the photo goes through the same `onFiles`, so the same limits,
  * upload and errors apply.
  */
-export function AttachmentPicker({ context, maxUploadMb, disabled, busy, onFiles }: AttachmentPickerProps) {
+export function AttachmentPicker({
+  context,
+  maxUploadMb,
+  disabled,
+  busy,
+  onFiles,
+  restoreTarget,
+}: AttachmentPickerProps) {
   const { t } = useTranslation();
   const input = useRef<HTMLInputElement>(null);
   const helpId = useId();
@@ -67,6 +77,7 @@ export function AttachmentPicker({ context, maxUploadMb, disabled, busy, onFiles
             variant="outline"
             disabled={disabled}
             onFile={(file) => onFiles([file])}
+            restoreTarget={restoreTarget}
           />
         )}
       </div>
