@@ -2,7 +2,7 @@
 
 ## A. `packages/shared`
 
-- [x] T1 — Crear `packages/shared/src/domain/files.ts` con `detectAttachmentType` y `DetectedType` (sobre `Uint8Array`), `sanitizeFileName`, `MAX_FILE_NAME_LENGTH` y `detectPhotoFormat`/`PhotoFormat`; exportarlo desde `src/index.ts`. Cubre: R1, R2, R11.
+- [x] T1 — Crear `packages/shared/src/domain/files.ts` con `detectAttachmentType` y `DetectedType` (sobre `Uint8Array`), `sanitizeFileName`, `MAX_FILE_NAME_LENGTH` y `detectPhotoFormat`/`PhotoFormat`; exportarlo desde `src/index.ts`. Cubre: R1, R2, R11. _(Desde #71, AVIF se detecta como `'avif'`; el `null` es para HEIC.)_
 - [x] T2 — Tests en `packages/shared/src/domain/files.test.ts`: `detects PDF, JPEG, PNG and WebP by their signature`, `returns null for other contents`, `detects the photo formats the API accepts` (JPEG, PNG, WebP, GIF, TIFF; `null` para AVIF, BMP y texto), `keeps the base name of the declared file name` (rutas `/` y `\`, espacios, 255 caracteres sin partir pares sustitutos, vacío → `file.<ext>`). Cubre: R1, R2, R11.
 - [x] T3 — La API usa el código compartido: borrar `apps/api/src/lib/file-type.ts`; `attachments/service.ts` y `data-import/service.ts` importan `detectAttachmentType` y `sanitizeFileName` de `@ikrive/shared`; `apps/api/test/file-type.test.ts` importa de `@ikrive/shared` sin cambiar aserciones. `attachments.test.ts`, `vehicles.test.ts` y `data-import.test.ts` pasan sin cambiar aserciones. Cubre: R1, R2, R3.
 
