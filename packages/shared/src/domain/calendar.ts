@@ -9,7 +9,8 @@ export interface CalendarEvent {
   date: string;
   title: string;
   description: string;
-  url: string;
+  /** Vehicle page; absent when there is no web to link to (local mode of the native app). */
+  url?: string;
 }
 
 export interface ScheduleEventInput {
@@ -19,8 +20,11 @@ export interface ScheduleEventInput {
   >;
   /** `name` already resolved (alias, or make + model). */
   vehicle: { id: string; name: string };
-  /** Origin the vehicle page link is built on. */
-  baseUrl: string;
+  /**
+   * Origin the vehicle page link is built on, or null when there is no web to link to (local mode of the
+   * native app): then the event has neither the vehicle page line nor `url`.
+   */
+  baseUrl: string | null;
   locale: Locale;
   distanceUnit: DistanceUnit;
 }
@@ -50,20 +54,21 @@ export function scheduleCalendarEvent(input: ScheduleEventInput): CalendarEvent 
   const { schedule, vehicle, baseUrl, locale, distanceUnit } = input;
   if (!schedule.nextDueDate) return null;
   const texts = CALENDAR_EVENT_TEXTS[locale];
-  const url = `${originOf(baseUrl)}/vehicles/${encodeURIComponent(vehicle.id)}`;
+  const url =
+    baseUrl === null ? undefined : `${originOf(baseUrl)}/vehicles/${encodeURIComponent(vehicle.id)}`;
   const lines: string[] = [];
   if (schedule.nextDueOdometer != null) {
     const number = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 });
     lines.push(texts.dueAt(`${number.format(schedule.nextDueOdometer)} ${distanceUnit}`));
   }
   if (schedule.nextDueDateEstimated) lines.push(texts.estimated);
-  lines.push(`${texts.vehiclePage}: ${url}`);
+  if (url !== undefined) lines.push(`${texts.vehiclePage}: ${url}`);
   return {
     uid: `schedule-${schedule.id}@ikrive`,
     date: schedule.nextDueDate,
     title: `${schedule.title} · ${vehicle.name}`,
     description: lines.join('\n'),
-    url,
+    ...(url !== undefined && { url }),
   };
 }
 
@@ -167,7 +172,7 @@ export function toICalendar(events: readonly CalendarEvent[], options: { now: Da
       `DTEND;VALUE=DATE:${compactDate(addDays(event.date, 1))}`,
       `SUMMARY:${escapeText(event.title)}`,
       `DESCRIPTION:${escapeText(event.description)}`,
-      `URL:${event.url}`,
+      ...(event.url !== undefined ? [`URL:${event.url}`] : []),
       'END:VEVENT',
     );
   }
