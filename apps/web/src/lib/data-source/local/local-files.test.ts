@@ -44,6 +44,8 @@ const PDF = encode('%PDF-1.7\nfactura');
 const JPEG = concat([0xff, 0xd8, 0xff, 0xe0], 'jpeg');
 const PNG = concat([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], 'png');
 const GIF = concat('GIF89a', 'gif');
+const AVIF = concat([0, 0, 0, 0x1c], 'ftypavif', [0, 0, 0, 0], 'mif1avifmiaf');
+const HEIC = concat([0, 0, 0, 0x18], 'ftypheic', [0, 0, 0, 0], 'mif1heic');
 const CORRUPT_PNG = concat([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], CORRUPT);
 const CORRUPT_JPEG = concat([0xff, 0xd8, 0xff, 0xe0], CORRUPT);
 const TEXT = encode('just some text');
@@ -246,6 +248,16 @@ describe('local DataSource files', () => {
     expect((await local.vehicles.list('all'))[0]?.photoUrl).toBe(second.photoUrl);
   });
 
+  it('accepts an AVIF photo', async () => {
+    const created = await local.vehicles.create({ make: 'Seat', model: 'Ibiza' });
+
+    const vehicle = vehicleSchema.parse(await local.vehicles.setPhoto(created.id, file(AVIF, 'photo.avif')));
+
+    expect(images.requested).toEqual([1600]);
+    expect(store.keys()).toEqual([expect.stringMatching(/^vehicles\/[0-9a-f-]{36}\.webp$/)]);
+    expect(vehicle.photoUrl).not.toBeNull();
+  });
+
   it('rejects an unsupported photo with 400 and keeps the current one', async () => {
     const vehicle = await local.vehicles.setPhoto(
       (await local.vehicles.create({ make: 'Seat', model: 'Ibiza' })).id,
@@ -254,7 +266,7 @@ describe('local DataSource files', () => {
     const keys = store.keys();
     statements = [];
 
-    for (const data of [TEXT, PDF, CORRUPT_JPEG, new Uint8Array(0)]) {
+    for (const data of [TEXT, PDF, HEIC, CORRUPT_JPEG, new Uint8Array(0)]) {
       expect(await problemOf(local.vehicles.setPhoto(vehicle.id, file(data, 'photo.jpg')))).toEqual({
         type: 'about:blank',
         title: 'Bad Request',

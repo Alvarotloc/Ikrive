@@ -9,6 +9,7 @@ import {
   initialOdometerReading,
   type OdometerReading,
   odometerConflictMessage,
+  UNSUPPORTED_PHOTO_MESSAGE,
   updateVehicleSchema,
   type Vehicle,
   type VehicleStatus,
@@ -73,7 +74,6 @@ async function toDto(db: LocalDb, row: VehicleRow): Promise<Vehicle> {
 }
 
 const PHOTO_FOLDER = 'vehicles';
-const UNSUPPORTED_PHOTO = 'The file is not a supported image (JPEG, PNG, WebP, AVIF, GIF or TIFF)';
 
 /** `vehicles` of the local `DataSource`; the photo is recoded to WebP and kept in the local store. */
 export function localVehicles(db: LocalDb, { files, images }: LocalDeps): DataSource['vehicles'] {
@@ -154,9 +154,9 @@ export function localVehicles(db: LocalDb, { files, images }: LocalDeps): DataSo
       const vehicle = await requireVehicle(db, id);
       assertUploadSize(file);
       const data = await fileBytes(file);
-      if (!detectPhotoFormat(data)) throw badRequest(UNSUPPORTED_PHOTO);
+      if (!detectPhotoFormat(data)) throw badRequest(UNSUPPORTED_PHOTO_MESSAGE);
       const webp = await images.toWebpPhoto(data).catch(() => {
-        throw badRequest(UNSUPPORTED_PHOTO);
+        throw badRequest(UNSUPPORTED_PHOTO_MESSAGE);
       });
       assertWebp(webp);
       const key = await files.save(PHOTO_FOLDER, webp, 'webp');
