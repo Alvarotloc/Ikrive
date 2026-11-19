@@ -2,6 +2,7 @@ import { DEFAULT_USER_SETTINGS, type MaintenanceSchedule, scheduleCalendarEvent 
 import { screen, waitFor } from '@testing-library/react';
 import { Toaster, toast } from 'sonner';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { setLocalMode } from '@/lib/app-mode';
 import { mockApi, renderWithProviders, setServerMode } from '@/test/render';
 import { AddToCalendarMenu } from './add-to-calendar';
 
@@ -200,6 +201,43 @@ describe('AddToCalendarMenu', () => {
     await user.click(await screen.findByRole('menuitem', { name: 'Calendario del teléfono' }));
 
     expect(await screen.findByText('No se ha podido abrir el calendario del teléfono')).toBeInTheDocument();
+  });
+
+  it('local mode: Google and Outlook events have no vehicle page link', async () => {
+    vi.stubEnv('MODE', 'native');
+    setLocalMode(true);
+    const { user } = setup();
+    await user.click(trigger());
+
+    const google = await screen.findByRole('menuitem', { name: 'Google Calendar' });
+    const outlook = screen.getByRole('menuitem', { name: 'Outlook' });
+    const details = paramsOf(google.getAttribute('href')).details;
+    expect(details).toBe('Vence a los 135.000 km');
+    expect(paramsOf(outlook.getAttribute('href')).body).toBe('Vence a los 135.000 km');
+    for (const text of [details, paramsOf(outlook.getAttribute('href')).body]) {
+      expect(text).not.toContain('Ficha del vehículo');
+      expect(text).not.toContain('/vehicles/');
+    }
+  });
+
+  it('local mode: the phone calendar event has no vehicle page link', async () => {
+    vi.stubEnv('MODE', 'native');
+    setLocalMode(true);
+    nativeCalendar.createDeviceEvent.mockResolvedValue(undefined);
+    const { user } = setup();
+
+    await user.click(trigger());
+    await user.click(await screen.findByRole('menuitem', { name: 'Calendario del teléfono' }));
+
+    await waitFor(() => expect(nativeCalendar.createDeviceEvent).toHaveBeenCalledTimes(1));
+    const event = nativeCalendar.createDeviceEvent.mock.calls[0]?.[0];
+    expect(event).toEqual({
+      uid: 'schedule-s1@ikrive',
+      date: '2026-03-10',
+      title: 'Cambio de aceite · Renault Clio',
+      description: 'Vence a los 135.000 km',
+    });
+    expect(event).not.toHaveProperty('url');
   });
 
   it('explains why a schedule without date cannot be added', async () => {

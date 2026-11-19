@@ -738,3 +738,12 @@
 - **Revisión:** APPROVED a la primera (`progress/review_api-photo-avif.md`); avisos: HEIC end-to-end sintético (no hay codificador HEVC), `isAvif` no trata cajas `ftyp` con tamaño 0/1.
 - **Spec de #65:** a petición del humano, notas en `specs/mobile-local-files/` (requirements R11, design decisión 1 y fuera de alcance, tasks T2) que remiten a #71.
 - **Gate 2:** «merge» del humano → PR.
+
+## 2026-11-19 — #77 local-calendar-link
+
+- **Rama:** `feat/local-calendar-link` (`sdd: false`). Detectado al especificar #67: en modo local, «Añadir al calendario» metía en la descripción «Ficha del vehículo» con una URL a `https://localhost/vehicles/<id>`.
+- **Cambios:** `scheduleCalendarEvent` (`packages/shared/src/domain/calendar.ts`) acepta `baseUrl: null`: sin la línea ni `url`, y `toICalendar` no escribe `URL:`. Con cadena, el evento no cambia (la API sigue pasando `BASE_URL`, el feed no cambia). `add-to-calendar.tsx` pasa `null` cuando `isLocalMode()`; Google y Outlook también pierden el enlace en local.
+- **Tests:** shared (evento e iCal sin URL), web (dos casos en modo local: enlaces Google/Outlook y calendario del teléfono). Web 664. `pnpm harness --full` en verde (un fallo intermitente en web al cerrar, no reproducido en dos ejecuciones más).
+- **Revisión:** APPROVED a la primera (`progress/review_local-calendar-link.md`); avisos: el «iCal descargado» del acceptance no existe en modo local (solo se prueba en shared), tests de local solo en `es`.
+- **Specs:** notas en `specs/mobile-local-core/design.md` (riesgos) y `specs/mobile-local-reminders/design.md` (decisión 5) que remiten a #77.
+- **Gate 2:** «merge» del humano → PR.

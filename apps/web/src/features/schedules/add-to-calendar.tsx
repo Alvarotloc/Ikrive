@@ -21,6 +21,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { addToDeviceCalendar, downloadIcs } from '@/features/calendar/actions';
 import { vehicleTitle } from '@/features/vehicles/display';
+import { isLocalMode } from '@/lib/app-mode';
 import { useFormat } from '@/lib/format';
 import { isNativeApp } from '@/lib/platform';
 import { getServerUrl } from '@/lib/server';
@@ -56,7 +57,8 @@ export function AddToCalendarMenu({ schedule, vehicle }: AddToCalendarMenuProps)
     schedule,
     vehicle: { id: vehicle.id, name: vehicleTitle(vehicle) },
     // The web of the server (server mode, e.g. in the mobile app) or this one: a link that works elsewhere.
-    baseUrl: getServerUrl() ?? window.location.origin,
+    // Local mode has no web (the origin is the app's own `https://localhost`): no vehicle page link.
+    baseUrl: isLocalMode() ? null : (getServerUrl() ?? window.location.origin),
     locale: toLocale(i18n.language),
     distanceUnit: format.distanceUnit,
   });

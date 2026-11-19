@@ -92,6 +92,16 @@ describe('scheduleCalendarEvent', () => {
     );
   });
 
+  it('omits the vehicle page without a base URL (local mode)', () => {
+    const event = eventOf(input({ nextDueOdometer: 15_000, nextDueDateEstimated: true }, { baseUrl: null }));
+    expect(event).not.toHaveProperty('url');
+    expect(event.description).toBe(
+      'Vence a los 15.000 km\nFecha estimada a partir de los kilómetros recorridos',
+    );
+    expect(event.description).not.toMatch(/Ficha del vehículo|\/vehicles\//);
+    expect(eventOf(input({}, { baseUrl: null })).description).toBe('');
+  });
+
   it('returns null without a next due date', () => {
     expect(scheduleCalendarEvent(input({ nextDueDate: null, nextDueOdometer: 15_000 }))).toBeNull();
   });
@@ -169,6 +179,14 @@ describe('toICalendar', () => {
       'END:VCALENDAR',
       '',
     ]);
+  });
+
+  it('omits URL for an event without a vehicle page', () => {
+    const { url: _url, ...withoutUrl } = event;
+    const lines = unfold(toICalendar([withoutUrl], { now }));
+    expect(lines.filter((line) => line.startsWith('URL'))).toEqual([]);
+    expect(lines).toContain('DESCRIPTION:Vence a los 15.000 km');
+    expect(lines.at(-3)).toBe('END:VEVENT');
   });
 
   it('escapes text values', () => {
