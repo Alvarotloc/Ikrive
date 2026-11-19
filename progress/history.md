@@ -747,3 +747,15 @@
 - **Revisión:** APPROVED a la primera (`progress/review_local-calendar-link.md`); avisos: el «iCal descargado» del acceptance no existe en modo local (solo se prueba en shared), tests de local solo en `es`.
 - **Specs:** notas en `specs/mobile-local-core/design.md` (riesgos) y `specs/mobile-local-reminders/design.md` (decisión 5) que remiten a #77.
 - **Gate 2:** «merge» del humano → PR.
+
+## 2026-11-19 — #79 camera-photo-cleanup
+
+- **Rama:** `feat/camera-photo-cleanup` (`sdd: false`). Riesgo aceptado en Gate 1 de #73: Capacitor (`BridgeWebChromeClient`, `@capacitor/android` 8.6.0) deja cada foto de `capture` como `JPEG_<yyyyMMdd_HHmmss>_<n>.jpg` en `getExternalFilesDir(PICTURES)` y no la borra.
+- **Enfoque:** barrido al arrancar la app nativa (servidor y local). El `File` que recibe la página es un `content://` sobre ese fichero, así que no se borra nunca con la app abierta: una subida fallida conserva su foto hasta el siguiente arranque. Descartado borrar al volver a la app (volver de la cámara también cuenta) y tras cada subida (todos los caminos de subida).
+- **Cambios:** `removeCameraPhotos(startedAt)` en `lib/native-camera.ts` con `@capacitor/filesystem` (`Directory.External` + `Pictures`, sin permisos, sin Java nuevo); solo nombres de Capacitor; tolerante a fallos. `features/mobile/camera-photo-cleanup.ts` llamado desde `main.tsx` (en la web no carga nada). `docs/mobile.md` («Cámara»).
+- **Gate 2, ronda 2 (a petición del humano):** solo se borran fotos con `mtime` (ms, `File.lastModified()`) > 0 y anterior al inicio del segundo del arranque; sin `mtime` utilizable se conservan. Cierra la carrera de una foto hecha mientras corre el barrido.
+- **Tests:** `native-camera.test.ts` (+7, frontera del `mtime`), `camera-photo-cleanup.test.ts` (3, incluido que en la web no hace nada), `apps/mobile/test/docs.test.mjs`. Web 674, mobile 30. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED en ambas rondas (`progress/review_camera-photo-cleanup.md`).
+- **Prueba en dispositivo:** APK debug (JDK 21) con `adb install -r` en el HONOR. Checklist OK: 6 fotos antiguas borradas al abrir; servidor y local (`Pictures` vacía tras reiniciar, foto y factura intactas en servidor y en `files/uploads`); alta con factura en modo avión → «Algo ha ido mal», foto conservada con la app abierta y subida al reintentar «Guardar»; `otro.jpg` y un `JPEG_*` con `mtime` futuro conservados, uno de justo antes del arranque borrado; sin carpeta arranca sin errores; web sin cambios.
+- **Detectado al probar:** iAware (`LowMemQuick`) mata la app con SIGKILL cuando la cámara arranca en frío y se pierde la foto (3 veces) → #81 `camera-process-restore`. El diálogo de eliminar factura se desborda con nombres largos → #82 `dialog-long-names`.
+- **Gate 2:** «merge» del humano → PR.

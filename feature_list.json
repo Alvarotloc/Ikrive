@@ -1338,7 +1338,7 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": false,
-      "status": "ready_to_merge"
+      "status": "done"
     },
     {
       "id": 80,
