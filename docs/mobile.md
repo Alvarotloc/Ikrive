@@ -61,6 +61,12 @@ No hay app para iOS. Abre tu instancia en **Safari**, pulsa **Compartir › Aña
 - **Descargar** (una factura, el export en zip de «Descargar mis datos» o el informe de venta) abre la **hoja de compartir** de Android con el fichero y su nombre: desde ella lo guardas en Archivos o Drive, lo envías por correo o mensajería, etc. Si la cierras sin elegir nada, no pasa nada.
 - **Abrir una factura PDF** la muestra con el **visor** de PDF del sistema, fuera de la app; al volver, la app sigue donde estaba. Hace falta tener instalada una app que lea PDF (Google Drive, el visor del fabricante…); si no hay ninguna, la app avisa con «No se ha podido abrir el archivo».
 - **Cámara.** La foto del vehículo (al editarlo) y las facturas de un mantenimiento ofrecen **Hacer foto**, que abre la cámara del teléfono; la foto se sube igual que una imagen elegida, con los mismos límites y avisos, con servidor y en el modo «En este teléfono». La primera vez, Android pide permiso para usar la cámara. Si lo deniegas (o marcaste «No volver a preguntar»), la app avisa de que no tiene permiso y de que puedes activarlo en *Ajustes › Aplicaciones › Ikrive › Permisos*; mientras, **Elegir de la galería** y **Subir facturas** (**Añadir facturas** en el alta de un mantenimiento) siguen funcionando con imágenes y archivos ya guardados. Cada foto hecha así se guarda en la carpeta de la app (`Android/data/com.ikrive.app/files/Pictures`) mientras la app sigue abierta, para que puedas reintentar una subida que falló; la app las borra la siguiente vez que arranca.
+- **Si Android cierra la app con la cámara abierta.** Algunos móviles (por ejemplo, los HONOR y Huawei con poca memoria libre) cierran la app en cuanto se abre la cámara. Al pulsar **Hacer foto**, la app apunta en su almacenamiento privado a dónde va la foto; si al volver arranca de nuevo, recupera la foto de la carpeta de la cámara y la lleva a su sitio, con servidor y en el modo «En este teléfono»:
+  - **Foto del vehículo:** se abre la edición del vehículo y la foto se sube como siempre. Se pierden los cambios del formulario que no habías guardado.
+  - **Factura de un mantenimiento:** se abre la ficha del vehículo con las facturas de ese mantenimiento y la foto se sube.
+  - **Alta de un mantenimiento:** se abre el formulario con los campos como los dejaste y la foto como factura pendiente; no se guarda nada hasta que pulsas **Guardar**. Las otras facturas que ya habías añadido se pierden, y la app te avisa para que las vuelvas a añadir.
+
+  Si la sesión con el servidor ha caducado, la foto se recupera después de entrar. Si no se puede recuperar (cancelaste la cámara, el vehículo o el mantenimiento ya no existen, o cambiaste de modo), la app avisa con «No se ha podido recuperar la foto de la cámara» y no abre nada. La foto recuperada se queda en `Pictures` hasta el siguiente arranque, que la borra como las demás.
 
 La app no pide permisos de almacenamiento: los ficheros se preparan en su caché, que Android vacía cuando necesita espacio.
 
@@ -113,3 +119,16 @@ cd apps/mobile/android && ./gradlew assembleDebug  # app/build/outputs/apk/debug
 ```
 
 En cada PR que toca `apps/mobile`, `apps/web`, `packages/db`, el lockfile o `ci.yml`, el CI compila esta APK debug y la deja como artefacto `ikrive-debug-apk`.
+
+### Probar en un dispositivo
+
+Para comprobar la recuperación de la foto cuando Android cierra la app con la cámara abierta, con el móvil conectado por USB y la depuración activada:
+
+1. Instala la APK debug: `adb install -r app-debug.apk`.
+2. En cada destino (la foto del vehículo al editarlo, las facturas de un mantenimiento y el alta de un mantenimiento con algún campo relleno), pulsa **Hacer foto**. Con la cámara delante, cierra la app con `adb shell am kill com.ikrive.app` y comprueba con `adb shell pidof com.ikrive.app` que no queda proceso (sin salida).
+3. Haz la foto y acéptala. La app arranca de nuevo y la foto tiene que llegar a su sitio: subida en la foto del vehículo y en las facturas, y como factura pendiente en el alta, que se guarda con **Guardar**.
+4. Mira la carpeta de la cámara con `adb shell ls /sdcard/Android/data/com.ikrive.app/files/Pictures`: la foto sigue ahí hasta el siguiente arranque, que la borra.
+5. Repite los pasos con servidor y en el modo «En este teléfono».
+6. Repite el paso 2 y **cancela** la cámara en lugar de hacer la foto: al volver, la app avisa con «No se ha podido recuperar la foto de la cámara».
+
+Si la app no llega a cerrarse o se cierra por otro motivo, `adb shell dumpsys activity exit-info com.ikrive.app` muestra por qué terminó cada proceso.
