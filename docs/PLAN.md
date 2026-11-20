@@ -43,7 +43,7 @@ Ikrive es una aplicación open source y autoalojada (Docker) para gestionar tus 
 | 5. Repostajes y estadísticas | ✅ Hecha |
 | 6. Informe de venta | ✅ Hecha |
 | 7. Pulido y release v0.1.0 | ✅ Hecha |
-| 8. App móvil | ⏳ En curso |
+| 8. App móvil | ✅ Hecha |
 
 **Pendientes conocidos:**
 - Ninguno. La imagen se publica en `ghcr.io/alvarotloc/ikrive` al empujar un tag `v*` (`.github/workflows/release.yml`).
@@ -205,7 +205,7 @@ Los enums ya están definidos en `packages/shared/src/enums.ts`.
 
 ### Fase 8: app móvil
 - APK Android con Capacitor a partir de la misma SPA, inspirada en [openGym](https://github.com/DuarteSantos8/openGym): APK firmada en GitHub Releases con su `.sha256`, sin Play Store. En iPhone, la PWA (o compilar con Xcode por cuenta propia).
-- Usos nativos previstos: añadir los próximos mantenimientos al calendario del teléfono y notificaciones locales.
+- Usos nativos: añadir los próximos mantenimientos al calendario del teléfono y notificaciones locales (#52), y fotos con la cámara (#73).
 - **Decisión:** como en openGym, la primera pantalla ofrece dos modos y el usuario elige uno:
   - **Mi servidor:** cliente del servidor del usuario. Pide la URL del servidor y exige adaptar Better Auth y CORS a un origen nativo (`trustedOrigins` y, probablemente, sesión por token en vez de cookie).
   - **En este teléfono:** datos en una base de datos local (SQLite en el dispositivo), sin cuenta ni servidor.
@@ -239,6 +239,12 @@ Los enums ya están definidos en `packages/shared/src/enums.ts`.
   - **Enlaces públicos:** el modo local oculta «compartir enlace» del informe y el feed iCal; quedan la descarga del PDF del informe y «Añadir al calendario» nativo.
   - **Paso inverso (servidor → teléfono):** no por ahora; solo local → servidor con el zip de export/import.
   - **Motor y esquema:** SQLite nativo con `@capacitor-community/sqlite` (no WASM en el WebView, que Android puede desalojar). El esquema Drizzle pasa a un paquete compartido que usan la API y el móvil; en el dispositivo, driver `sqlite-proxy` y migraciones empaquetadas con Vite. Un usuario local sintético mantiene las FK a `user.id` y el esquema idéntico al del servidor.
+
+#### Después de v0.2.0 (v0.3.0)
+- **Cámara:** «Hacer foto» en la foto del vehículo y en las facturas (#73), limpieza de las fotos que deja Capacitor al arrancar (#79) y recuperación de la foto si Android mata la app con la cámara abierta (#81).
+- **Export local con poca memoria:** el zip se escribe en el dispositivo por partes (#75) y cada fichero se lee por rangos (#80).
+- **Arreglos:** fotos AVIF en la API y en local (#71), eventos de calendario sin el enlace a `localhost` en local (#77) y diálogos con nombres largos (#82).
+- Con esto la fase 8 queda cerrada. Quedan fuera, según las decisiones de la etapa 2: los enlaces públicos en modo local y el paso servidor → teléfono (importar un zip en el teléfono).
 
 ## Diseño
 

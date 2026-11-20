@@ -1388,6 +1388,23 @@
       ],
       "sdd": false,
       "status": "done"
+    },
+    {
+      "id": 83,
+      "name": "release-v0-3-0",
+      "phase": "8",
+      "title": "Release v0.3.0 y cierre de la fase 8",
+      "description": "Preparar la release v0.3.0 con todo lo integrado desde v0.2.0 (#71, #73, #75, #77, #79, #80, #81, #82): fotos con la cámara y su recuperación y limpieza, fotos AVIF, export local por streaming y por rangos, enlace del calendario en local y diálogos con nombres largos. Es minor y no parche porque hay funciones nuevas. Cierra la fase 8: todo lo previsto en docs/PLAN.md está hecho. Incluye CHANGELOG, versión de los package.json, estado de la fase en docs/PLAN.md y README. El tag v0.3.0 solo se sube con confirmación explícita del humano tras el merge.",
+      "acceptance": [
+        "CHANGELOG.md tiene la sección [0.3.0] con fecha, en formato Keep a Changelog, que recoge los cambios relevantes para el usuario desde v0.2.0 (Added/Changed/Fixed, agrupados por tema), y [Unreleased] queda vacío",
+        "Los enlaces de comparación del final de CHANGELOG.md (si existen) incluyen v0.3.0",
+        "La versión de todos los package.json del monorepo es 0.3.0",
+        "docs/PLAN.md marca la fase 8 como hecha; el README marca la app móvil como hecha, sin decir que quedan partes pendientes de la fase 8, y su línea de estado apunta a v0.3.0",
+        "docs/ y el README no contienen referencias desactualizadas a la versión ni presentan como futuro algo que ya existe",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
+      "status": "done"
     }
   ]
 }

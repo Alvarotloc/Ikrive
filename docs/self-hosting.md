@@ -47,7 +47,7 @@ Requisitos: Docker con el plugin `docker compose`.
 docker compose pull && docker compose up -d
 ```
 
-Descarga la última imagen y recrea el contenedor; las migraciones nuevas se aplican al arrancar. Haz antes una [copia del volumen](#copia-del-volumen-data). Para fijar una versión concreta en lugar de `latest`, cambia la etiqueta de `image` en `docker-compose.yml` (por ejemplo `ghcr.io/alvarotloc/ikrive:0.1.0` o `:0.1`).
+Descarga la última imagen y recrea el contenedor; las migraciones nuevas se aplican al arrancar. Haz antes una [copia del volumen](#copia-del-volumen-data). Para fijar una versión concreta en lugar de `latest`, cambia la etiqueta de `image` en `docker-compose.yml` (por ejemplo `ghcr.io/alvarotloc/ikrive:0.3.0` o `:0.3`).
 
 ## Variables de entorno
 
@@ -70,7 +70,7 @@ Se leen del `.env` (`env_file` en `docker-compose.yml`). Los booleanos admiten `
 | `HOST` | `0.0.0.0` | Interfaz en la que escucha el servidor. **Lo fija la imagen**: no lo cambies |
 | `DATA_DIR` | `./data` (`/data` en la imagen) | Carpeta de la base de datos y de los ficheros subidos. **Lo fija la imagen**: monta el volumen en `/data` en lugar de cambiarlo |
 | `WEB_DIST_DIR` | — (`/app/public` en la imagen) | Carpeta con la web compilada que sirve la API. **Lo fija la imagen**: no lo cambies |
-| `IKRIVE_VERSION` | `0.0.0-dev` (`0.0.0` en una imagen construida sin `--build-arg VERSION`) | Versión que muestra la instancia y que se guarda en los exports. **La fija la imagen** al construirse a partir del tag (por ejemplo `v0.1.0`); un `docker build` local sin `--build-arg VERSION=…` la deja en `0.0.0` |
+| `IKRIVE_VERSION` | `0.0.0-dev` (`0.0.0` en una imagen construida sin `--build-arg VERSION`) | Versión que muestra la instancia y que se guarda en los exports. **La fija la imagen** al construirse a partir del tag (por ejemplo `v0.3.0`); un `docker build` local sin `--build-arg VERSION=…` la deja en `0.0.0` |
 
 ## Copias de seguridad
 
