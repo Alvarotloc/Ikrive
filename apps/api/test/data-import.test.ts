@@ -381,25 +381,36 @@ const referencedPaths = (document: DataExport) =>
     ),
   ]);
 
+/** Size of the pieces `clientBuiltZip` feeds each file in. */
+const CLIENT_PIECE_BYTES = 64 * 1024;
+
 /**
  * A user's export zip built like the phone does in local mode: the shared builder and the streaming zip
- * writer, the files read one by one from `uploads/` and `data.json` last.
+ * writer, the files read one by one from `uploads/` in pieces and `data.json` last.
  */
 function clientBuiltZip(db: Db, dataDir: string, userId: string) {
   const rows = createDataExportRepository(db).load(userId);
   const settings = createSettingsService(createSettingsRepository(db)).get(userId);
   const chunks: Uint8Array[] = [];
   const zip = streamDataExportZip((chunk) => chunks.push(chunk));
-  const read = (key: string) => readFileSync(join(dataDir, 'uploads', key));
+  // Each file in pieces through an open entry, as the phone reads it by ranges.
+  const copy = (path: string, key: string) => {
+    const data = readFileSync(join(dataDir, 'uploads', key));
+    const entry = zip.openFile(path);
+    for (let offset = 0; offset < data.length; offset += CLIENT_PIECE_BYTES) {
+      entry.push(data.subarray(offset, offset + CLIENT_PIECE_BYTES));
+    }
+    entry.push(new Uint8Array(0), true);
+  };
   const attachmentIds = new Set<string>();
   for (const row of rows.attachments) {
-    zip.addFile(attachmentExportPath(row.id, row.mimeType), read(row.storageKey));
+    copy(attachmentExportPath(row.id, row.mimeType), row.storageKey);
     attachmentIds.add(row.id);
   }
   const photoVehicleIds = new Set<string>();
   for (const row of rows.vehicles) {
     if (row.photo === null) continue;
-    zip.addFile(photoExportPath(row.id), read(row.photo));
+    copy(photoExportPath(row.id), row.photo);
     photoVehicleIds.add(row.id);
   }
   const { document } = buildDataExport({
