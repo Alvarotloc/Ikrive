@@ -779,3 +779,14 @@
 - **Comprobación visual:** DOM replicado con el CSS compilado (Playwright, 360/1280 px, claro/oscuro): «Eliminar» pasa de 45–2874 px a 45–315 px dentro de la tarjeta. Prueba del humano en el HONOR con la APK debug: OK.
 - **Revisión:** APPROVED a la primera (`progress/review_dialog-long-names.md`); avisos: el test no cubre `Dialog` ni `sm:flex-wrap`; `attachment-viewer.tsx:57` conserva un `break-words` sobrante.
 - **Gate 2:** «merge» del humano → PR.
+
+## 2026-11-19 — #80 mobile-local-export-ranged-reads
+
+- **Rama:** `feat/mobile-local-export-ranged-reads` (`sdd: true`). Spec en `specs/mobile-local-export-ranged-reads/` (16 requirements, 12 tasks). Sigue a #75: el renderer del WebView llegaba a ~1,07 GB porque `native-storage.read` leía cada adjunto entero en base64.
+- **Verificado:** `@capacitor/filesystem` 8.1.5 hace lecturas por rango reales en Android (`skipNBytes` + lectura hasta `length`). Trampas evitadas: `length: 0` lee todo y un `offset` fuera de rango falla, así que el tamaño sale de `stat`.
+- **Cambios:** `openFile(path)` en `streamDataExportZip` (`packages/shared`, una entrada abierta a la vez; `push` en entrada cerrada también lanza). `readChunks(key, chunkBytes)` en `LocalFileStore`: dispositivo con `stat` + `readFile({ offset, length })` y error si el trozo no mide lo pedido; almacén en memoria con hook `onChunk`. Export local en trozos de `EXPORT_READ_BYTES` (256 KiB) con `flush()` por trozo; zip idéntico byte a byte al de #75.
+- **Gate 1:** aprobado sin cambios.
+- **Tests:** `data-export-zip.test.ts` (+3), `native-storage.test.ts` (+5), `local-export.test.ts` (+5, sustituye `keeps at most one file…`), `clientBuiltZip()` del import por trozos de 64 KiB. Web 715, api 373. `pnpm harness --full` en verde.
+- **Revisión:** APPROVED a la primera (`progress/review_mobile-local-export-ranged-reads.md`); avisos: sin test del `push` en entrada cerrada; el iterador no se cierra si falla la escritura (sin consecuencias).
+- **Prueba en dispositivo (T11):** HONOR, 450 MB en 24 PDF de 15–20 MB (~488 MB de zip). Pico del renderer 284 MB RSS / 205 MB PSS (frente a ~1,07 GB); app ≤ 379 MB RSS; 395 s (~30 % más lento que #75, por la concatenación de `readFull` en Kotlin); 40/40 entradas con sha256 correcto; import 201. Datos restaurados (copia en `~/ikrive-backups/2026-11-19-pre-80/`). Se mantiene 256 KiB; si la lentitud molesta, zip nativo o `fetch` de `convertFileSrc` como feature aparte.
+- **Gate 2:** «merge» del humano → PR.
