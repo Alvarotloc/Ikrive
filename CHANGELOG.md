@@ -6,6 +6,29 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-20
+
+Fotos con la cámara del móvil y export del modo «En este teléfono» con mucha menos memoria. Cierra la fase de la app móvil.
+
+### Added
+
+#### Cámara
+
+- **Hacer foto** en la foto del vehículo (con **Elegir de la galería** al lado) y en las facturas de un mantenimiento, también en su alta: abre la cámara y la foto se sube como una imagen elegida, con los mismos límites y avisos. Aparece en la app de Android, con servidor y en el modo «En este teléfono», y en la web desde un móvil o tableta.
+- En la app de Android, la primera vez se pide permiso para la cámara; si se deniega, la app explica cómo activarlo en los ajustes de Android y la galería y la subida de archivos siguen funcionando.
+- Si Android cierra la app mientras la cámara está abierta (pasa en algunos móviles con poca memoria libre), al volver la app recupera la foto y la lleva a su sitio: la foto del vehículo, las facturas del mantenimiento o el formulario de alta con los campos como estaban. En el alta se pierden las otras facturas pendientes, y la app avisa para volver a añadirlas; en la foto del vehículo, los cambios del formulario sin guardar. Si no se puede recuperar, avisa con «No se ha podido recuperar la foto de la cámara».
+- Las fotos que la cámara deja en la carpeta de la app se borran la siguiente vez que arranca; mientras está abierta se conservan para poder reintentar una subida que falló.
+
+### Changed
+
+- El export de «Descargar mis datos» en el modo «En este teléfono» se escribe en el teléfono por partes y lee cada foto y factura a trozos, en lugar de montar el zip entero en memoria. Así, exportar cientos de MB de facturas ya no exige tener el zip ni cada factura enteros en memoria, que en un móvil con poca RAM podía dejar la app sin memoria; el zip es el mismo y se importa igual en un servidor.
+
+### Fixed
+
+- Las fotos del vehículo en AVIF se aceptan, con servidor y en el teléfono; antes se rechazaban aunque el aviso de formatos las incluía. HEIC sigue sin admitirse.
+- En el modo «En este teléfono», los eventos de «Añadir al calendario» (Google, Outlook y calendario del teléfono) ya no incluyen un enlace a la ficha del vehículo que no abría nada fuera de la app.
+- Los diálogos con nombres largos sin espacios, como el de eliminar una factura hecha con la cámara, ya no se salen de la pantalla en el móvil: el nombre se parte en varias líneas.
+
 ## [0.2.0] - 2026-11-17
 
 App de Android con dos modos: conectada a tu servidor o con los datos solo en el teléfono.
@@ -108,6 +131,7 @@ Primera versión pública.
 - Guía de autoalojamiento ([docs/self-hosting.md](docs/self-hosting.md)): instalación, variables de entorno, copias de seguridad y exposición a internet.
 - Capturas del README generadas con Playwright (`pnpm screenshots`) y tests E2E contra el build de producción.
 
-[Unreleased]: https://github.com/alvarotloc/ikrive/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/alvarotloc/ikrive/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/alvarotloc/ikrive/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/alvarotloc/ikrive/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/alvarotloc/ikrive/releases/tag/v0.1.0
