@@ -2,7 +2,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MissingFileError } from '@/lib/data-source/local/files';
 import { createDeviceFileStore } from './native-storage';
 
-const plugin = vi.hoisted(() => ({ writeFile: vi.fn(), readFile: vi.fn(), deleteFile: vi.fn() }));
+const plugin = vi.hoisted(() => ({
+  writeFile: vi.fn(),
+  readFile: vi.fn(),
+  deleteFile: vi.fn(),
+  stat: vi.fn(),
+}));
 vi.mock('@capacitor/filesystem', () => ({ Directory: { Data: 'DATA' }, Filesystem: plugin }));
 // `native-files` (its base64 helper) imports these plugins.
 vi.mock('@capacitor/share', () => ({ Share: { share: vi.fn() } }));
@@ -14,7 +19,33 @@ afterEach(() => {
   plugin.writeFile.mockReset();
   plugin.readFile.mockReset();
   plugin.deleteFile.mockReset();
+  plugin.stat.mockReset();
 });
+
+interface RangeOptions {
+  offset: number;
+  length: number;
+}
+
+/** `stat` and a `readFile` that serves the asked range of `file` as base64, as the native plugin does. */
+function serveRanges(file: Uint8Array) {
+  plugin.stat.mockResolvedValue({ type: 'file', size: file.length });
+  plugin.readFile.mockImplementation(async ({ offset, length }: RangeOptions) => ({
+    data: Buffer.from(file.subarray(offset, offset + length)).toString('base64'),
+  }));
+}
+
+function sample(size: number): Uint8Array {
+  const file = new Uint8Array(size);
+  for (let i = 0; i < size; i++) file[i] = (i * 7) % 256;
+  return file;
+}
+
+async function collect(chunks: AsyncIterable<Uint8Array>): Promise<Uint8Array[]> {
+  const out: Uint8Array[] = [];
+  for await (const chunk of chunks) out.push(chunk);
+  return out;
+}
 
 describe('device file store', () => {
   it('writes under uploads in Directory.Data with a random key', async () => {
@@ -83,5 +114,92 @@ describe('device file store', () => {
 
     plugin.deleteFile.mockRejectedValue(new Error('Permission denied'));
     await expect(store.remove('vehicles/a.webp')).rejects.toThrow('Permission denied');
+  });
+
+  it('reads a file in ranges of at most the chunk size', async () => {
+    const chunkBytes = 256 * 1024;
+    const file = sample(600 * 1024 + 1);
+    serveRanges(file);
+    const store = createDeviceFileStore();
+
+    const chunks = await collect(store.readChunks('attachments/a.pdf', chunkBytes));
+
+    expect(plugin.stat).toHaveBeenCalledExactlyOnceWith({
+      path: 'uploads/attachments/a.pdf',
+      directory: 'DATA',
+    });
+    expect(plugin.readFile.mock.calls).toEqual([
+      [{ path: 'uploads/attachments/a.pdf', directory: 'DATA', offset: 0, length: chunkBytes }],
+      [{ path: 'uploads/attachments/a.pdf', directory: 'DATA', offset: 262144, length: chunkBytes }],
+      [
+        {
+          path: 'uploads/attachments/a.pdf',
+          directory: 'DATA',
+          offset: 524288,
+          length: file.length - 524288,
+        },
+      ],
+    ]);
+    for (const [options] of plugin.readFile.mock.calls as [RangeOptions][]) {
+      expect(options.length).toBeGreaterThanOrEqual(1);
+      expect(options.length).toBeLessThanOrEqual(chunkBytes);
+    }
+    expect(chunks.map((chunk) => chunk.length)).toEqual([chunkBytes, chunkBytes, file.length - 524288]);
+    expect(Buffer.concat(chunks).equals(Buffer.from(file))).toBe(true);
+  });
+
+  it('reads the next range only when asked', async () => {
+    serveRanges(sample(10));
+    const chunks = createDeviceFileStore().readChunks('attachments/a.pdf', 4)[Symbol.asyncIterator]();
+
+    expect(plugin.stat).not.toHaveBeenCalled();
+    expect(plugin.readFile).not.toHaveBeenCalled();
+    expect((await chunks.next()).value).toEqual(sample(10).subarray(0, 4));
+    expect(plugin.readFile).toHaveBeenCalledTimes(1);
+    expect((await chunks.next()).value).toEqual(sample(10).subarray(4, 8));
+    expect(plugin.readFile).toHaveBeenCalledTimes(2);
+    expect((await chunks.next()).value).toEqual(sample(10).subarray(8, 10));
+    expect(await chunks.next()).toEqual({ done: true, value: undefined });
+    expect(plugin.readFile).toHaveBeenCalledTimes(3);
+  });
+
+  it('rejects a missing file before the first range', async () => {
+    const store = createDeviceFileStore();
+
+    plugin.stat.mockRejectedValue(new Error('File does not exist'));
+    const missing = await collect(store.readChunks('vehicles/a.webp', 1024)).catch((error: unknown) => error);
+    expect(missing).toBeInstanceOf(MissingFileError);
+    expect(missing).toMatchObject({ key: 'vehicles/a.webp' });
+    expect(plugin.readFile).not.toHaveBeenCalled();
+
+    const denied = new Error('Permission denied');
+    plugin.stat.mockRejectedValue(denied);
+    await expect(collect(store.readChunks('vehicles/a.webp', 1024))).rejects.toBe(denied);
+  });
+
+  it('rejects a range of an unexpected size', async () => {
+    const file = sample(3000);
+    plugin.stat.mockResolvedValue({ type: 'file', size: file.length });
+    // A plugin that ignores the range returns the whole file.
+    plugin.readFile.mockResolvedValue({ data: Buffer.from(file).toString('base64') });
+
+    const error = await collect(createDeviceFileStore().readChunks('attachments/a.pdf', 1024)).catch(
+      (reason: unknown) => reason,
+    );
+
+    expect(error).toBeInstanceOf(Error);
+    expect(error).not.toBeInstanceOf(MissingFileError);
+    expect(error).toMatchObject({
+      message: 'Unexpected read of attachments/a.pdf: 3000 bytes instead of 1024',
+    });
+  });
+
+  it('reads an empty file without readFile', async () => {
+    plugin.stat.mockResolvedValue({ type: 'file', size: 0 });
+
+    const chunks = await collect(createDeviceFileStore().readChunks('attachments/a.pdf', 1024));
+
+    expect(chunks).toEqual([]);
+    expect(plugin.readFile).not.toHaveBeenCalled();
   });
 });

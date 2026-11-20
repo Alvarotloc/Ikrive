@@ -10,6 +10,12 @@ export interface LocalFileStore {
   save(folder: 'attachments' | 'vehicles', data: Uint8Array, extension: string): Promise<string>;
   /** Rejects with `MissingFileError` when there is no file under `key`, with the store's error otherwise. */
   read(key: string, mimeType: string): Promise<Blob>;
+  /**
+   * The file of `key` in order, in pieces of at most `chunkBytes`, each one read only when asked for (the
+   * data export, so a whole file is never in memory). The first `next()` rejects with `MissingFileError`
+   * when there is no file under `key`, with the store's error otherwise.
+   */
+  readChunks(key: string, chunkBytes: number): AsyncIterable<Uint8Array>;
   /** No-op when the file does not exist. */
   remove(key: string): Promise<void>;
 }

@@ -1,4 +1,13 @@
-import { type DataExport, dataExportSchema, type Problem, todayIn } from '@ikrive/shared';
+import {
+  attachmentExportPath,
+  buildDataExport,
+  type DataExport,
+  dataExportSchema,
+  type Problem,
+  photoExportPath,
+  todayIn,
+} from '@ikrive/shared';
+import { createDataExportZip } from '@ikrive/shared/data-export-zip';
 import { strFromU8, unzipSync } from 'fflate';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/lib/api-client';
@@ -7,7 +16,7 @@ import { createMeasuringExportSink, type MeasuringExportSink } from '@/test/meas
 import { createMemoryFileStore, type MemoryFileStore } from '@/test/memory-file-store';
 import { createMemorySqlite } from '@/test/memory-sqlite';
 import type { DataSource, DownloadedFile } from '../types';
-import { LOCAL_APP_VERSION } from './data-export';
+import { EXPORT_READ_BYTES, LOCAL_APP_VERSION, loadLocalExportRows } from './data-export';
 import { createLocalDataSource, type LocalDb, openLocalDatabase } from './index';
 
 let db: LocalDb;
@@ -242,8 +251,8 @@ describe('local data export to a device target', () => {
     device = createLocalDataSource(db, { files: store, images: fakeImages(), exportSink: sink.open });
   });
 
-  /** A vehicle with one maintenance record carrying `count` PDFs of 1 MiB. */
-  async function seedBigFiles(count: number) {
+  /** A vehicle (returned) with one maintenance record carrying `count` PDFs of `size` bytes. */
+  async function seedPdfs(count: number, size: number) {
     const vehicle = await local.vehicles.create({ make: 'Seat', model: 'Ibiza' });
     const record = await local.maintenance.create(vehicle.id, {
       date: '2024-03-01',
@@ -251,12 +260,13 @@ describe('local data export to a device target', () => {
       title: 'Cambio de aceite',
     });
     for (let i = 0; i < count; i++) {
-      await local.attachments.upload(vehicle.id, record.id, file(bigPdf(MIB, i + 1), `f${i}.pdf`));
+      await local.attachments.upload(vehicle.id, record.id, file(bigPdf(size, i + 1), `f${i}.pdf`));
     }
+    return vehicle;
   }
 
   it('writes each file to the sink before reading the next one', async () => {
-    await seedBigFiles(8);
+    await seedPdfs(8, MIB);
     const reads: { size: number; received: number }[] = [];
     store.onRead = (key) => {
       reads.push({ size: store.bytes(key)?.length ?? 0, received: sink.received });
@@ -273,21 +283,118 @@ describe('local data export to a device target', () => {
     expect(sink.received).toBeGreaterThan(8 * MIB);
   });
 
-  it('keeps at most one file read and not yet written', async () => {
-    await seedBigFiles(8);
+  it('reads each file in chunks and never whole', async () => {
+    const vehicle = await seedPdfs(2, MIB + 3);
+    await local.vehicles.setPhoto(vehicle.id, file(PNG, 'photo.png'));
+    const read = vi.spyOn(store, 'read');
+    const readChunks = store.readChunks.bind(store);
+    const asked: number[] = [];
+    const sizes: number[] = [];
+    store.readChunks = async function* (key, chunkBytes) {
+      asked.push(chunkBytes);
+      for await (const chunk of readChunks(key, chunkBytes)) {
+        sizes.push(chunk.length);
+        yield chunk;
+      }
+    };
+
+    await device.dataPortability.export();
+
+    expect(read).not.toHaveBeenCalled();
+    // Two PDFs and the photo.
+    expect(asked).toEqual([EXPORT_READ_BYTES, EXPORT_READ_BYTES, EXPORT_READ_BYTES]);
+    // Each PDF in 5 pieces (4 of 256 KiB and 3 bytes), the photo in one.
+    expect(sizes).toHaveLength(11);
+    for (const size of sizes) expect(size).toBeLessThanOrEqual(EXPORT_READ_BYTES);
+    expect(Math.max(...sizes)).toBe(EXPORT_READ_BYTES);
+  });
+
+  it('writes the pending pieces before reading the next chunk', async () => {
+    await seedPdfs(3, MIB);
+    const checks: { index: number; read: number; received: number }[] = [];
+    store.onChunk = (_key, index) => {
+      checks.push({ index, read: store.bytesRead, received: sink.received });
+    };
+
+    await device.dataPortability.export();
+
+    expect(checks.filter((check) => check.index > 0)).toHaveLength(9);
+    // Everything served so far (every earlier chunk) is already on disk, with its zip headers.
+    for (const check of checks) expect(check.received).toBeGreaterThanOrEqual(check.read);
+  });
+
+  it('keeps at most two chunks read and not yet written', async () => {
+    await seedPdfs(3, 4 * MIB);
     let held = 0;
     const measure = () => {
       held = Math.max(held, store.bytesRead - sink.received);
     };
     store.onRead = measure;
+    store.onChunk = measure;
     sink.onWrite = measure;
 
     await device.dataPortability.export();
 
-    expect(store.bytesRead).toBe(8 * MIB);
-    expect(sink.received).toBeGreaterThan(8 * MIB);
+    expect(store.bytesRead).toBe(12 * MIB);
+    expect(sink.received).toBeGreaterThan(12 * MIB);
     expect(held).toBeGreaterThan(0);
-    expect(held).toBeLessThanOrEqual(MIB);
+    // Whole reads would hold a file of 4 MiB.
+    expect(held).toBeLessThanOrEqual(2 * EXPORT_READ_BYTES);
+  });
+
+  it('writes the same zip as one built from whole files', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-03-01T10:00:00Z'));
+    await seed();
+    await seedPdfs(2, MIB + 3);
+
+    await device.dataPortability.export();
+
+    // #75's zip: each file whole through `addFile`, in the same order, and the same document.
+    const rows = await loadLocalExportRows(db);
+    const zip = createDataExportZip();
+    const attachmentIds = new Set<string>();
+    for (const row of rows.attachments) {
+      zip.addFile(
+        attachmentExportPath(row.id, row.mimeType),
+        store.bytes(row.storageKey) ?? new Uint8Array(),
+      );
+      attachmentIds.add(row.id);
+    }
+    const photoVehicleIds = new Set<string>();
+    for (const row of rows.vehicles) {
+      if (row.photo === null) continue;
+      zip.addFile(photoExportPath(row.id), store.bytes(row.photo) ?? new Uint8Array());
+      photoVehicleIds.add(row.id);
+    }
+    const { document } = buildDataExport({
+      rows,
+      settings: await local.settings.get(),
+      appVersion: LOCAL_APP_VERSION,
+      exportedAt: new Date(),
+      present: { attachmentIds, photoVehicleIds },
+    });
+    const whole = new Uint8Array(await new Blob(zip.finish(document)).arrayBuffer());
+
+    expect(attachmentIds.size).toBe(4);
+    expect(photoVehicleIds.size).toBe(1);
+    expect(sink.written()).toEqual(whole);
+  });
+
+  it('rejects with a 500 and aborts the sink when a file fails mid-read', async () => {
+    await seedPdfs(1, MIB);
+    store.onChunk = (_key, index) => {
+      if (index === 1) throw new Error('I/O error');
+    };
+
+    expect(await problemOf(device.dataPortability.export())).toEqual({
+      type: 'about:blank',
+      title: 'Internal Server Error',
+      status: 500,
+      detail: 'Could not read a file of the export',
+    });
+    expect(sink.aborted).toBe(true);
+    expect(sink.events).not.toContain('close');
   });
 
   it('writes the same zip as the in-memory export', async () => {

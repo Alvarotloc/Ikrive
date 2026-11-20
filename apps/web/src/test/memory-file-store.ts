@@ -10,10 +10,12 @@ export interface MemoryFileStore extends LocalFileStore {
   bytes(key: string): Uint8Array | undefined;
   /** Operations that reject from now on, to simulate a failing device. */
   failOn: Set<FileStoreOperation>;
-  /** Bytes returned by `read` so far: what has been loaded in memory from the store. */
+  /** Bytes returned by `read` and `readChunks` so far: what has been loaded in memory from the store. */
   readonly bytesRead: number;
-  /** Called with the key of every `read`, before it is served. */
+  /** Called with the key of every `read` and `readChunks`, before it is served (once per file). */
   onRead: ((key: string) => void) | null;
+  /** Called before serving each piece of a `readChunks` (`index` from 0); a `throw` fails that read. */
+  onChunk: ((key: string, index: number) => void) | null;
 }
 
 /** A `LocalFileStore` over a `Map<key, bytes>`, with the same random keys as the device store. */
@@ -30,6 +32,7 @@ export function createMemoryFileStore(): MemoryFileStore {
       return bytesRead;
     },
     onRead: null,
+    onChunk: null,
     keys: () => [...files.keys()].sort(),
     bytes: (key) => files.get(key),
     async save(folder, data, extension) {
@@ -45,6 +48,18 @@ export function createMemoryFileStore(): MemoryFileStore {
       if (!data) throw new MissingFileError(key);
       bytesRead += data.length;
       return new Blob([data.slice()], { type: mimeType });
+    },
+    async *readChunks(key, chunkBytes) {
+      check('read');
+      store.onRead?.(key);
+      const data = files.get(key);
+      if (!data) throw new MissingFileError(key);
+      for (let offset = 0, index = 0; offset < data.length; offset += chunkBytes, index++) {
+        store.onChunk?.(key, index);
+        const chunk = data.slice(offset, offset + chunkBytes);
+        bytesRead += chunk.length;
+        yield chunk;
+      }
     },
     async remove(key) {
       check('remove');
