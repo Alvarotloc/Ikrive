@@ -105,3 +105,84 @@ describe('streamDataExportZip', () => {
     expect(concat(received)).toEqual(concat(collected.finish(document)));
   });
 });
+
+describe('streamDataExportZip openFile', () => {
+  it('streams each piece of an open file before push returns', () => {
+    const received: Uint8Array[] = [];
+    const zip = streamDataExportZip((chunk) => received.push(chunk));
+    const path = 'attachments/a1.pdf';
+    const first = new Uint8Array(1000).fill(1);
+    const second = new Uint8Array(500).fill(2);
+    const entry = zip.openFile(path);
+
+    entry.push(first);
+    const header = 30 + path.length;
+    const afterFirst = concat(received);
+    expect(afterFirst.length).toBe(header + first.length);
+    expect(afterFirst.subarray(header)).toEqual(first);
+
+    entry.push(second);
+    const afterSecond = concat(received);
+    expect(afterSecond.length).toBe(header + first.length + second.length);
+    expect(afterSecond.subarray(header + first.length)).toEqual(second);
+
+    const beforeFinal = afterSecond.length;
+    entry.push(new Uint8Array(0), true);
+    // The data descriptor (CRC and sizes) goes out with the final push.
+    expect(concat(received).length).toBeGreaterThan(beforeFinal);
+
+    zip.finish(document);
+    expect(readEntries(received).get(path)).toEqual({ compression: 0, data: concat([first, second]) });
+  });
+
+  it('streams the same bytes for a file pushed in pieces as with addFile', () => {
+    const piece = 256 * 1024;
+    const pdf = new Uint8Array(1024 * 1024 + 3);
+    for (let i = 0; i < pdf.length; i++) pdf[i] = (i * 31) % 251;
+    const empty = new Uint8Array(0);
+
+    const whole: Uint8Array[] = [];
+    const wholeZip = streamDataExportZip((chunk) => whole.push(chunk));
+    wholeZip.addFile('attachments/a1.pdf', pdf);
+    wholeZip.addFile('photos/v1.webp', empty);
+    wholeZip.finish(document);
+
+    const pieces: Uint8Array[] = [];
+    const piecesZip = streamDataExportZip((chunk) => pieces.push(chunk));
+    const entry = piecesZip.openFile('attachments/a1.pdf');
+    for (let offset = 0; offset < pdf.length; offset += piece) {
+      entry.push(pdf.subarray(offset, offset + piece));
+    }
+    entry.push(new Uint8Array(0), true);
+    piecesZip.openFile('photos/v1.webp').push(new Uint8Array(0), true);
+    piecesZip.finish(document);
+
+    expect(concat(pieces)).toEqual(concat(whole));
+    const entries = readEntries(pieces);
+    expect(entries.get('attachments/a1.pdf')?.data).toEqual(pdf);
+    expect(entries.get('photos/v1.webp')?.data).toEqual(empty);
+  });
+
+  it('throws when an entry is still open', () => {
+    const received: Uint8Array[] = [];
+    const zip = streamDataExportZip((chunk) => received.push(chunk));
+    const entry = zip.openFile('attachments/a1.pdf');
+
+    expect(() => zip.openFile('attachments/a2.pdf')).toThrow('Another zip entry is still open');
+    expect(() => zip.addFile('attachments/a2.pdf', new Uint8Array([1, 2, 3]))).toThrow(
+      'Another zip entry is still open',
+    );
+    expect(() => zip.finish(document)).toThrow('Another zip entry is still open');
+    expect(received).toEqual([]);
+
+    // Once closed, the zip goes on as usual.
+    entry.push(new Uint8Array([4, 5]), true);
+    zip.addFile('attachments/a2.pdf', new Uint8Array([1, 2, 3]));
+    zip.finish(document);
+    expect([...readEntries(received).keys()]).toEqual([
+      'attachments/a1.pdf',
+      'attachments/a2.pdf',
+      'data.json',
+    ]);
+  });
+});
