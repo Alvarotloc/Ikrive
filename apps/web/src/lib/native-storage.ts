@@ -39,6 +39,30 @@ export function createDeviceFileStore(): LocalFileStore {
       return new Blob([bytes], { type: mimeType });
     },
 
+    /**
+     * Ranges of `readFile` (`offset`/`length`, native only): the plugin skips to `offset` and reads up to
+     * `length`, so only that piece is ever in base64. The size comes from `stat` because `length: 0` reads
+     * the whole file and an `offset` past the end fails, so neither is ever asked for.
+     */
+    async *readChunks(key, chunkBytes) {
+      const path = pathOf(key);
+      const { size } = await Filesystem.stat({ path, directory: Directory.Data }).catch((error: unknown) => {
+        throw isMissingFile(error) ? new MissingFileError(key) : error;
+      });
+      for (let offset = 0; offset < size; ) {
+        const length = Math.min(chunkBytes, size - offset);
+        const { data } = await Filesystem.readFile({ path, directory: Directory.Data, offset, length });
+        const bytes =
+          typeof data === 'string' ? base64ToBytes(data) : new Uint8Array(await data.arrayBuffer());
+        // A plugin that ignored the range (its web version does) would give a corrupt zip.
+        if (bytes.length !== length) {
+          throw new Error(`Unexpected read of ${key}: ${bytes.length} bytes instead of ${length}`);
+        }
+        yield bytes;
+        offset += length;
+      }
+    },
+
     async remove(key) {
       try {
         await Filesystem.deleteFile({ path: pathOf(key), directory: Directory.Data });
