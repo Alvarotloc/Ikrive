@@ -790,3 +790,12 @@
 - **Revisión:** APPROVED a la primera (`progress/review_mobile-local-export-ranged-reads.md`); avisos: sin test del `push` en entrada cerrada; el iterador no se cierra si falla la escritura (sin consecuencias).
 - **Prueba en dispositivo (T11):** HONOR, 450 MB en 24 PDF de 15–20 MB (~488 MB de zip). Pico del renderer 284 MB RSS / 205 MB PSS (frente a ~1,07 GB); app ≤ 379 MB RSS; 395 s (~30 % más lento que #75, por la concatenación de `readFull` en Kotlin); 40/40 entradas con sha256 correcto; import 201. Datos restaurados (copia en `~/ikrive-backups/2026-11-19-pre-80/`). Se mantiene 256 KiB; si la lentitud molesta, zip nativo o `fetch` de `convertFileSrc` como feature aparte.
 - **Gate 2:** «merge» del humano → PR.
+
+## 2026-11-20 — #83 release-v0-3-0
+
+- **Rama:** `feat/release-v0-3-0` (`sdd: false`). Release de lo integrado desde v0.2.0 (#71, #73, #75, #77, #79, #80, #81, #82) y cierre de la fase 8.
+- **Versión:** el humano pidió 0.2.1; el leader detectó que hay funciones nuevas (cámara, AVIF, recuperación de fotos) y el humano eligió 0.3.0.
+- **Cambios:** `CHANGELOG.md` `[0.3.0] - 2026-11-20` (Added/Changed/Fixed, enlaces de comparación), `0.3.0` en los 7 `package.json`, `docs/PLAN.md` (fase 8 ✅ y apartado «Después de v0.2.0»), README (estado v0.3.0, app móvil [x]), `docs/mobile.md` (#77 ya no es limitación; «no está» en vez de «todavía» para import y enlaces públicos en local) y ejemplos de `docs/self-hosting.md`.
+- **Revisión:** APPROVED en la segunda ronda (`progress/review_release-v0-3-0.md`). Ronda 1: el CHANGELOG afirmaba que antes de #75 Android cerraba la app al exportar, sin constancia; se reescribió como riesgo de memoria. Se añadieron las pérdidas al recuperar la foto (#81).
+- **Aviso:** un `pnpm harness --full` falló una vez y pasó en las cuatro siguientes sin cambios; test inestable sin identificar (no guardada la salida). Anotar cuál es si se repite.
+- **Gate 2:** «merge» del humano → PR. El tag `v0.3.0` se sube después, con confirmación explícita.
