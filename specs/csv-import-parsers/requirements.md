@@ -40,7 +40,7 @@ SI el formato de fecha no se puede resolver ENTONCES el sistema DEBE devolver `n
 CUANDO no hay `options.decimalSeparator` y las celdas numéricas importadas usan un solo separador, el sistema DEBE usarlo como separador decimal sin tener en cuenta las columnas no importadas.
 
 ## R11
-SI sin `options.decimalSeparator` las celdas numéricas importadas mezclan `.` y `,`, o un odómetro importado coincide con `^\d{1,3}([.,]\d{3})+$`, ENTONCES el sistema DEBE devolver `needs_options` con `decimalSeparator` en `missing` y sin filas.
+SI sin `options.decimalSeparator` las celdas numéricas importadas mezclan `.` y `,`, un odómetro importado coincide con `^\d{1,3}([.,]\d{3})+$`, o una cantidad, total, precio o coste importado tiene esa forma sin que otra celda importada demuestre que ese separador es decimal (`design.md`, «Cambios de Gate 2»), ENTONCES el sistema DEBE devolver `needs_options` con `decimalSeparator` en `missing` y sin filas.
 
 ## R12
 CUANDO lee un importe, el sistema DEBE ignorar un símbolo de moneda (`$`, `€`, `£`) y los espacios al principio o al final.
@@ -129,6 +129,18 @@ El repositorio DEBE incluir fixtures de Fuelio, Drivvo y LubeLogger escritos a m
 
 ## R37
 CUANDO devuelve `parsed`, el sistema DEBE indicar en `droppedFuelFields` si alguna fila `fuel` de `rows` traía en el origen notas (`notes`) o gasolinera (`station`) no vacías.
+
+## R38
+CUANDO compara un nombre de categoría con la tabla de `design.md`, el sistema DEBE aceptar también el plural de cada palabra de la tabla (`+s`, `+es` e `y` → `ies`).
+
+## R39
+SI en una fila combinada de Drivvo un combustible tiene el total vacío o 0 y el precio vacío o 0 ENTONCES el sistema DEBE devolver un error `missing_field` en `totalPrice` para esa fila.
+
+## R40
+SI en una fila combinada de Drivvo un combustible tiene volumen, precio o total negativos ENTONCES el sistema DEBE devolver un error `out_of_range` en el campo de ese valor para esa fila.
+
+## R41
+SI en una fila combinada de Drivvo un combustible tiene volumen 0 y total mayor que 0 ENTONCES el sistema DEBE devolver un error `out_of_range` en `quantity` para esa fila.
 
 ## Cobertura del acceptance
 

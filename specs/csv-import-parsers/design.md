@@ -210,6 +210,40 @@ Se suman cantidades y totales; `pricePerUnit` sale de `resolveFuelPrices({ quant
 7. Un fichero **sin ninguna fecha importada** (por ejemplo, solo filas en `skipped`) resuelve `ymd` en lugar de pedir `needs_options`: no hay fecha que interpretar y así se puede mostrar lo omitido.
 8. `City` de Fuelio cuenta como **gasolinera** para el aviso: es el único texto de ubicación del repostaje y `StationID` es solo un id. Como mucho, provoca un aviso de más.
 
+## Cambios de Gate 2
+
+Decididos por el humano tras la review. Prevalecen sobre lo anterior de este documento.
+
+### Miles en importes y cantidades (R11)
+
+La forma `^\d{1,3}([.,]\d{3})+$` **no basta** para preguntar: los exports reales de Drivvo traen decimales de tres cifras en precio, volumen y total (`6.199`, `10.881`, `61.833`), y preguntar siempre rompería su detección. Para cantidad, total, precio y coste, sin `options.decimalSeparator`:
+
+- Con **dos o más grupos** (`1,200,000`), la celda es de miles: `needs_options`.
+- Con **un grupo** (`1,200` o `10.881`), el separador solo se acepta como decimal si otra celda importada usa ese mismo separador con una parte final de longitud distinta de 3 (`58.89`, `9.5`). Si no hay ninguna: `needs_options`.
+- El odómetro mantiene su regla estricta: con esa forma, siempre `needs_options`.
+
+**Descartado: preguntar ante cualquier celda con esa forma.** Obligaría a contestar en casi todos los ficheros de Drivvo.
+
+### Plurales de categorías (R38)
+
+La tabla se amplía al compararla con `+s`, `+es` e `y` → `ies` (`frenos`, `tires`, `reparaciones`, `batteries`). Se generan las formas a partir de la tabla en lugar de recortar la palabra del fichero, para no crear coincidencias nuevas con palabras ajenas.
+
+### Combustible sin importe (R39)
+
+En una fila combinada, un combustible con total vacío o 0 y sin precio válido no tiene con qué calcularse: la fila da `missing_field` en lugar de contarlo como gratis.
+
+### Valores negativos al combinar combustibles (R40)
+
+El esquema de creación solo valida la suma, así que un negativo en un combustible se compensaría con los demás. Cada combustible se valida antes de sumar: volumen, precio o total negativos dan `out_of_range` en esa fila.
+
+### Volumen 0 con importe al combinar combustibles (R41)
+
+Un combustible con volumen 0 y total mayor que 0 sumaría dinero sin litros y encarecería el precio medio: la fila da `out_of_range` en `quantity`. Los huecos de relleno (`"",0,0,0,No`) no cambian, y un hueco con precio pero con volumen y total a 0 sigue como decidió el humano en Gate 2.
+
+### Tamaño de entrada
+
+El parser no limita el tamaño. Lo limitan quienes lo llaman, antes de leer el fichero: criterios añadidos a #85 y #86.
+
 ## Riesgos
 
 - **Formatos no verificados con un export reciente.** Proceden de código y ejemplos públicos (`progress/explore_csv-import-parsers_formatos.md`), no de una especificación. Una versión nueva puede cambiar columnas o marcadores. Mitigación: un cambio de columnas suele acabar en `unknown` o en errores por fila, y queda el genérico como salida. Conviene probar un export real de cada app antes de la release v0.4.0.
