@@ -1,0 +1,13 @@
+##Vehicle
+"Name","Make","Model"
+"Coche de prueba","Marca","Modelo"
+##Refuelling
+"Odometer (km)","Date","Fuel","Price / L","Total cost","Volume","Filled tank completely","Second fuel","Price / L","Total cost","Volume","Filled tank completely" 2,"Third fuel","Price / L","Total cost","Volume","Filled tank completely" 3,"Fuel efficiency","Gas station","Reason","Notes"
+20000,"2025-01-05 09:00:00","Gasoline",1.5,60,40,"Yes",,,,,,,,,,,"25.158 km/L","Gasolinera Ejemplo","","Nota inventada"
+20500,"2025-02-10 10:00:00","Gasoline",1.5,30,20,"No","LPG",0.8,16,20,"Yes",,,,,,"24.000 km/L","","",""
+##Expense
+"Odometer (km)","Date","Total cost","Type of expense","Local expense","Reason","Notes"
+20600,"2025-02-20 11:00:00",300,"Insurance","Aseguradora Ejemplo","","Poliza inventada"
+##Service
+"Odometer (km)","Date","Total cost","Type of service","Local service","Notes"
+21000,"2025-03-15 12:00:00",120.5,"Oil change","Taller Ejemplo","Notas del servicio"
