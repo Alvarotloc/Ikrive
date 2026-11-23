@@ -1420,7 +1420,7 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
-      "status": "in_progress"
+      "status": "done"
     },
     {
       "id": 85,
@@ -1434,6 +1434,7 @@
         "Las filas con conflicto de odómetro se informan por fila y no se guardan",
         "Importar en un vehículo de otro usuario responde 404",
         "El modo local aplica las mismas reglas, comprobado con tests del DataSource local",
+        "Un CSV por encima del tamaño máximo se rechaza antes de llamar al parser: la API responde 413 application/problem+json y el modo local devuelve un error equivalente",
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
@@ -1452,6 +1453,7 @@
         "Tests de componente cubren detección, mapeo, vista previa y resumen",
         "Todos los textos existen en es y en",
         "Si el CSV trae notas o gasolinera en los repostajes, la vista previa avisa de que esos datos no se importan",
+        "Si el fichero supera el tamaño máximo, el asistente lo indica y no lo lee ni lo procesa",
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
