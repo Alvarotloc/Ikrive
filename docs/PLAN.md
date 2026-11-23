@@ -44,6 +44,7 @@ Ikrive es una aplicación open source y autoalojada (Docker) para gestionar tus 
 | 6. Informe de venta | ✅ Hecha |
 | 7. Pulido y release v0.1.0 | ✅ Hecha |
 | 8. App móvil | ✅ Hecha |
+| 9. Adopción y gastos reales (v0.4.0) | ⏳ Pendiente |
 
 **Pendientes conocidos:**
 - Ninguno. La imagen se publica en `ghcr.io/alvarotloc/ikrive` al empujar un tag `v*` (`.github/workflows/release.yml`).
@@ -245,6 +246,16 @@ Los enums ya están definidos en `packages/shared/src/enums.ts`.
 - **Export local con poca memoria:** el zip se escribe en el dispositivo por partes (#75) y cada fichero se lee por rangos (#80).
 - **Arreglos:** fotos AVIF en la API y en local (#71), eventos de calendario sin el enlace a `localhost` en local (#77) y diálogos con nombres largos (#82).
 - Con esto la fase 8 queda cerrada. Quedan fuera, según las decisiones de la etapa 2: los enlaces públicos en modo local y el paso servidor → teléfono (importar un zip en el teléfono).
+
+### Fase 9: adopción y gastos reales
+Objetivo: que quien viene de otra app traiga su historial, que el coste total refleje lo que cuesta de verdad el vehículo y que Ikrive encaje en un homelab con login único. Cierra con la release v0.4.0.
+
+- **Importar desde otras apps:** CSV de Fuelio, Drivvo y LubeLogger, y CSV genérico con mapeo de columnas. Vista previa antes de guardar, sin duplicados al repetir la importación y con las reglas de odómetro de siempre. Features: `csv-import-parsers`, `csv-import-apply` y `csv-import-web`.
+- **Otros gastos:** seguro, impuesto de circulación, peajes, parking, multas y otros, incluidos en el coste total de propiedad y en el coste por km. Features: `vehicle-expenses-api` y `vehicle-expenses-web`.
+- **Documentos con caducidad:** póliza, permiso de circulación, ITV y otros, con adjunto, fecha de vencimiento y aviso por los canales existentes. Features: `vehicle-documents-api` y `vehicle-documents-web`.
+- **Login OIDC/SSO:** opcional y configurado por entorno, para Authentik, Authelia, Pocket ID, Keycloak y similares. Solo con servidor. Features: `oidc-login-api` y `oidc-login-web`.
+- **Modo «En este teléfono»:** importación, gastos y documentos funcionan también en local, y las tablas nuevas entran en el zip de export/import.
+- **Cierre:** `release-v0-4-0`.
 
 ## Diseño
 

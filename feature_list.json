@@ -1405,6 +1405,172 @@
       ],
       "sdd": false,
       "status": "done"
+    },
+    {
+      "id": 84,
+      "name": "csv-import-parsers",
+      "phase": "9",
+      "title": "Parsers de CSV de otras apps",
+      "description": "Funciones puras en packages/shared que detectan el formato y convierten un CSV de Fuelio, Drivvo, LubeLogger o uno genérico con mapeo de columnas a un modelo normalizado de lecturas de km, repostajes y mantenimientos. Sin persistencia ni UI.",
+      "acceptance": [
+        "Hay fixtures anonimizados de Fuelio, Drivvo y LubeLogger, y un test por formato comprueba su detección y las filas normalizadas",
+        "El CSV genérico se convierte con un mapeo explícito de columnas, formato de fecha y separador decimal",
+        "Una fila inválida se devuelve como error con su número de fila y no impide procesar las demás",
+        "Un CSV no reconocido devuelve un resultado de formato desconocido, sin lanzar excepción",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 85,
+      "name": "csv-import-apply",
+      "phase": "9",
+      "title": "Aplicar una importación CSV a un vehículo",
+      "description": "Guardar en un vehículo del usuario las filas normalizadas, en la API y en el DataSource local, con las mismas reglas de odómetro y de forma atómica.",
+      "acceptance": [
+        "Una petición de importación crea las lecturas, repostajes y mantenimientos en una única transacción",
+        "Importar dos veces el mismo fichero no crea duplicados y la respuesta los cuenta como omitidos",
+        "Las filas con conflicto de odómetro se informan por fila y no se guardan",
+        "Importar en un vehículo de otro usuario responde 404",
+        "El modo local aplica las mismas reglas, comprobado con tests del DataSource local",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 86,
+      "name": "csv-import-web",
+      "phase": "9",
+      "title": "Asistente de importación CSV",
+      "description": "Pantalla para elegir fichero y vehículo, confirmar el formato detectado o mapear columnas, revisar la vista previa e importar. Disponible con servidor y en local, en es/en.",
+      "acceptance": [
+        "Tras elegir un CSV se muestra el formato detectado y una vista previa con el recuento de filas válidas, duplicadas y con error",
+        "Con un CSV genérico, el botón de importar está desactivado hasta mapear las columnas obligatorias",
+        "Al terminar se muestra un resumen de creados, omitidos y errores",
+        "Tests de componente cubren detección, mapeo, vista previa y resumen",
+        "Todos los textos existen en es y en",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 87,
+      "name": "vehicle-expenses-api",
+      "phase": "9",
+      "title": "Otros gastos del vehículo: datos y API",
+      "description": "Tabla y CRUD de gastos (seguro, impuesto, peajes, parking, multas, otros) en la API y en el DataSource local, incluidos en export/import y en los cálculos de coste.",
+      "acceptance": [
+        "GET/POST/PATCH/DELETE de gastos por vehículo funcionan, y un gasto de otro usuario responde 404",
+        "El coste total de propiedad y el coste por km incluyen los gastos, con tests unitarios de las fórmulas en packages/shared",
+        "El zip de export/import conserva los gastos, y un zip antiguo sin gastos se sigue importando",
+        "El DataSource local ofrece las mismas operaciones y reglas",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 88,
+      "name": "vehicle-expenses-web",
+      "phase": "9",
+      "title": "Otros gastos del vehículo: interfaz",
+      "description": "Listado y formulario de gastos en la ficha del vehículo, y su desglose en estadísticas, con servidor y en local.",
+      "acceptance": [
+        "Desde la ficha se puede crear, editar y eliminar un gasto",
+        "El listado se puede filtrar por categoría",
+        "Las estadísticas muestran los gastos en el desglose por categoría y en el coste total",
+        "Tests de componente cubren formulario, listado y desglose",
+        "Todos los textos existen en es y en",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 89,
+      "name": "vehicle-documents-api",
+      "phase": "9",
+      "title": "Documentos con caducidad: datos, API y avisos",
+      "description": "Documentos del vehículo (póliza, permiso de circulación, ITV, otros) con adjunto opcional y fecha de vencimiento. Avisan con los recordatorios existentes en servidor y en local.",
+      "acceptance": [
+        "CRUD de documentos por vehículo con adjunto validado por MIME y MAX_UPLOAD_MB, y un documento de otro usuario responde 404",
+        "Un documento dentro de su plazo de aviso genera una única notificación in-app y se envía por los canales del usuario",
+        "Renovar la fecha de vencimiento permite un nuevo aviso",
+        "El modo local genera los mismos avisos con las mismas funciones puras",
+        "El zip de export/import conserva documentos y adjuntos, y un zip antiguo se sigue importando",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 90,
+      "name": "vehicle-documents-web",
+      "phase": "9",
+      "title": "Documentos con caducidad: interfaz",
+      "description": "Sección de documentos en la ficha del vehículo con estado de vigencia, adjunto (también con la cámara) y añadir al calendario.",
+      "acceptance": [
+        "Desde la ficha se puede crear, editar, renovar y eliminar un documento con su adjunto",
+        "Cada documento muestra si está vigente, próximo a caducar o caducado",
+        "«Añadir al calendario» genera un evento en la fecha de vencimiento",
+        "Tests de componente cubren formulario y estados de vigencia",
+        "Todos los textos existen en es y en",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 91,
+      "name": "oidc-login-api",
+      "phase": "9",
+      "title": "Login OIDC/SSO en la API",
+      "description": "Proveedor OIDC opcional configurado por entorno con Better Auth, compatible con DISABLE_SIGNUP y con la sesión por token de la app móvil.",
+      "acceptance": [
+        "Sin variables OIDC el comportamiento de login no cambia, y una configuración incompleta hace fallar el arranque con un mensaje claro",
+        "Con OIDC configurado, un test contra un proveedor simulado completa el flujo y crea una sesión",
+        "Con DISABLE_SIGNUP, un usuario OIDC sin cuenta previa es rechazado",
+        "Una cuenta solo se vincula por email si el proveedor lo declara verificado",
+        "Un endpoint público, accesible antes del login (GET /api/config requiere sesión), indica si OIDC está disponible y el nombre del proveedor, sin exponer secretos",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 92,
+      "name": "oidc-login-web",
+      "phase": "9",
+      "title": "Login OIDC/SSO en la web y la app",
+      "description": "Botón de entrar con el proveedor en el login, en la web y en el modo «Mi servidor» de la APK, y documentación de configuración.",
+      "acceptance": [
+        "El botón aparece solo si el servidor tiene OIDC activo y muestra el nombre del proveedor",
+        "El flujo funciona en la web y vuelve a la app Android en «Mi servidor» con sesión por token",
+        "Un error del proveedor vuelve al login con un mensaje comprensible",
+        "La guía de autoalojamiento documenta las variables y un ejemplo de proveedor",
+        "Todos los textos existen en es y en",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 93,
+      "name": "release-v0-4-0",
+      "phase": "9",
+      "title": "Release v0.4.0 y cierre de la fase 9",
+      "description": "CHANGELOG, versión de los package.json, estado de la fase en docs/PLAN.md y README. El tag v0.4.0 solo se sube con confirmación explícita del humano tras el merge.",
+      "acceptance": [
+        "CHANGELOG.md tiene la sección [0.4.0] con fecha y [Unreleased] queda vacío",
+        "La versión de todos los package.json del monorepo es 0.4.0",
+        "docs/PLAN.md marca la fase 9 como hecha y el README refleja las funciones nuevas",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
+      "status": "pending"
     }
   ]
 }
