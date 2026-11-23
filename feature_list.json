@@ -1420,7 +1420,7 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
-      "status": "pending"
+      "status": "in_progress"
     },
     {
       "id": 85,
@@ -1451,6 +1451,7 @@
         "Al terminar se muestra un resumen de creados, omitidos y errores",
         "Tests de componente cubren detección, mapeo, vista previa y resumen",
         "Todos los textos existen en es y en",
+        "Si el CSV trae notas o gasolinera en los repostajes, la vista previa avisa de que esos datos no se importan",
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
@@ -1467,6 +1468,7 @@
         "El coste total de propiedad y el coste por km incluyen los gastos, con tests unitarios de las fórmulas en packages/shared",
         "El zip de export/import conserva los gastos, y un zip antiguo sin gastos se sigue importando",
         "El DataSource local ofrece las mismas operaciones y reglas",
+        "La importación CSV crea como gastos las filas que #84 omite por no ser mantenimiento (## Costs de Fuelio, ##Expense de Drivvo e impuestos de LubeLogger), sin duplicados al repetir la importación y en servidor y en local",
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
