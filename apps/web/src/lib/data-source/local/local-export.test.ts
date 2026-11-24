@@ -11,6 +11,7 @@ import { createDataExportZip } from '@ikrive/shared/data-export-zip';
 import { strFromU8, unzipSync } from 'fflate';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/lib/api-client';
+import { expectSameBytes } from '@/test/bytes';
 import { fakeImages } from '@/test/fake-images';
 import { createMeasuringExportSink, type MeasuringExportSink } from '@/test/measuring-export-sink';
 import { createMemoryFileStore, type MemoryFileStore } from '@/test/memory-file-store';
@@ -378,7 +379,7 @@ describe('local data export to a device target', () => {
 
     expect(attachmentIds.size).toBe(4);
     expect(photoVehicleIds.size).toBe(1);
-    expect(sink.written()).toEqual(whole);
+    expectSameBytes(sink.written(), whole);
   });
 
   it('rejects with a 500 and aborts the sink when a file fails mid-read', async () => {

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { createDataExportZip, streamDataExportZip } from './data-export-zip';
 import { DATA_EXPORT_FORMAT_VERSION, type DataExport } from './schemas/data-export';
 import { DEFAULT_USER_SETTINGS } from './schemas/settings';
+import { expectSameBytes } from './test/bytes';
 
 interface Entry {
   /** 0 = stored, 8 = deflate. */
@@ -157,9 +158,10 @@ describe('streamDataExportZip openFile', () => {
     piecesZip.openFile('photos/v1.webp').push(new Uint8Array(0), true);
     piecesZip.finish(document);
 
-    expect(concat(pieces)).toEqual(concat(whole));
+    // ~1 MB each: `toEqual` would take seconds over them.
+    expectSameBytes(concat(pieces), concat(whole));
     const entries = readEntries(pieces);
-    expect(entries.get('attachments/a1.pdf')?.data).toEqual(pdf);
+    expectSameBytes(entries.get('attachments/a1.pdf')?.data, pdf);
     expect(entries.get('photos/v1.webp')?.data).toEqual(empty);
   });
 
