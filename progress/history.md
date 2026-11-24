@@ -811,3 +811,14 @@
 - **Tests:** `packages/shared` 274, web 715, api 373. `pnpm harness --full` en verde.
 - **Avisos:** con varios fallos en una fila solo se informa del primero; `Motes` cuenta como inspección. `apps/web/src/features/mobile/camera-restore-handler.test.tsx` es inestable: falló durante la implementación y en una pasada de `pnpm harness --full` al cerrar (no encuentra «Foto actualizada» a tiempo), y pasó en las seis siguientes sin cambios. Esta rama no toca `apps/`. Probable origen del fallo anotado en #83; conviene arreglarlo aparte.
 - **Gate 2:** «merge» del humano → PR.
+
+## 2026-11-24 — #94 slow-and-flaky-tests
+
+- **Rama:** `feat/slow-and-flaky-tests` (`sdd: false`, sin spec). Solo tests, helpers de test y `CONTRIBUTING.md`; ningún timeout subido.
+- **Zip:** `data-export-zip.test.ts` superó el timeout de 5 s en la CI del PR #83. Causa: `toEqual` sobre `Uint8Array` de ~1 MB (~1,6 s por comparación). Helper `expectSameBytes` (`src/test/bytes.ts` en shared y en web, duplicado a propósito): 3413 → 27 ms. Mismo patrón en `local-export.test.ts` (3884 → 81 ms) y `native-export.test.ts` (2141 → 83 ms).
+- **Cámara:** `camera-restore-handler.test.tsx` era el test inestable de #83 y #84. Causa: su primer `findByText` (1 s) cubría el arranque en frío de la app más la restauración, 450–930 ms bajo la carga de `pnpm -r test`. `renderApp` espera ahora al primer `onRendered` del router (afecta a 12 ficheros); ventana 121–213 ms.
+- **Evidencia:** 20/20 de ambos ficheros aislados y 20/20 con las tres suites en paralelo (`progress/impl_slow-and-flaky-tests.md`).
+- **Revisión:** APPROVED a la primera (`progress/review_slow-and-flaky-tests.md`). Avisos: `renderApp` espera hasta el timeout del test si la primera navegación no termina; exportar el helper de bytes desde shared si aparece un tercer uso.
+- **Backlog:** añadido #95 `slow-data-dir-test` (test de la API que arranca el servidor con `spawnSync`, ~3,6 s).
+- **Tests:** shared 279, web 720, api 373. `pnpm harness --full` en verde.
+- **Gate 2:** «merge» del humano → PR.

@@ -1590,7 +1590,22 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": false,
-      "status": "in_progress"
+      "status": "done"
+    },
+    {
+      "id": 95,
+      "name": "slow-data-dir-test",
+      "phase": "9",
+      "title": "Test lento de DATA_DIR sin permisos en la API",
+      "description": "apps/api/test/data-dir.test.ts › «makes the server exit with 1 and a single clear line instead of SQLITE_CANTOPEN» tarda ~3,6 s: lanza src/server.ts con spawnSync y tsx para comprobar que el servidor sale con código 1 y una sola línea clara si /data no tiene permisos de escritura. Tiene timeout propio de 40 s, así que hoy no rompe la CI, pero es el test más lento de la API y spawnSync bloquea el worker mientras dura. Detectado en #94.",
+      "acceptance": [
+        "Se mide en qué se va el tiempo (arranque de tsx, transformación de src/server.ts, carga de dependencias) y el informe lo documenta",
+        "El test sigue comprobando de extremo a extremo que el proceso del servidor sale con código 1, una sola línea en stderr con la ruta y el arreglo, y sin SQLITE_CANTOPEN",
+        "El test tarda menos de 1 s en local o, si no es posible sin perder la comprobación de extremo a extremo, el informe explica por qué y deja de bloquear el worker (spawn asíncrono)",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
+      "status": "pending"
     }
   ]
 }
