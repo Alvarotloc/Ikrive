@@ -1575,6 +1575,22 @@
       ],
       "sdd": false,
       "status": "pending"
+    },
+    {
+      "id": 94,
+      "name": "slow-and-flaky-tests",
+      "phase": "9",
+      "title": "Test lento del zip de exportación y test intermitente de la cámara",
+      "description": "Dos tests ponen la CI en rojo sin cambios en su código. 1) packages/shared/src/data-export-zip.test.ts › «streams the same bytes for a file pushed in pieces as with addFile» tarda ~3,4 s en local y superó el timeout de 5 s en la CI del PR #83: compara con toEqual tres arrays de ~1 MB byte a byte y genera el fichero con un bucle. 2) apps/web/src/features/mobile/camera-restore-handler.test.tsx › «restores a vehicle photo on the edit page after the app was killed» falla de forma intermitente porque no encuentra «Foto actualizada» a tiempo (falló 1 vez en pnpm harness --full al cerrar #84 y pasó 6/6 después; probablemente el mismo fallo sin identificar de la v0.3.0).",
+      "acceptance": [
+        "El test del zip conserva lo que comprueba (bytes idénticos entre openFile por trozos y addFile, varios trozos y trozo final parcial, entrada vacía) y tarda menos de 500 ms en local, sin subir su timeout",
+        "Se identifica la causa del fallo intermitente de camera-restore-handler.test.tsx y se corrige sin limitarse a subir timeouts; el informe la documenta",
+        "Si la causa afecta a otros tests con el mismo patrón, el arreglo se aplica en el helper común en lugar de test a test",
+        "camera-restore-handler.test.tsx y data-export-zip.test.ts pasan en 20 ejecuciones seguidas y el informe lo documenta",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
+      "status": "in_progress"
     }
   ]
 }
