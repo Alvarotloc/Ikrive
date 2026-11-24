@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { expectSameBytes } from '@/test/bytes';
 import { EXPORT_APPEND_BYTES, openDeviceExportSink, shareExportFile } from './native-export';
 
 /** `Directory.Cache` of the device: path → bytes, and every call made to the plugins. */
@@ -130,7 +131,7 @@ describe('device export sink', () => {
     const expected = new Uint8Array(first.length + second.length);
     expected.set(first);
     expected.set(second, first.length);
-    expect(device.disk.get(PATH)).toEqual(expected);
+    expectSameBytes(device.disk.get(PATH), expected);
     // Only the empty file was written in one call.
     expect(device.writeFile).toHaveBeenCalledOnce();
     expect(device.writeFile.mock.calls[0]?.[0]).toMatchObject({ data: '' });
