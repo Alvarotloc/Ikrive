@@ -4,6 +4,7 @@ import type {
   CalendarFeed,
   CalendarFeedSecret,
   ClientConfig,
+  CsvImportSummary,
   DataImportSummary,
   FuelLog,
   MaintenanceRecord,
@@ -28,6 +29,14 @@ import type { DataSource } from './types';
 /** The multipart body of an upload: the API takes a single `file` part, with the file's name. */
 const fileBody = (file: File) => {
   const body = new FormData();
+  body.append('file', file);
+  return body;
+};
+
+/** The multipart body of a CSV import: `options` (JSON) before `file`, so the API reads it first. */
+const csvImportBody = (file: File, options: object) => {
+  const body = new FormData();
+  body.append('options', JSON.stringify(options));
   body.append('file', file);
   return body;
 };
@@ -124,6 +133,10 @@ export const httpDataSource: DataSource = {
     get: () => api.get<CalendarFeed>(CALENDAR_FEED_PATH),
     enable: () => api.post<CalendarFeedSecret>(CALENDAR_FEED_PATH),
     disable: () => api.delete<void>(CALENDAR_FEED_PATH),
+  },
+  csvImport: {
+    import: (vehicleId, file, options = {}) =>
+      api.post<CsvImportSummary>(`/vehicles/${vehicleId}/csv-import`, csvImportBody(file, options)),
   },
   dataPortability: {
     import: (file) => api.post<DataImportSummary>('/me/import', fileBody(file)),
