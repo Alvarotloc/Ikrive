@@ -12,6 +12,8 @@ import type {
   CreateOdometerReading,
   CreateReportShare,
   CreateVehicleInput,
+  CsvImportRequestInput,
+  CsvImportSummary,
   DataImportSummary,
   FuelLog,
   MaintenanceRecord,
@@ -145,6 +147,14 @@ export interface DataSource {
     get(): Promise<CalendarFeed>;
     enable(): Promise<CalendarFeedSecret>;
     disable(): Promise<void>;
+  };
+  /** CSV import (Fuelio, Drivvo, LubeLogger or generic) into one vehicle. */
+  csvImport: {
+    /**
+     * Saves the rows of `file` that are not duplicates and do not contradict the odometer; with
+     * `options.dryRun`, only answers what would be saved.
+     */
+    import(vehicleId: string, file: File, options?: CsvImportRequestInput): Promise<CsvImportSummary>;
   };
   dataPortability: {
     import(file: File): Promise<DataImportSummary>;

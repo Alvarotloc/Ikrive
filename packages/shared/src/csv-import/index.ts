@@ -1,3 +1,11 @@
+export {
+  type CsvImportExisting,
+  type CsvImportPlan,
+  csvImportProblemErrors,
+  csvImportSummary,
+  decodeCsv,
+  planCsvImport,
+} from './apply';
 export { detectCsvFormat } from './detect';
 export { CSV_REQUIRED_COLUMNS } from './generic';
 export { csvRowKey } from './keys';

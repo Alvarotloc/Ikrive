@@ -37,6 +37,40 @@ describe('httpDataSource', () => {
     expect((body as FormData).get('file')).toHaveProperty('name', 'factura-taller.pdf');
   });
 
+  it('sends a CSV import as multipart with options before the file', async () => {
+    const summary = {
+      dryRun: true,
+      format: 'fuelio',
+      created: { odometer: 0, fuel: 2, maintenance: 1 },
+      duplicates: 0,
+      rejected: [],
+      errors: [],
+      skipped: [],
+      droppedFuelFields: { notes: false, station: false },
+      encodingReplaced: false,
+    };
+    const fetchMock = mockApi({ 'POST /vehicles/v1/csv-import': { status: 200, body: summary } });
+    const file = new File(['Date,Odometer\n'], 'fuelio.csv', { type: 'text/csv' });
+
+    await expect(
+      httpDataSource.csvImport.import('v1', file, { dryRun: true, dateFormat: 'dmy' }),
+    ).resolves.toEqual(summary);
+
+    const [url, init] = fetchMock.mock.calls[0] ?? [];
+    expect(String(url)).toBe('/api/vehicles/v1/csv-import');
+    expect(init?.method).toBe('POST');
+    const body = init?.body as FormData;
+    expect([...body.keys()]).toEqual(['options', 'file']);
+    expect(JSON.parse(String(body.get('options')))).toEqual({ dryRun: true, dateFormat: 'dmy' });
+    expect(body.get('file')).toBe(file);
+
+    // Without options the API still gets the `options` part, as `{}`.
+    await httpDataSource.csvImport.import('v1', file);
+    const second = fetchMock.mock.calls[1]?.[1]?.body as FormData;
+    expect([...second.keys()]).toEqual(['options', 'file']);
+    expect(second.get('options')).toBe('{}');
+  });
+
   it('rejects a non-2xx response with its ApiError problem', async () => {
     const problem = {
       type: 'about:blank',

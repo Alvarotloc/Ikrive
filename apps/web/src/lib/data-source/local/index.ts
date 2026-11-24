@@ -1,6 +1,7 @@
 import type { ClientConfig, Me } from '@ikrive/shared';
 import type { DataSource } from '../types';
 import { localAttachments } from './attachments';
+import { localCsvImport } from './csv-import';
 import { localDataPortability } from './data-export';
 import { LOCAL_USER, type LocalDb } from './database';
 import { LOCAL_MAX_UPLOAD_MB, type LocalDeps } from './files';
@@ -67,6 +68,7 @@ export function createLocalDataSource(db: LocalDb, deps: LocalDeps): DataSource 
     notifications: serialized(queue, localNotifications(db)),
     notificationChannels: { list: reject, create: reject, update: reject, remove: reject, test: reject },
     calendarFeed: { get: reject, enable: reject, disable: reject },
+    csvImport: serialized(queue, localCsvImport(db)),
     dataPortability: { import: reject, ...localDataPortability(db, deps, queue) },
     adminUsers: { list: reject, setRole: reject, disable: reject, enable: reject, remove: reject },
     files: localFiles(db, deps, queue),

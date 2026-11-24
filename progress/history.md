@@ -822,3 +822,12 @@
 - **Backlog:** añadido #95 `slow-data-dir-test` (test de la API que arranca el servidor con `spawnSync`, ~3,6 s).
 - **Tests:** shared 279, web 720, api 373. `pnpm harness --full` en verde.
 - **Gate 2:** «merge» del humano → PR.
+
+## 2026-11-24 — #85 csv-import-apply
+
+- **Rama:** `feat/csv-import-apply` (`sdd: true`). Spec en `specs/csv-import-apply/` (28 requirements, 25 tasks). Exploración en `progress/explore_csv-import-apply_{api,local}.md`.
+- **Cambios:** `planCsvImport`, `decodeCsv` y `csvImportSummary` en `@ikrive/shared/csv-import` (deduplicación por `csvRowKey` contra lo guardado y dentro del fichero, repostajes y mantenimientos antes que lecturas sueltas, conflicto de odómetro y fecha futura por fila). `POST /api/vehicles/:id/csv-import` (multipart, `options` antes de `file`, 201 / 200 con `dryRun`, 413 por encima de `CSV_IMPORT_MAX_BYTES` = 5 MiB antes de parsear, 404 de vehículo ajeno, una transacción). `csvImport.import` en el DataSource HTTP y local con las mismas reglas. Sin cambios de BD; lecturas sueltas como `manual`.
+- **Gate 1:** aprobado tras un cambio: `encodingReplaced` en el resumen si el fichero no es UTF-8 válido (R28, fixture Latin-1).
+- **Revisión:** APPROVED a la primera (`progress/review_csv-import-apply.md`). Avisos para #86/#87: R7 «del mismo fichero» solo probado en la función pura (ningún formato mezcla tipos; añadir e2e cuando #87 lo haga); `options` después de `file` se ignora en silencio; fallo de escritura local llega como error del motor, no `ApiError`; `rejected` va en orden de proceso, no de fila; mensaje de `unit_mismatch` omite unidades nulas del origen.
+- **Tests:** shared 292, web 731, api 391. `pnpm harness --full` en verde.
+- **Gate 2:** «merge» del humano → PR.

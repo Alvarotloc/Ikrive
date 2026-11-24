@@ -48,12 +48,14 @@ function fakeDataSource(overrides: {
   me?: DataSource['me'];
   vehicles?: Partial<DataSource['vehicles']>;
   files?: Partial<DataSource['files']>;
+  csvImport?: Partial<DataSource['csvImport']>;
 }): DataSource {
   return {
     ...httpDataSource,
     me: overrides.me ?? httpDataSource.me,
     vehicles: { ...httpDataSource.vehicles, ...overrides.vehicles },
     files: { ...httpDataSource.files, ...overrides.files },
+    csvImport: { ...httpDataSource.csvImport, ...overrides.csvImport },
   };
 }
 
