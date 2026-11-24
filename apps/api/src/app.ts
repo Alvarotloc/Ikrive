@@ -22,6 +22,9 @@ import { createCalendarRepository } from './modules/calendar/repository';
 import { calendarFeedRoutes, calendarFeedSettingsRoutes } from './modules/calendar/routes';
 import { createCalendarService } from './modules/calendar/service';
 import { clientConfigRoutes } from './modules/client-config/routes';
+import { createCsvImportRepository } from './modules/csv-import/repository';
+import { csvImportRoutes } from './modules/csv-import/routes';
+import { createCsvImportService } from './modules/csv-import/service';
 import { createDataExportRepository } from './modules/data-export/repository';
 import { dataExportRoutes } from './modules/data-export/routes';
 import { createDataExportService } from './modules/data-export/service';
@@ -130,6 +133,13 @@ export async function buildApp({ config, db, fetch = globalThis.fetch, logStream
     vehicles: vehiclesRepo,
     settings: settingsService,
   });
+  const csvImportService = createCsvImportService({
+    repo: createCsvImportRepository(db),
+    vehicles: vehiclesRepo,
+    fuelLogs: fuelLogsRepo,
+    maintenance: maintenanceRepo,
+    settings: settingsService,
+  });
   const statsService = createStatsService({
     vehicles: vehiclesRepo,
     fuelLogs: fuelLogsRepo,
@@ -217,6 +227,7 @@ export async function buildApp({ config, db, fetch = globalThis.fetch, logStream
       await api.register(vehiclesRoutes, { service: vehiclesService });
       await api.register(maintenanceRoutes, { service: maintenanceService });
       await api.register(fuelLogsRoutes, { service: fuelLogsService });
+      await api.register(csvImportRoutes, { service: csvImportService });
       await api.register(statsRoutes, { service: statsService });
       await api.register(reportsRoutes, { service: reportsService });
       await api.register(reportSharesRoutes, { service: reportSharesService });
