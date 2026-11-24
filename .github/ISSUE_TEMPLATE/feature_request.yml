@@ -1,0 +1,28 @@
+name: Feature request / Propuesta
+description: Suggest something new or a change. / Propón algo nuevo o un cambio.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        English or Spanish, both are fine. / Puedes escribir en inglés o en español.
+        Check the [roadmap](https://github.com/Alvarotloc/Ikrive#roadmap) and existing issues first. For open-ended ideas, [Discussions](https://github.com/Alvarotloc/Ikrive/discussions) is a better place. / Mira antes el [roadmap](https://github.com/Alvarotloc/Ikrive/blob/main/README.es.md#roadmap) y los issues abiertos. Para ideas abiertas, mejor en [Discussions](https://github.com/Alvarotloc/Ikrive/discussions).
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / Problema
+      description: What do you want to do that Ikrive does not let you do today? / ¿Qué quieres hacer que hoy Ikrive no te deja?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal / Propuesta
+      description: How would you like it to work? / ¿Cómo te gustaría que funcionara?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives / Alternativas
+      description: Workarounds you use today, or how other apps solve it. / Cómo lo resuelves hoy o cómo lo hacen otras apps.

@@ -1,0 +1,55 @@
+name: Bug report / Informe de fallo
+description: Something does not work as documented. / Algo no funciona como dice la documentación.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        English or Spanish, both are fine. / Puedes escribir en inglés o en español.
+        **Security issues:** do not open an issue, follow [SECURITY.md](https://github.com/Alvarotloc/Ikrive/blob/main/SECURITY.md). / **Fallos de seguridad:** no abras un issue, sigue [SECURITY.md](https://github.com/Alvarotloc/Ikrive/blob/main/SECURITY.md).
+  - type: input
+    id: version
+    attributes:
+      label: Version / Versión
+      description: Shown in Settings, or the image tag. / Aparece en Ajustes, o la etiqueta de la imagen.
+      placeholder: 0.3.0
+    validations:
+      required: true
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Where does it happen? / ¿Dónde ocurre?
+      multiple: true
+      options:
+        - Web (Docker)
+        - PWA
+        - Android app – My server / Mi servidor
+        - Android app – On this phone / En este teléfono
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce / Pasos para reproducirlo
+      placeholder: |
+        1. …
+        2. …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual behaviour / Qué esperabas y qué pasa
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Registros
+      description: Container logs (`docker compose logs ikrive`) or the browser console. Remove personal data. / Logs del contenedor (`docker compose logs ikrive`) o de la consola del navegador. Quita los datos personales.
+      render: text
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment / Entorno
+      description: Reverse proxy, browser, Android version… / Proxy inverso, navegador, versión de Android…

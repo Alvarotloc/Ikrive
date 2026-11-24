@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and ideas / Dudas e ideas
+    url: https://github.com/Alvarotloc/Ikrive/discussions
+    about: Installation help, usage questions and open-ended ideas. / Ayuda con la instalación, dudas de uso e ideas abiertas.
+  - name: Security vulnerability / Vulnerabilidad de seguridad
+    url: https://github.com/Alvarotloc/Ikrive/security/advisories/new
+    about: Report it privately, never in a public issue. / Infórmala en privado, nunca en un issue público.
