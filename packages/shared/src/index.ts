@@ -20,6 +20,7 @@ export * from './schemas/admin';
 export * from './schemas/attachments';
 export * from './schemas/calendar';
 export * from './schemas/common';
+export * from './schemas/csv-import';
 export * from './schemas/data-export';
 export * from './schemas/data-import';
 export * from './schemas/fuel-logs';
