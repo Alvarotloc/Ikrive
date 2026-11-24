@@ -799,3 +799,15 @@
 - **Revisión:** APPROVED en la segunda ronda (`progress/review_release-v0-3-0.md`). Ronda 1: el CHANGELOG afirmaba que antes de #75 Android cerraba la app al exportar, sin constancia; se reescribió como riesgo de memoria. Se añadieron las pérdidas al recuperar la foto (#81).
 - **Aviso:** un `pnpm harness --full` falló una vez y pasó en las cuatro siguientes sin cambios; test inestable sin identificar (no guardada la salida). Anotar cuál es si se repite.
 - **Gate 2:** «merge» del humano → PR. El tag `v0.3.0` se sube después, con confirmación explícita.
+
+## 2026-11-23 — #84 csv-import-parsers
+
+- **Rama:** `feat/csv-import-parsers` (`sdd: true`). Spec en `specs/csv-import-parsers/` (41 requirements, 29 tasks). Primera feature de la fase 9.
+- **Formatos:** investigados en código y ejemplos públicos (`progress/explore_csv-import-parsers_formatos.md`). No se han probado con exports reales: **pendiente antes de v0.4.0**.
+- **Cambios:** módulo puro `@ikrive/shared/csv-import`, sin dependencias: lector CSV tolerante, detección de Fuelio, Drivvo y LubeLogger, CSV genérico con mapeo, `key` determinista para deduplicar en #85 y `droppedFuelFields` para el aviso de #86.
+- **Gate 1:** aprobado tras dos cambios (separador solo en columnas importadas; fechas ISO antes que el formato declarado). Backlog: #86 avisa de notas y gasolinera; #87 importa los gastos.
+- **Revisión:** APPROVED en la sexta ronda (`progress/review_csv-import-parsers.md`). Corregidos: cuelgue cuadrático con un CSV de 80 KB, claves de `Object.prototype` en fecha y secciones, total 0 en Drivvo y `key` distinta con coste 0.
+- **Gate 2:** tres rondas de cambios del humano: miles en importes, plurales de categorías, combustible sin importe (R38, R39), total negativo (R40) y volumen 0 con importe (R41). Límite de tamaño llevado a #85 y #86.
+- **Tests:** `packages/shared` 274, web 715, api 373. `pnpm harness --full` en verde.
+- **Avisos:** con varios fallos en una fila solo se informa del primero; `Motes` cuenta como inspección. `apps/web/src/features/mobile/camera-restore-handler.test.tsx` es inestable: falló durante la implementación y en una pasada de `pnpm harness --full` al cerrar (no encuentra «Foto actualizada» a tiempo), y pasó en las seis siguientes sin cambios. Esta rama no toca `apps/`. Probable origen del fallo anotado en #83; conviene arreglarlo aparte.
+- **Gate 2:** «merge» del humano → PR.

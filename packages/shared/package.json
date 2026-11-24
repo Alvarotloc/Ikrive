@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./csv-import": "./src/csv-import/index.ts",
     "./data-export-zip": "./src/data-export-zip.ts",
     "./sale-report-pdf": "./src/sale-report-pdf/index.ts",
     "./sale-report-pdf/cross-scenario": "./src/sale-report-pdf/cross-scenario.ts"
