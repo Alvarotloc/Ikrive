@@ -23,6 +23,7 @@ export * from './schemas/common';
 export * from './schemas/csv-import';
 export * from './schemas/data-export';
 export * from './schemas/data-import';
+export * from './schemas/expenses';
 export * from './schemas/fuel-logs';
 export * from './schemas/maintenance';
 export * from './schemas/notification-channels';

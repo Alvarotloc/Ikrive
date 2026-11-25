@@ -4,7 +4,7 @@ import { parseCsvImport } from '@ikrive/shared/csv-import';
 import { asc, count, eq, sql } from 'drizzle-orm';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Db } from '../src/db/client';
-import { fuelLogs, maintenanceRecords, odometerReadings } from '../src/db/schema';
+import { expenses, fuelLogs, maintenanceRecords, odometerReadings } from '../src/db/schema';
 import { createTestApp, signUp } from './helpers';
 
 // Spied (still the real parser) so R14 can assert it is never reached for a file over the limit.
@@ -100,6 +100,7 @@ function snapshot(db: Db) {
       .all(),
     fuelLogs: db.select({ n: count() }).from(fuelLogs).get()?.n ?? 0,
     maintenance: db.select({ n: count() }).from(maintenanceRecords).get()?.n ?? 0,
+    expenses: db.select({ n: count() }).from(expenses).get()?.n ?? 0,
   };
 }
 
@@ -125,14 +126,14 @@ describe('csv import', () => {
     expect(summary).toMatchObject({
       dryRun: false,
       format: 'fuelio',
-      created: { odometer: 0, fuel: 2, maintenance: 2 },
+      created: { odometer: 0, fuel: 2, maintenance: 2, expense: 1 },
       duplicates: 0,
       rejected: [],
       errors: [],
       droppedFuelFields: { notes: true, station: true },
       encodingReplaced: false,
     });
-    expect(summary.skipped.map((row) => row.reason)).toEqual(['not_maintenance', 'template', 'income']);
+    expect(summary.skipped.map((row) => row.reason)).toEqual(['template', 'income']);
 
     expect(snapshot(db).readings).toEqual([
       { date: '2025-01-10', value: 10000, source: 'fuel' },
@@ -197,6 +198,31 @@ describe('csv import', () => {
     expect(records[1]?.odometerReadingId).toBeNull();
   });
 
+  it('imports Fuelio costs as expenses without readings', async () => {
+    const { db, importCsv, vehicle } = await setup();
+
+    const response = await importCsv(fixture('fuelio.csv'));
+
+    expect(response.statusCode, response.body).toBe(201);
+    expect(response.json()).toMatchObject({ created: { expense: 1 } });
+    expect(db.select().from(expenses).all()).toEqual([
+      {
+        id: expect.any(String),
+        vehicleId: vehicle.id,
+        date: '2025-04-03',
+        category: 'insurance',
+        title: 'Seguro anual',
+        description: null,
+        cost: 300,
+        createdAt: expect.any(Date),
+        updatedAt: expect.any(Date),
+      },
+    ]);
+    // The `Odo` of the insurance row (11200) is not imported as a reading.
+    expect(snapshot(db).readings.map((reading) => reading.value)).not.toContain(11200);
+    expect(snapshot(db).readings).toHaveLength(3);
+  });
+
   it('imports odometer rows as manual readings', async () => {
     const { db, importCsv } = await setup();
 
@@ -214,6 +240,7 @@ describe('csv import', () => {
       ],
       fuelLogs: 0,
       maintenance: 0,
+      expenses: 0,
     });
   });
 
@@ -229,7 +256,7 @@ describe('csv import', () => {
 
     expectProblem(response, 500);
     expect(snapshot(db)).toEqual(before);
-    expect(before).toEqual({ readings: [], fuelLogs: 0, maintenance: 0 });
+    expect(before).toEqual({ readings: [], fuelLogs: 0, maintenance: 0, expenses: 0 });
   });
 
   describe('duplicates', () => {
@@ -241,9 +268,10 @@ describe('csv import', () => {
       const response = await importCsv(fixture('fuelio.csv'));
 
       expect(response.statusCode, response.body).toBe(201);
+      // Refuels, maintenance and the expense of the file: all of them already stored.
       expect(response.json()).toMatchObject({
-        created: { odometer: 0, fuel: 0, maintenance: 0 },
-        duplicates: 4,
+        created: { odometer: 0, fuel: 0, maintenance: 0, expense: 0 },
+        duplicates: 5,
         rejected: [],
       });
       expect(snapshot(db)).toEqual(before);
@@ -255,15 +283,18 @@ describe('csv import', () => {
       expect((await post('/fuel-logs', refuel)).statusCode).toBe(201);
       const service = { date: '2025-04-02', category: 'inspection', title: 'itv ANUAL ', cost: 45.5 };
       expect((await post('/maintenance', service)).statusCode).toBe(201);
+      // Another category than the file's: the key leaves it out.
+      const expense = { date: '2025-04-03', category: 'other', title: 'SEGURO anual', cost: 300 };
+      expect((await post('/expenses', expense)).statusCode).toBe(201);
 
       const response = await importCsv(fixture('fuelio.csv'));
 
       expect(response.statusCode, response.body).toBe(201);
       expect(response.json()).toMatchObject({
-        created: { odometer: 0, fuel: 1, maintenance: 1 },
-        duplicates: 2,
+        created: { odometer: 0, fuel: 1, maintenance: 1, expense: 0 },
+        duplicates: 3,
       });
-      expect(snapshot(db)).toMatchObject({ fuelLogs: 2, maintenance: 2 });
+      expect(snapshot(db)).toMatchObject({ fuelLogs: 2, maintenance: 2, expenses: 1 });
     });
 
     it('counts repeated rows of a file as duplicates', async () => {
@@ -335,6 +366,7 @@ describe('csv import', () => {
         ],
         fuelLogs: 0,
         maintenance: 0,
+        expenses: 0,
       });
     });
 
@@ -358,11 +390,11 @@ describe('csv import', () => {
     const preview = await importCsv(fixture('fuelio.csv'), { dryRun: true });
 
     expect(preview.statusCode, preview.body).toBe(200);
-    expect(snapshot(db)).toEqual({ readings: [], fuelLogs: 0, maintenance: 0 });
+    expect(snapshot(db)).toEqual({ readings: [], fuelLogs: 0, maintenance: 0, expenses: 0 });
     const applied = await importCsv(fixture('fuelio.csv'));
     expect(applied.statusCode).toBe(201);
     expect(preview.json()).toEqual({ ...applied.json(), dryRun: true });
-    expect(preview.json().created).toEqual({ odometer: 0, fuel: 2, maintenance: 2 });
+    expect(preview.json().created).toEqual({ odometer: 0, fuel: 2, maintenance: 2, expense: 1 });
   });
 
   it("hides other users' vehicles", async () => {
@@ -398,7 +430,7 @@ describe('csv import', () => {
     expectProblem(response, 413);
     expect(response.json().title).toBe('request file too large');
     expect(parseCsvImport).not.toHaveBeenCalled();
-    expect(snapshot(db)).toEqual({ readings: [], fuelLogs: 0, maintenance: 0 });
+    expect(snapshot(db)).toEqual({ readings: [], fuelLogs: 0, maintenance: 0, expenses: 0 });
 
     // The spy is the parser the service calls: a file at the limit reaches it.
     const atLimit = await importCsv(big.subarray(0, CSV_IMPORT_MAX_BYTES));
@@ -423,7 +455,7 @@ describe('csv import', () => {
       });
       expectProblem(response, 400);
       expect(response.json().detail).toBe('Expected a CSV in the "file" field');
-      expect(snapshot(db)).toEqual({ readings: [], fuelLogs: 0, maintenance: 0 });
+      expect(snapshot(db)).toEqual({ readings: [], fuelLogs: 0, maintenance: 0, expenses: 0 });
     });
 
     it('rejects invalid options', async () => {
@@ -446,7 +478,7 @@ describe('csv import', () => {
           .sort(),
       ).toEqual(['dateFormat', 'mapping.columns.date']);
       expect(parseCsvImport).not.toHaveBeenCalled();
-      expect(snapshot(db)).toEqual({ readings: [], fuelLogs: 0, maintenance: 0 });
+      expect(snapshot(db)).toEqual({ readings: [], fuelLogs: 0, maintenance: 0, expenses: 0 });
     });
 
     it('rejects a CSV that cannot be parsed', async () => {
@@ -464,7 +496,7 @@ describe('csv import', () => {
       });
       expectProblem(generic, 400);
       expect(generic.json().errors).toEqual([{ path: 'mapping.columns.date', message: 'Required' }]);
-      expect(snapshot(db)).toEqual({ readings: [], fuelLogs: 0, maintenance: 0 });
+      expect(snapshot(db)).toEqual({ readings: [], fuelLogs: 0, maintenance: 0, expenses: 0 });
     });
   });
 
@@ -489,7 +521,7 @@ describe('csv import', () => {
       const target = await importCsv(fixture('fuelio.csv'), { target: { distance: 'km', quantity: 'l' } });
       expectProblem(target, 400);
       expect(target.json().title).toBe('Validation failed');
-      expect(snapshot(db)).toEqual({ readings: [], fuelLogs: 0, maintenance: 0 });
+      expect(snapshot(db)).toEqual({ readings: [], fuelLogs: 0, maintenance: 0, expenses: 0 });
     });
 
     it('decodes a UTF-8 file with a BOM', async () => {

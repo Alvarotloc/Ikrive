@@ -64,7 +64,7 @@ const corolla = vehicle('v2', 'Toyota', 'Corolla');
 const summary = (changes: Partial<CsvImportSummary> = {}): CsvImportSummary => ({
   dryRun: true,
   format: 'lubelogger',
-  created: { odometer: 2, fuel: 0, maintenance: 0 },
+  created: { odometer: 2, fuel: 0, maintenance: 0, expense: 0 },
   duplicates: 0,
   rejected: [],
   errors: [],
@@ -250,11 +250,11 @@ describe('CsvImportWizard', () => {
         preview: {
           body: summary({
             format: 'fuelio',
-            created: { odometer: 0, fuel: 4, maintenance: 0 },
+            created: { odometer: 0, fuel: 4, maintenance: 0, expense: 0 },
             duplicates: 1,
             errors: [{ row: 9, code: 'invalid_number', field: 'quantity' }],
             rejected: [{ row: 12, kind: 'fuel', reason: 'future_date', conflict: null }],
-            skipped: [{ row: 17, reason: 'not_maintenance', label: 'Seguro' }],
+            skipped: [{ row: 17, reason: 'template', label: 'Seguro' }],
           }),
         },
       });
@@ -355,7 +355,9 @@ describe('CsvImportWizard', () => {
 
     it('keeps import disabled until the required columns are mapped', async () => {
       const { user, posts } = await setup({
-        preview: { body: summary({ format: 'generic', created: { odometer: 0, fuel: 2, maintenance: 0 } }) },
+        preview: {
+          body: summary({ format: 'generic', created: { odometer: 0, fuel: 2, maintenance: 0, expense: 0 } }),
+        },
       });
       await upload(user, genericFile());
       await screen.findByText(/se importará como CSV genérico/);
@@ -514,7 +516,9 @@ describe('CsvImportWizard', () => {
 
     it('disables import when the preview has no valid rows', async () => {
       const { user, posts } = await setup({
-        preview: { body: summary({ created: { odometer: 0, fuel: 0, maintenance: 0 }, duplicates: 2 }) },
+        preview: {
+          body: summary({ created: { odometer: 0, fuel: 0, maintenance: 0, expense: 0 }, duplicates: 2 }),
+        },
       });
 
       await upload(user, odometerFile());
@@ -535,7 +539,7 @@ describe('CsvImportWizard', () => {
         commit: {
           body: summary({
             dryRun: false,
-            created: { odometer: 2, fuel: 5, maintenance: 1 },
+            created: { odometer: 2, fuel: 5, maintenance: 1, expense: 0 },
             duplicates: 2,
             skipped: [{ row: 9, reason: 'income', label: null }],
             errors: [{ row: 4, code: 'invalid_date', field: 'date' }],

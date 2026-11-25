@@ -1,8 +1,15 @@
-import { fuelLogs, maintenanceRecords, maintenanceSchedules, odometerReadings } from '@ikrive/db/schema';
+import {
+  expenses,
+  fuelLogs,
+  maintenanceRecords,
+  maintenanceSchedules,
+  odometerReadings,
+} from '@ikrive/db/schema';
 import {
   clientConfigSchema,
   computeVehicleStats,
   DEFAULT_USER_SETTINGS,
+  expenseSchema,
   fuelLogSchema,
   maintenanceRecordSchema,
   maintenanceScheduleSchema,
@@ -15,6 +22,7 @@ import {
   vehicleSchema,
   vehicleStatsSchema,
 } from '@ikrive/shared';
+import { eq } from 'drizzle-orm';
 import type { AsyncRemoteCallback } from 'drizzle-orm/sqlite-proxy';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { ApiError } from '@/lib/api-client';
@@ -148,6 +156,7 @@ describe('local DataSource', () => {
       title: 'Cambio de aceite',
       scheduleId: schedule.id,
     });
+    await local.expenses.create(vehicle.id, { date: '2024-04-01', category: 'insurance', cost: 300 });
 
     await local.vehicles.remove(vehicle.id);
 
@@ -156,6 +165,7 @@ describe('local DataSource', () => {
     expect(await db.select().from(fuelLogs)).toEqual([]);
     expect(await db.select().from(maintenanceRecords)).toEqual([]);
     expect(await db.select().from(maintenanceSchedules)).toEqual([]);
+    expect(await db.select().from(expenses)).toEqual([]);
   });
 
   it('rejects unknown ids with 404', async () => {
@@ -402,6 +412,135 @@ describe('local DataSource', () => {
     expect(await local.schedules.list(vehicle.id)).toEqual([]);
   });
 
+  it('creates, lists, edits and deletes expenses like the API', async () => {
+    const vehicle = await createVehicle();
+
+    const created = expenseSchema.parse(
+      await local.expenses.create(vehicle.id, {
+        date: '2024-05-10',
+        category: 'insurance',
+        title: '  Seguro anual ',
+        description: '   ',
+        cost: 420.5,
+      }),
+    );
+    expect(created).toEqual({
+      id: expect.any(String),
+      vehicleId: vehicle.id,
+      date: '2024-05-10',
+      category: 'insurance',
+      title: 'Seguro anual',
+      description: null,
+      cost: 420.5,
+      createdAt: expect.any(String),
+      updatedAt: expect.any(String),
+    });
+
+    // Same date: the most recently created first.
+    const sameDay = await local.expenses.create(vehicle.id, {
+      date: '2024-06-01',
+      category: 'parking',
+      cost: 3,
+    });
+    const older = await local.expenses.create(vehicle.id, {
+      date: '2024-06-01',
+      category: 'tolls',
+      cost: 12,
+    });
+    await db
+      .update(expenses)
+      .set({ createdAt: new Date('2020-01-01T00:00:00Z') })
+      .where(eq(expenses.id, older.id));
+    const earlier = await local.expenses.create(vehicle.id, {
+      date: '2024-01-15',
+      category: 'tax',
+      cost: 110,
+    });
+    const list = await local.expenses.list(vehicle.id);
+    expect(list.map((expense) => expenseSchema.parse(expense).id)).toEqual([
+      sameDay.id,
+      older.id,
+      created.id,
+      earlier.id,
+    ]);
+
+    const updated = await local.expenses.update(vehicle.id, created.id, { cost: 450, title: '' });
+    expect(updated).toEqual({ ...created, cost: 450, title: null, updatedAt: expect.any(String) });
+
+    await local.expenses.remove(vehicle.id, created.id);
+    expect((await local.expenses.list(vehicle.id)).map((expense) => expense.id)).toEqual([
+      sameDay.id,
+      older.id,
+      earlier.id,
+    ]);
+  });
+
+  it('rejects invalid, future and unknown expenses without writing', async () => {
+    const vehicle = await createVehicle();
+    const expense = await local.expenses.create(vehicle.id, {
+      date: '2024-05-10',
+      category: 'fines',
+      cost: 200,
+    });
+    statements = [];
+
+    expect(
+      await problemOf(local.expenses.create(vehicle.id, { date: '2024-05-10', category: 'fines', cost: 0 })),
+    ).toMatchObject({ status: 400, title: 'Validation failed', errors: [{ path: 'cost' }] });
+    expect(
+      await problemOf(
+        local.expenses.create(vehicle.id, {
+          date: '2024-05-10',
+          category: 'tolls',
+          title: 'x'.repeat(121),
+          cost: 5,
+        }),
+      ),
+    ).toMatchObject({ status: 400, errors: [{ path: 'title' }] });
+    expect(await problemOf(local.expenses.update(vehicle.id, expense.id, { cost: -1 }))).toMatchObject({
+      status: 400,
+      title: 'Validation failed',
+    });
+
+    const future = {
+      type: 'about:blank',
+      title: 'Bad Request',
+      status: 400,
+      detail: 'The expense date cannot be in the future',
+    };
+    expect(
+      await problemOf(local.expenses.create(vehicle.id, { date: '2999-01-01', category: 'tax', cost: 1 })),
+    ).toEqual(future);
+    expect(await problemOf(local.expenses.update(vehicle.id, expense.id, { date: '2999-01-01' }))).toEqual(
+      future,
+    );
+
+    const vehicleNotFound = {
+      type: 'about:blank',
+      title: 'Not Found',
+      status: 404,
+      detail: 'Vehicle not found',
+    };
+    expect(await problemOf(local.expenses.list('nope'))).toEqual(vehicleNotFound);
+    expect(
+      await problemOf(local.expenses.create('nope', { date: '2024-05-10', category: 'tax', cost: 1 })),
+    ).toEqual(vehicleNotFound);
+    expect(await problemOf(local.expenses.update('nope', expense.id, { cost: 1 }))).toEqual(vehicleNotFound);
+    expect(await problemOf(local.expenses.remove('nope', expense.id))).toEqual(vehicleNotFound);
+
+    const other = await createVehicle({ make: 'Renault', model: 'Clio' });
+    statements = [];
+    const expenseNotFound = { ...vehicleNotFound, detail: 'Expense not found' };
+    expect(await problemOf(local.expenses.update(other.id, expense.id, { cost: 1 }))).toEqual(
+      expenseNotFound,
+    );
+    expect(await problemOf(local.expenses.remove(other.id, expense.id))).toEqual(expenseNotFound);
+    expect(await problemOf(local.expenses.remove(vehicle.id, 'nope'))).toEqual(expenseNotFound);
+
+    expect(writes()).toEqual([]);
+    expect(await local.expenses.list(vehicle.id)).toEqual([expense]);
+  });
+
   it('computes the same stats as computeVehicleStats', async () => {
     const vehicle = await createVehicle({ purchasePrice: 10000 });
     await local.odometer.add(vehicle.id, { date: '2024-01-01', value: 500 });
@@ -429,12 +568,15 @@ describe('local DataSource', () => {
       title: 'Ruedas',
       cost: 300,
     });
+    await local.expenses.create(vehicle.id, { date: '2024-01-10', category: 'insurance', cost: 250.5 });
+    await local.expenses.create(vehicle.id, { date: '2024-03-01', category: 'tolls', cost: 7.3 });
 
     const stats = vehicleStatsSchema.parse(await local.stats.get(vehicle.id));
 
     const readings = await local.odometer.list(vehicle.id);
     const logs = await local.fuelLogs.list(vehicle.id);
     const records = await local.maintenance.list(vehicle.id);
+    const expenseRows = await local.expenses.list(vehicle.id);
     expect(stats).toEqual(
       computeVehicleStats({
         purchasePrice: 10000,
@@ -450,8 +592,10 @@ describe('local DataSource', () => {
             missedPrevious,
           })),
         maintenance: records.map(({ date, category, cost }) => ({ date, category, cost })),
+        expenses: expenseRows.map(({ date, category, cost }) => ({ date, category, cost })),
       }),
     );
+    expect(stats.spending).toMatchObject({ expenses: 257.8, total: 10_685.3 });
     expect(stats.consumption.average).not.toBeNull();
     expect(stats.series.consumptionBySegment).toHaveLength(2);
   });

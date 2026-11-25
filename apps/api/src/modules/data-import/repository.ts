@@ -5,6 +5,7 @@ import type { Db } from '../../db/client';
 import {
   attachments,
   dataImports,
+  expenses,
   fuelLogs,
   maintenanceRecords,
   maintenanceSchedules,
@@ -27,6 +28,7 @@ export interface ImportPlan {
   maintenanceSchedules: Insert<typeof maintenanceSchedules>[];
   maintenanceRecords: Insert<typeof maintenanceRecords>[];
   fuelLogs: Insert<typeof fuelLogs>[];
+  expenses: Insert<typeof expenses>[];
   attachments: Omit<Insert<typeof attachments>, 'ownerId'>[];
   notificationChannels: Omit<Insert<typeof notificationChannels>, 'userId'>[];
 }
@@ -124,6 +126,7 @@ export function createDataImportRepository(db: Db) {
         maintenanceSchedules: insertAll(maintenanceSchedules, plan.maintenanceSchedules),
         maintenanceRecords: insertAll(maintenanceRecords, plan.maintenanceRecords),
         fuelLogs: insertAll(fuelLogs, plan.fuelLogs),
+        expenses: insertAll(expenses, plan.expenses),
         attachments: insertAll(
           attachments,
           plan.attachments.map((row) => ({ ...row, ownerId: userId })),

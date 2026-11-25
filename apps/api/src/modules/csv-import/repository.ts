@@ -1,13 +1,13 @@
 import type { CsvRow } from '@ikrive/shared/csv-import';
 import type { Db } from '../../db/client';
-import { fuelLogs, maintenanceRecords, odometerReadings } from '../../db/schema';
+import { expenses, fuelLogs, maintenanceRecords, odometerReadings } from '../../db/schema';
 
 export function createCsvImportRepository(db: Db) {
   return {
     /**
      * Writes the accepted rows of an import in one transaction: a loose reading as `manual`, a refuel
      * or a maintenance record with its linked `fuel` or `maintenance` reading (maintenance only when it
-     * has an odometer). Any failure rolls back the whole import.
+     * has an odometer), an expense without any reading. Any failure rolls back the whole import.
      */
     apply(vehicleId: string, rows: readonly CsvRow[]) {
       db.transaction((tx) => {
@@ -25,6 +25,10 @@ export function createCsvImportRepository(db: Db) {
             const odometerReadingId = insertReading(row.data.date, row.data.odometer, 'fuel');
             tx.insert(fuelLogs)
               .values({ ...row.data, vehicleId, odometerReadingId })
+              .run();
+          } else if (row.kind === 'expense') {
+            tx.insert(expenses)
+              .values({ ...row.data, vehicleId })
               .run();
           } else {
             const { odometer } = row.data;

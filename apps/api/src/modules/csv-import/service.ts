@@ -7,6 +7,7 @@ import {
   planCsvImport,
 } from '@ikrive/shared/csv-import';
 import { BadRequestError, NotFoundError } from '../../lib/errors';
+import type { ExpensesRepository } from '../expenses/repository';
 import type { FuelLogsRepository } from '../fuel-logs/repository';
 import type { MaintenanceRepository } from '../maintenance/repository';
 import type { SettingsService } from '../settings/service';
@@ -18,6 +19,7 @@ interface CsvImportServiceDeps {
   vehicles: VehiclesRepository;
   fuelLogs: FuelLogsRepository;
   maintenance: MaintenanceRepository;
+  expenses: ExpensesRepository;
   settings: SettingsService;
 }
 
@@ -26,6 +28,7 @@ export function createCsvImportService({
   vehicles,
   fuelLogs,
   maintenance,
+  expenses,
   settings,
 }: CsvImportServiceDeps) {
   return {
@@ -61,6 +64,7 @@ export function createCsvImportService({
           readings: vehicles.listReadings(vehicleId),
           fuelLogs: fuelLogs.listByVehicle(vehicleId),
           maintenance: maintenance.listByVehicle(vehicleId),
+          expenses: expenses.listByVehicle(vehicleId),
         },
         todayIn(timezone),
       );

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CSV_REQUIRED_COLUMNS } from './generic';
+import { CSV_KIND_COLUMNS, CSV_REQUIRED_COLUMNS } from './generic';
 import { parseCsvImport } from './parse';
 
 const target = { distance: 'km', quantity: 'l' } as const;
@@ -53,5 +53,75 @@ describe('generic', () => {
       missing: ['columns.odometer', 'columns.quantity', 'columns.totalPrice'],
     });
     expect(CSV_REQUIRED_COLUMNS.fuel).toContainEqual(['totalPrice', 'pricePerUnit']);
+  });
+
+  it('maps expense columns', () => {
+    const text = [
+      'fecha;tipo;concepto;notas;importe;km',
+      '03/04/2025;tolls;Peaje AP-7;Viaje;12,40;1000',
+      '04/04/2025;Seguro del coche;;;300;',
+      '05/04/2025;Lavado;Lavado;;15;',
+      '06/04/2025;;;;3,20;',
+    ].join('\n');
+    const result = parseCsvImport(text, {
+      target,
+      mapping: {
+        ...base,
+        kind: 'expense',
+        columns: { date: 0, category: 1, title: 2, description: 3, cost: 4 },
+      },
+    });
+    if (result.status !== 'parsed') throw new Error(result.status);
+    expect(result.errors).toEqual([]);
+    // The exact category, else the one of `matchExpenseCategory`, else `other`.
+    expect(result.rows.map(({ kind, data }) => ({ kind, data }))).toEqual([
+      {
+        kind: 'expense',
+        data: {
+          date: '2025-04-03',
+          category: 'tolls',
+          title: 'Peaje AP-7',
+          description: 'Viaje',
+          cost: 12.4,
+        },
+      },
+      {
+        kind: 'expense',
+        data: { date: '2025-04-04', category: 'insurance', title: null, description: null, cost: 300 },
+      },
+      {
+        kind: 'expense',
+        data: { date: '2025-04-05', category: 'other', title: 'Lavado', description: null, cost: 15 },
+      },
+      {
+        kind: 'expense',
+        data: { date: '2025-04-06', category: 'other', title: null, description: null, cost: 3.2 },
+      },
+    ]);
+    // No odometer column for expenses.
+    expect(CSV_KIND_COLUMNS.expense).toEqual(['date', 'category', 'title', 'description', 'cost']);
+  });
+
+  it('requires date and cost for expenses', () => {
+    expect(CSV_REQUIRED_COLUMNS.expense).toEqual([['date'], ['cost']]);
+    expect(
+      parseCsvImport('a,b\n1,2\n', { target, mapping: { ...base, kind: 'expense', columns: { title: 1 } } }),
+    ).toEqual({
+      status: 'needs_options',
+      format: 'generic',
+      headers: ['a', 'b'],
+      missing: ['columns.date', 'columns.cost'],
+    });
+    // An empty or zero amount is an error on `cost`.
+    const result = parseCsvImport('fecha,importe\n03/04/2025,\n04/04/2025,0\n', {
+      target,
+      mapping: { ...base, kind: 'expense', columns: { date: 0, cost: 1 } },
+    });
+    if (result.status !== 'parsed') throw new Error(result.status);
+    expect(result.rows).toEqual([]);
+    expect(result.errors).toEqual([
+      { row: 2, code: 'missing_field', field: 'cost' },
+      { row: 3, code: 'out_of_range', field: 'cost' },
+    ]);
   });
 });

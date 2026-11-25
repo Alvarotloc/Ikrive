@@ -634,6 +634,7 @@
       "maintenanceSchedules": "Schedules",
       "maintenanceRecords": "Maintenance records",
       "fuelLogs": "Refuels",
+      "expenses": "Expenses",
       "attachments": "Attachments",
       "photos": "Photos",
       "notificationChannels": "Notification channels"
@@ -694,7 +695,8 @@
     "kinds": {
       "odometer": "Odometer readings",
       "fuel": "Refuels",
-      "maintenance": "Maintenance records"
+      "maintenance": "Maintenance records",
+      "expense": "Expenses"
     },
     "columns": {
       "date": "Date",
@@ -766,7 +768,6 @@
       "future_date": "the date is in the future"
     },
     "skipReasons": {
-      "not_maintenance": "not a maintenance record",
       "template": "a template",
       "income": "an income"
     },

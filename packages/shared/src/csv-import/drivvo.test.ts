@@ -43,6 +43,17 @@ describe('drivvo', () => {
         },
       },
       {
+        sourceRow: 10,
+        kind: 'expense',
+        data: {
+          date: '2025-02-20',
+          category: 'insurance',
+          title: 'Insurance',
+          description: 'Poliza inventada',
+          cost: 300,
+        },
+      },
+      {
         sourceRow: 13,
         kind: 'maintenance',
         data: {
@@ -57,8 +68,53 @@ describe('drivvo', () => {
         },
       },
     ]);
-    expect(result.skipped).toEqual([{ row: 10, reason: 'not_maintenance', label: 'Insurance' }]);
+    expect(result.skipped).toEqual([]);
     expect(result.droppedFuelFields).toEqual({ notes: true, station: true });
+  });
+
+  it('imports expense rows', () => {
+    const result = parseCsvImport(text, { target });
+    if (result.status !== 'parsed') throw new Error(result.status);
+    expect(result.rows.find((row) => row.kind === 'expense')).toEqual({
+      sourceRow: 10,
+      sourceId: null,
+      kind: 'expense',
+      key: 'expense|2025-02-20|insurance|300.00',
+      warnings: [],
+      data: {
+        date: '2025-02-20',
+        category: 'insurance',
+        title: 'Insurance',
+        description: 'Poliza inventada',
+        cost: 300,
+      },
+    });
+
+    // The type of expense picks the category (Spanish too), `other` when it matches none.
+    const expenses = [
+      '##Expense',
+      '"Odometer (km)","Date","Total cost","Type of expense","Local expense","Reason","Notes"',
+      '20700,"2025-03-01 08:00:00",2.5,"Aparcamiento","Centro","",""',
+      '20800,"2025-03-02 09:00:00",12.4,"Peaje","","Viaje",""',
+      '20900,"2025-03-03 10:00:00",15,"Lavado","","",""',
+      '21000,"2025-03-04 10:00:00",,"Multa","","",""',
+    ].join('\n');
+    const parsed = parseCsvImport(
+      `${withRow('100,2025-01-01,Gasoline,2,20,10,Yes,,,,,,,,,,,,,,')}${expenses}\n`,
+      {
+        target,
+      },
+    );
+    if (parsed.status !== 'parsed') throw new Error(parsed.status);
+    expect(
+      parsed.rows.filter((row) => row.kind === 'expense').map(({ data }) => [data.category, data.title]),
+    ).toEqual([
+      ['parking', 'Aparcamiento'],
+      ['tolls', 'Peaje'],
+      ['other', 'Lavado'],
+    ]);
+    // Without an amount the row is an error on `cost`.
+    expect(parsed.errors).toEqual([{ row: 9, code: 'missing_field', field: 'cost' }]);
   });
 
   it('merges several fuels into one refuel', () => {
@@ -204,15 +260,24 @@ describe('drivvo', () => {
       });
     });
 
-    it('skips a 7-column expense as not maintenance', () => {
+    it('imports a translated expense section', () => {
       const result = parseCsvImport(
-        `${withRow(refuelRow)}##${name}\nC0,C1,C2,C3,C4,C5,C6\n200,2025-02-01,300,Insurance,Aseguradora,,Nota\n`,
+        `${withRow(refuelRow)}##${name}\nC0,C1,C2,C3,C4,C5,C6\n200,2025-02-01,300,Seguro,Aseguradora,,Nota\n`,
         { target },
       );
       if (result.status !== 'parsed') throw new Error(result.status);
       expect(result.errors).toEqual([]);
-      expect(result.rows.map((row) => row.kind)).toEqual(['fuel']);
-      expect(result.skipped).toEqual([{ row: 6, reason: 'not_maintenance', label: 'Insurance' }]);
+      expect(result.skipped).toEqual([]);
+      expect(result.rows.map((row) => row.kind)).toEqual(['fuel', 'expense']);
+      const row = result.rows.find((candidate) => candidate.kind === 'expense');
+      expect(row?.sourceRow).toBe(6);
+      expect(row?.data).toEqual({
+        date: '2025-02-01',
+        category: 'insurance',
+        title: 'Seguro',
+        description: 'Nota',
+        cost: 300,
+      });
     });
   });
 });

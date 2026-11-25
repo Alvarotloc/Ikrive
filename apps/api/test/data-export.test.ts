@@ -230,6 +230,13 @@ describe('data export', () => {
         quantity: 40.5,
         totalPrice: 60.75,
       });
+      const expense = await api.post(`/api/vehicles/${active.id}/expenses`, {
+        date: '2025-04-01',
+        category: 'insurance',
+        title: 'Seguro anual',
+        description: 'Póliza',
+        cost: 420.5,
+      });
       await api.post('/api/notification-channels', {
         type: 'ntfy',
         config: { serverUrl: 'https://ntfy.example.com', topic: 'ikrive' },
@@ -301,6 +308,19 @@ describe('data export', () => {
       expect(first?.fuelLogs).toEqual([
         expect.objectContaining({ id: fuelLog.id, odometer: 1500, quantity: 40.5, totalPrice: 60.75 }),
       ]);
+      expect(first?.expenses).toEqual([
+        {
+          id: expense.id,
+          date: '2025-04-01',
+          category: 'insurance',
+          title: 'Seguro anual',
+          description: 'Póliza',
+          cost: 420.5,
+          createdAt: expense.createdAt,
+          updatedAt: expense.updatedAt,
+        },
+      ]);
+      expect(second?.expenses).toEqual([]);
 
       // The references point to elements of the same vehicle.
       const readingIds = first?.odometerReadings.map((reading) => reading.id) ?? [];

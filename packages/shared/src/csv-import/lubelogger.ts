@@ -111,10 +111,11 @@ function readFullTank(record: CsvRecord, columns: Table) {
   return partial === undefined ? undefined : !partial;
 }
 
-const KIND_BY_TYPE: Record<Exclude<LubeLoggerRecordType, 'tax'>, CsvRowKind> = {
+const KIND_BY_TYPE: Record<LubeLoggerRecordType, CsvRowKind> = {
   fuel: 'fuel',
   service: 'maintenance',
   odometer: 'odometer',
+  tax: 'expense',
 };
 
 export const lubeLoggerAdapter: CsvAdapter = {
@@ -133,16 +134,18 @@ export const lubeLoggerAdapter: CsvAdapter = {
   collectImportedCells: (doc) => {
     const columns = table(doc);
     const cells: CsvImportedCells = { dates: [], numbers: [] };
-    if (columns.type === 'tax' || columns.type === null) return cells;
+    if (columns.type === null) return cells;
     for (const record of columns.rows) {
       cells.dates.push(rawDate(record, columns));
-      cells.numbers.push({ column: 'odometer', raw: cell(record, columns.odometer) });
+      // A tax record has no odometer.
+      if (columns.type !== 'tax')
+        cells.numbers.push({ column: 'odometer', raw: cell(record, columns.odometer) });
       if (columns.type === 'fuel') {
         cells.numbers.push(
           { column: 'quantity', raw: cell(record, columns.volume) },
           { column: 'totalPrice', raw: cell(record, columns.cost) },
         );
-      } else if (columns.type === 'service') {
+      } else if (columns.type === 'service' || columns.type === 'tax') {
         cells.numbers.push({ column: 'cost', raw: cell(record, columns.cost) });
       }
     }
@@ -155,14 +158,6 @@ export const lubeLoggerAdapter: CsvAdapter = {
     const { type } = columns;
     if (type === null) return output;
     for (const record of columns.rows) {
-      if (type === 'tax') {
-        output.skipped.push({
-          row: record.line,
-          reason: 'not_maintenance',
-          label: cell(record, columns.description) || null,
-        });
-        continue;
-      }
       attemptRow(record.line, output.errors, () => {
         const warnings: CsvRowWarning[] = [];
         const date = readRowDate(record, columns, context);
@@ -185,6 +180,14 @@ export const lubeLoggerAdapter: CsvAdapter = {
             title: title || undefined,
             description: cell(record, columns.notes),
             cost: readNumber(cell(record, columns.cost), context, 'cost') ?? null,
+          };
+        } else if (type === 'tax') {
+          input = {
+            date,
+            category: 'tax',
+            title: cell(record, columns.description),
+            description: cell(record, columns.notes),
+            cost: readNumber(cell(record, columns.cost), context, 'cost'),
           };
         } else {
           input = { date, value: readOdometer(cell(record, columns.odometer), context, warnings, 'value') };

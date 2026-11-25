@@ -1,5 +1,5 @@
-import type { MaintenanceCategory } from '../enums';
-import { matchMaintenanceCategory } from './categories';
+import type { ExpenseCategory, MaintenanceCategory } from '../enums';
+import { matchExpenseCategory, matchMaintenanceCategory } from './categories';
 import type { CsvRecord, CsvSection } from './tokenizer';
 import type { CsvAdapter, CsvAdapterOutput, CsvImportedCells, CsvRowWarning, CsvSkippedRow } from './types';
 import {
@@ -69,6 +69,8 @@ const costCategories = (sections: CsvSection[]) => {
 
 type CostClass =
   | { type: 'maintenance'; category: MaintenanceCategory }
+  /** `label`: the name of the Fuelio category, the expense's title when the row has none. */
+  | { type: 'expense'; category: ExpenseCategory; label: string | null }
   | { type: 'skip'; reason: CsvSkippedRow['reason']; label: string | null }
   | { type: 'invalid'; field: string };
 
@@ -89,7 +91,8 @@ const costsTable = (sections: CsvSection[]) => {
     uniqueId: findColumn(header, 'uniqueid'),
   };
   const classify = (record: CsvRecord): CostClass => {
-    const label = names.get(cell(record, columns.typeId)) || cell(record, columns.title) || null;
+    const categoryName = names.get(cell(record, columns.typeId)) ?? '';
+    const label = categoryName || cell(record, columns.title) || null;
     for (const [flag, field, reason] of [
       [columns.template, 'isTemplate', 'template'],
       [columns.income, 'isIncome', 'income'],
@@ -100,8 +103,13 @@ const costsTable = (sections: CsvSection[]) => {
       if (value === null) return { type: 'invalid', field };
       if (value) return { type: 'skip', reason, label };
     }
-    const category = matchMaintenanceCategory(names.get(cell(record, columns.typeId)) ?? '');
-    return category ? { type: 'maintenance', category } : { type: 'skip', reason: 'not_maintenance', label };
+    const category = matchMaintenanceCategory(categoryName);
+    if (category) return { type: 'maintenance', category };
+    return {
+      type: 'expense',
+      category: matchExpenseCategory(categoryName) ?? 'other',
+      label: categoryName || null,
+    };
   };
   return { columns, rows: costs.records.slice(1), classify };
 };
@@ -144,12 +152,13 @@ export const fuelioAdapter: CsvAdapter = {
     }
     const costs = costsTable(sections);
     for (const record of costs?.rows ?? []) {
-      if (costs?.classify(record).type !== 'maintenance') continue;
+      const type = costs?.classify(record).type;
+      if (!costs || (type !== 'maintenance' && type !== 'expense')) continue;
       cells.dates.push(cell(record, costs.columns.date));
-      cells.numbers.push(
-        { column: 'odometer', raw: cell(record, costs.columns.odometer) },
-        { column: 'cost', raw: cell(record, costs.columns.cost) },
-      );
+      // The odometer of an expense is not imported.
+      if (type === 'maintenance')
+        cells.numbers.push({ column: 'odometer', raw: cell(record, costs.columns.odometer) });
+      cells.numbers.push({ column: 'cost', raw: cell(record, costs.columns.cost) });
     }
     return cells;
   },
@@ -194,6 +203,23 @@ export const fuelioAdapter: CsvAdapter = {
       }
       attemptRow(record.line, output.errors, () => {
         if (costClass.type === 'invalid') throw new CsvCellError('invalid_boolean', costClass.field);
+        if (costClass.type === 'expense') {
+          output.drafts.push({
+            sourceRow: record.line,
+            sourceId: cell(record, costs.columns.uniqueId) || null,
+            kind: 'expense',
+            input: {
+              date: readDate(cell(record, costs.columns.date), context.dateFormat),
+              category: costClass.category,
+              title: cell(record, costs.columns.title) || costClass.label,
+              description: cell(record, costs.columns.notes),
+              cost: amount(readNumber(cell(record, costs.columns.cost), context, 'cost')),
+            },
+            warnings: [],
+            dropped: { notes: false, station: false },
+          });
+          return;
+        }
         const warnings: CsvRowWarning[] = [];
         const input = {
           date: readDate(cell(record, costs.columns.date), context.dateFormat),

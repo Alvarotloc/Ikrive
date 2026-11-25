@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { attachmentExportPath, photoExportPath } from '../domain/data-export';
 import {
   ATTACHMENT_MIME_TYPES,
+  EXPENSE_CATEGORIES,
   FUEL_TYPES,
   MAINTENANCE_CATEGORIES,
   ODOMETER_SOURCES,
@@ -93,6 +94,17 @@ const fuelLogExportSchema = z.object({
   updatedAt: timestampSchema,
 });
 
+const expenseExportSchema = z.object({
+  id: exportIdSchema,
+  date: isoDateSchema,
+  category: z.enum(EXPENSE_CATEGORIES),
+  title: z.string().nullable(),
+  description: z.string().nullable(),
+  cost: moneySchema,
+  createdAt: timestampSchema,
+  updatedAt: timestampSchema,
+});
+
 const vehicleExportSchema = z.object({
   id: exportIdSchema,
   name: z.string().nullable(),
@@ -118,6 +130,8 @@ const vehicleExportSchema = z.object({
   maintenanceSchedules: z.array(maintenanceScheduleExportSchema),
   maintenanceRecords: z.array(maintenanceRecordExportSchema),
   fuelLogs: z.array(fuelLogExportSchema),
+  /** Added after the first v1 exports: a document without the key is read as having no expenses. */
+  expenses: z.array(expenseExportSchema).default([]),
 });
 
 const channelFields = {
@@ -168,6 +182,7 @@ function checkIntegrity(document: DataExportShape, ctx: z.RefinementCtx) {
     maintenanceSchedules: new Set<string>(),
     maintenanceRecords: new Set<string>(),
     fuelLogs: new Set<string>(),
+    expenses: new Set<string>(),
     attachments: new Set<string>(),
   };
   const linkedReadings = new Set<string>();
@@ -223,6 +238,10 @@ function checkIntegrity(document: DataExportShape, ctx: z.RefinementCtx) {
       const path = [...base, 'fuelLogs', i];
       unique('fuelLogs', fuelLog.id, path);
       linkReading(readings, fuelLog.odometerReadingId, path);
+    });
+
+    vehicle.expenses.forEach((expense, i) => {
+      unique('expenses', expense.id, [...base, 'expenses', i]);
     });
   });
 }

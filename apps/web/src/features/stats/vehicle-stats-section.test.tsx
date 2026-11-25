@@ -27,16 +27,18 @@ const imperial = {
 const withData: VehicleStats = {
   distance: { driven: 12_000, perYear: 14_600, perMonth: 1_217 },
   consumption: { average: 6.54 },
-  costPerDistance: { fuel: 0.085, maintenance: 0.0412 },
+  costPerDistance: { fuel: 0.085, maintenance: 0.0412, expenses: 0, total: 0.126 },
   spending: {
     purchase: 18_000,
     fuel: 1_020.5,
     maintenance: 494.4,
+    expenses: 0,
     total: 19_514.9,
     byCategory: [
       { category: 'tires', total: 400 },
       { category: 'oil_change', total: 94.4 },
     ],
+    expensesByCategory: [],
   },
   series: {
     distanceByMonth: [
@@ -48,8 +50,8 @@ const withData: VehicleStats = {
       { startDate: '2025-02-01', endDate: '2025-03-01', distance: 700, quantity: 46.5, consumption: 6.64 },
     ],
     spendingByMonth: [
-      { month: '2025-01', fuel: 60, maintenance: 94.4 },
-      { month: '2025-02', fuel: 70, maintenance: 0 },
+      { month: '2025-01', fuel: 60, maintenance: 94.4, expenses: 0 },
+      { month: '2025-02', fuel: 70, maintenance: 0, expenses: 0 },
     ],
   },
 };
@@ -58,8 +60,16 @@ const withData: VehicleStats = {
 const withoutData: VehicleStats = {
   distance: { driven: null, perYear: null, perMonth: null },
   consumption: { average: null },
-  costPerDistance: { fuel: null, maintenance: null },
-  spending: { purchase: 18_000, fuel: 0, maintenance: 0, total: 18_000, byCategory: [] },
+  costPerDistance: { fuel: null, maintenance: null, expenses: null, total: null },
+  spending: {
+    purchase: 18_000,
+    fuel: 0,
+    maintenance: 0,
+    expenses: 0,
+    total: 18_000,
+    byCategory: [],
+    expensesByCategory: [],
+  },
   series: { distanceByMonth: [], consumptionBySegment: [], spendingByMonth: [] },
 };
 

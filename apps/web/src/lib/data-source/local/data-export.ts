@@ -1,6 +1,7 @@
 import { LOCAL_USER_ID } from '@ikrive/db';
 import {
   attachments,
+  expenses,
   fuelLogs,
   maintenanceRecords,
   maintenanceSchedules,
@@ -88,6 +89,14 @@ export async function loadLocalExportRows(db: LocalDb): Promise<DataExportInputR
     .orderBy(asc(fuelLogs.date), asc(fuelLogs.createdAt), rowid(fuelLogs))
     .all();
 
+  const expenseRows = await db
+    .select(getTableColumns(expenses))
+    .from(expenses)
+    .innerJoin(vehicles, eq(vehicles.id, expenses.vehicleId))
+    .where(owned)
+    .orderBy(asc(expenses.date), asc(expenses.createdAt), rowid(expenses))
+    .all();
+
   const ownedRecordIds = db
     .select({ id: maintenanceRecords.id })
     .from(maintenanceRecords)
@@ -112,6 +121,7 @@ export async function loadLocalExportRows(db: LocalDb): Promise<DataExportInputR
     maintenanceSchedules: schedules,
     maintenanceRecords: records,
     fuelLogs: fuel,
+    expenses: expenseRows,
     attachments: files,
     notificationChannels: [],
   };

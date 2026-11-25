@@ -30,6 +30,7 @@ const SUMMARY_KEYS = [
   'maintenanceSchedules',
   'maintenanceRecords',
   'fuelLogs',
+  'expenses',
   'attachments',
   'photos',
   'notificationChannels',

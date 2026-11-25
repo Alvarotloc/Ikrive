@@ -45,6 +45,10 @@ export const MAINTENANCE_CATEGORIES = [
 ] as const;
 export type MaintenanceCategory = (typeof MAINTENANCE_CATEGORIES)[number];
 
+/** Vehicle costs that are neither refuels nor maintenance (`expenses.category`). */
+export const EXPENSE_CATEGORIES = ['insurance', 'tax', 'tolls', 'parking', 'fines', 'other'] as const;
+export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];
+
 /** Computed on read from a maintenance schedule's next due date and odometer. */
 export const SCHEDULE_STATUSES = ['ok', 'due_soon', 'overdue'] as const;
 export type ScheduleStatus = (typeof SCHEDULE_STATUSES)[number];

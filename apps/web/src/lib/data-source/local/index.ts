@@ -4,6 +4,7 @@ import { localAttachments } from './attachments';
 import { localCsvImport } from './csv-import';
 import { localDataPortability } from './data-export';
 import { LOCAL_USER, type LocalDb } from './database';
+import { localExpenses } from './expenses';
 import { LOCAL_MAX_UPLOAD_MB, type LocalDeps } from './files';
 import { localFiles } from './files-get';
 import { localFuelLogs } from './fuel-logs';
@@ -59,6 +60,7 @@ export function createLocalDataSource(db: LocalDb, deps: LocalDeps): DataSource 
     vehicles: serialized(queue, localVehicles(db, deps)),
     odometer: serialized(queue, localOdometer(db)),
     fuelLogs: serialized(queue, localFuelLogs(db)),
+    expenses: serialized(queue, localExpenses(db)),
     maintenance: serialized(queue, localMaintenance(db, deps)),
     attachments: serialized(queue, localAttachments(db, deps)),
     schedules: serialized(queue, localSchedules(db)),

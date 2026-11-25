@@ -30,6 +30,7 @@ const summary: DataImportSummary = {
   maintenanceSchedules: 4,
   maintenanceRecords: 12,
   fuelLogs: 57,
+  expenses: 14,
   attachments: 9,
   photos: 1,
   notificationChannels: 3,
@@ -148,6 +149,7 @@ describe('DataPortabilitySection', () => {
       ['Programaciones', '4'],
       ['Mantenimientos', '12'],
       ['Repostajes', '57'],
+      ['Gastos', '14'],
       ['Adjuntos', '9'],
       ['Fotos', '1'],
       ['Canales de notificación', '3'],
@@ -156,6 +158,24 @@ describe('DataPortabilitySection', () => {
       expect(within(list).getByText(label).nextElementSibling).toHaveTextContent(value);
     }
     expect(within(list).queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('shows the imported expenses', async () => {
+    const { user } = setup({ [`POST ${IMPORT}`]: { status: 201, body: { ...summary, expenses: 1_250 } } });
+
+    await chooseAndConfirm(user);
+
+    expect(await screen.findByText('Datos importados')).toBeInTheDocument();
+    const list = screen.getByRole('heading', { name: 'Último import' }).parentElement as HTMLElement;
+    const labels = within(list)
+      .getAllByRole('term')
+      .map((term) => term.textContent);
+    // Next to the other counters, after the refuels.
+    expect(labels.slice(labels.indexOf('Repostajes'), labels.indexOf('Repostajes') + 2)).toEqual([
+      'Repostajes',
+      'Gastos',
+    ]);
+    expect(within(list).getByText('Gastos').nextElementSibling).toHaveTextContent('1250');
   });
 
   it('warns about skipped notification channels', async () => {

@@ -1,5 +1,6 @@
 import { computeVehicleStats, type VehicleStats } from '@ikrive/shared';
 import { NotFoundError } from '../../lib/errors';
+import type { ExpensesRepository } from '../expenses/repository';
 import type { FuelLogsRepository } from '../fuel-logs/repository';
 import type { MaintenanceRepository } from '../maintenance/repository';
 import type { VehiclesRepository } from '../vehicles/repository';
@@ -8,9 +9,10 @@ interface StatsServiceDeps {
   vehicles: VehiclesRepository;
   fuelLogs: FuelLogsRepository;
   maintenance: MaintenanceRepository;
+  expenses: ExpensesRepository;
 }
 
-export function createStatsService({ vehicles, fuelLogs, maintenance }: StatsServiceDeps) {
+export function createStatsService({ vehicles, fuelLogs, maintenance, expenses }: StatsServiceDeps) {
   return {
     /** Statistics of an owned vehicle; other users' vehicles are reported as missing. */
     forVehicle(userId: string, vehicleId: string): VehicleStats {
@@ -32,6 +34,9 @@ export function createStatsService({ vehicles, fuelLogs, maintenance }: StatsSer
             missedPrevious,
           })),
         maintenance: maintenance
+          .listByVehicle(vehicleId)
+          .map(({ date, category, cost }) => ({ date, category, cost })),
+        expenses: expenses
           .listByVehicle(vehicleId)
           .map(({ date, category, cost }) => ({ date, category, cost })),
       });

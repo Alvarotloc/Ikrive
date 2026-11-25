@@ -169,6 +169,32 @@ describe('local data export', () => {
     expect(json).not.toContain('ownerId');
   });
 
+  it('exports expenses', async () => {
+    const { vehicle, empty } = await seed();
+    const later = await local.expenses.create(vehicle.id, {
+      date: '2024-05-01',
+      category: 'tolls',
+      cost: 12.4,
+    });
+    const earlier = await local.expenses.create(vehicle.id, {
+      date: '2024-01-15',
+      category: 'insurance',
+      title: 'Seguro anual',
+      description: 'Póliza',
+      cost: 420.5,
+    });
+
+    const { document } = await unzip((await exportBlob()).blob);
+
+    expect(dataExportSchema.safeParse(document).success).toBe(true);
+    const [first, second] = document.vehicles;
+    // In date order, like the API's export.
+    expect(first?.expenses).toEqual([earlier, later].map(({ vehicleId: _vehicleId, ...fields }) => fields));
+    expect(second?.id).toBe(empty.id);
+    expect(second?.expenses).toEqual([]);
+    expect((await loadLocalExportRows(db)).expenses.map((row) => row.id)).toEqual([earlier.id, later.id]);
+  });
+
   it('names the zip after today in the settings time zone', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     // 23:30 UTC on 1 March is already 2 March in Kiritimati (UTC+14).

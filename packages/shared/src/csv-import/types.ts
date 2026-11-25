@@ -1,4 +1,5 @@
 import type { DistanceUnit, FuelQuantityUnit } from '../enums';
+import type { CreateExpense } from '../schemas/expenses';
 import type { CreateFuelLog } from '../schemas/fuel-logs';
 import type { CreateMaintenanceRecord } from '../schemas/maintenance';
 import type { CreateOdometerReading } from '../schemas/vehicles';
@@ -7,7 +8,7 @@ import type { CsvDocument } from './tokenizer';
 export type CsvFormat = 'fuelio' | 'drivvo' | 'lubelogger' | 'generic';
 export type CsvDateFormat = 'ymd' | 'dmy' | 'mdy';
 export type CsvDecimalSeparator = '.' | ',';
-export type CsvRowKind = 'odometer' | 'fuel' | 'maintenance';
+export type CsvRowKind = 'odometer' | 'fuel' | 'maintenance' | 'expense';
 export type CsvColumn =
   | 'date'
   | 'value'
@@ -60,7 +61,8 @@ interface CsvRowBase {
 export type CsvRow =
   | (CsvRowBase & { kind: 'odometer'; data: CreateOdometerReading })
   | (CsvRowBase & { kind: 'fuel'; data: CreateFuelLog })
-  | (CsvRowBase & { kind: 'maintenance'; data: CreateMaintenanceRecord });
+  | (CsvRowBase & { kind: 'maintenance'; data: CreateMaintenanceRecord })
+  | (CsvRowBase & { kind: 'expense'; data: CreateExpense });
 
 export type CsvRowErrorCode =
   | 'malformed_row'
@@ -79,7 +81,7 @@ export interface CsvRowError {
 
 export interface CsvSkippedRow {
   row: number;
-  reason: 'not_maintenance' | 'template' | 'income';
+  reason: 'template' | 'income';
   label: string | null;
 }
 

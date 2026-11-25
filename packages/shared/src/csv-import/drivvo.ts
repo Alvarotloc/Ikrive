@@ -1,5 +1,5 @@
 import { resolveFuelPrices } from '../domain/fuel';
-import { matchMaintenanceCategory } from './categories';
+import { matchExpenseCategory, matchMaintenanceCategory } from './categories';
 import type { CsvDocument, CsvRecord, CsvSection } from './tokenizer';
 import type { CsvAdapter, CsvAdapterOutput, CsvImportedCells, CsvRowWarning, CsvValueContext } from './types';
 import {
@@ -154,6 +154,13 @@ export const drivvoAdapter: CsvAdapter = {
         );
       }
     }
+    // The odometer of an expense is not imported.
+    for (const section of sectionsOf(doc, 'expense')) {
+      for (const record of section.records.slice(1)) {
+        cells.dates.push(cell(record, 1));
+        cells.numbers.push({ column: 'cost', raw: cell(record, 2) });
+      }
+    }
     return cells;
   },
 
@@ -179,9 +186,26 @@ export const drivvoAdapter: CsvAdapter = {
         });
       }
     }
+    // Odometer (0), local (4) and reason (5) are not imported.
     for (const section of sectionsOf(doc, 'expense')) {
       for (const record of section.records.slice(1)) {
-        output.skipped.push({ row: record.line, reason: 'not_maintenance', label: cell(record, 3) || null });
+        attemptRow(record.line, output.errors, () => {
+          const title = cell(record, 3);
+          output.drafts.push({
+            sourceRow: record.line,
+            sourceId: null,
+            kind: 'expense',
+            input: {
+              date: readDate(cell(record, 1), context.dateFormat),
+              category: matchExpenseCategory(title) ?? 'other',
+              title,
+              description: cell(record, 6),
+              cost: readNumber(cell(record, 2), context, 'cost'),
+            },
+            warnings: [],
+            dropped: { notes: false, station: false },
+          });
+        });
       }
     }
     for (const section of sectionsOf(doc, 'service')) {

@@ -72,10 +72,41 @@ describe('lubelogger', () => {
       ['odometer', { date: '2025-03-01', value: 31000 }],
       ['odometer', { date: '2025-04-01', value: 31500 }],
     ]);
+  });
 
+  it('imports tax records as expenses', () => {
     const tax = parsed(fixture('lubelogger-tax.csv'));
-    expect(tax.rows).toEqual([]);
-    expect(tax.skipped).toEqual([{ row: 2, reason: 'not_maintenance', label: 'Impuesto de circulacion' }]);
+    expect(tax.errors).toEqual([]);
+    expect(tax.skipped).toEqual([]);
+    expect(tax.rows).toEqual([
+      {
+        sourceRow: 2,
+        sourceId: null,
+        kind: 'expense',
+        key: 'expense|2025-01-15|impuesto de circulacion|110.00',
+        warnings: [],
+        data: {
+          date: '2025-01-15',
+          category: 'tax',
+          title: 'Impuesto de circulacion',
+          description: null,
+          cost: 110,
+        },
+      },
+    ]);
+
+    // Notes as the description, the amount with its currency symbol, and an amount of 0 as an error.
+    const withNotes = parseCsvImport(
+      'Date,Description,Cost,Notes\n2025-02-01,IVTM,$95.5,Recibo\n2025-03-01,IVTM,0,\n',
+      {
+        target,
+      },
+    );
+    if (withNotes.status !== 'parsed') throw new Error(withNotes.status);
+    expect(withNotes.rows.map((row) => row.data)).toEqual([
+      { date: '2025-02-01', category: 'tax', title: 'IVTM', description: 'Recibo', cost: 95.5 },
+    ]);
+    expect(withNotes.errors).toEqual([{ row: 3, code: 'out_of_range', field: 'cost' }]);
   });
 
   it('composes day, month and year as an ISO date', () => {

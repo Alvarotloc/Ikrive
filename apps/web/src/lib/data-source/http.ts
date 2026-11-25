@@ -6,6 +6,7 @@ import type {
   ClientConfig,
   CsvImportSummary,
   DataImportSummary,
+  Expense,
   FuelLog,
   MaintenanceRecord,
   MaintenanceSchedule,
@@ -82,6 +83,13 @@ export const httpDataSource: DataSource = {
     update: (vehicleId, logId, changes) =>
       api.patch<FuelLog>(`/vehicles/${vehicleId}/fuel-logs/${logId}`, changes),
     remove: (vehicleId, logId) => api.delete<void>(`/vehicles/${vehicleId}/fuel-logs/${logId}`),
+  },
+  expenses: {
+    list: (vehicleId) => api.get<Expense[]>(`/vehicles/${vehicleId}/expenses`),
+    create: (vehicleId, expense) => api.post<Expense>(`/vehicles/${vehicleId}/expenses`, expense),
+    update: (vehicleId, expenseId, changes) =>
+      api.patch<Expense>(`/vehicles/${vehicleId}/expenses/${expenseId}`, changes),
+    remove: (vehicleId, expenseId) => api.delete<void>(`/vehicles/${vehicleId}/expenses/${expenseId}`),
   },
   maintenance: {
     list: (vehicleId) => api.get<MaintenanceRecord[]>(`/vehicles/${vehicleId}/maintenance`),

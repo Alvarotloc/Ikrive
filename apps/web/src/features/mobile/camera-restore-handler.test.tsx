@@ -84,8 +84,16 @@ const created: MaintenanceRecord = { ...record, id: 'r9', title: 'ITV', category
 const stats: VehicleStats = {
   distance: { driven: null, perYear: null, perMonth: null },
   consumption: { average: null },
-  costPerDistance: { fuel: null, maintenance: null },
-  spending: { purchase: null, fuel: 0, maintenance: 0, total: 0, byCategory: [] },
+  costPerDistance: { fuel: null, maintenance: null, expenses: null, total: null },
+  spending: {
+    purchase: null,
+    fuel: 0,
+    maintenance: 0,
+    expenses: 0,
+    total: 0,
+    byCategory: [],
+    expensesByCategory: [],
+  },
   series: { distanceByMonth: [], consumptionBySegment: [], spendingByMonth: [] },
 };
 

@@ -10,7 +10,7 @@ const TODAY = '2025-06-30';
 const target = { distance: 'km', quantity: 'l' } as const;
 const fixtureBytes = (name: string) =>
   new Uint8Array(readFileSync(new URL(`./fixtures/${name}`, import.meta.url)));
-const none = { readings: [], fuelLogs: [], maintenance: [] };
+const none = { readings: [], fuelLogs: [], maintenance: [], expenses: [] };
 
 const base = (sourceRow: number) => ({ sourceRow, sourceId: null, warnings: [] });
 const fuel = (sourceRow: number, date: string, odometer: number, quantity = 40, totalPrice = 60): CsvRow => {
@@ -39,6 +39,10 @@ const reading = (sourceRow: number, date: string, value: number): CsvRow => {
   const data = { date, value };
   return { ...base(sourceRow), kind: 'odometer', data, key: csvRowKey({ kind: 'odometer', data }) };
 };
+const expense = (sourceRow: number, date: string, title: string | null = 'Peaje', cost = 12.4): CsvRow => {
+  const data = { date, category: 'tolls' as const, title, cost };
+  return { ...base(sourceRow), kind: 'expense', data, key: csvRowKey({ kind: 'expense', data }) };
+};
 const rowsOf = (plan: { accepted: CsvRow[] }) => plan.accepted.map((row) => row.sourceRow);
 
 function parsed(text: string): Extract<CsvImportResult, { status: 'parsed' }> {
@@ -60,6 +64,7 @@ describe('planCsvImport', () => {
         readings: [{ id: 'r1', date: '2025-03-01', value: 11000 }],
         fuelLogs: [{ date: '2025-01-10', odometer: 10000, quantity: 40, totalPrice: 60 }],
         maintenance: [{ date: '2025-02-01', odometer: 10500, title: '  ACEITE ', cost: 80 }],
+        expenses: [],
       },
       TODAY,
     );
@@ -140,6 +145,45 @@ describe('planCsvImport', () => {
     ]);
   });
 
+  it('skips expenses already stored or repeated in the file', () => {
+    const plan = planCsvImport(
+      [
+        expense(2, '2025-01-10', 'Seguro', 300), // stored, with another category and case
+        expense(3, '2025-02-01'),
+        expense(4, '2025-02-01'), // repeated in the file
+        expense(5, '2025-02-01', 'Peaje', 9.9), // same day and title, another amount
+        expense(6, '2025-03-01', null, 3),
+        expense(7, '2025-03-01', null, 3), // two equal tickets without title count as one
+        fuel(8, '2025-02-01', 10000),
+      ],
+      { ...none, expenses: [{ date: '2025-01-10', title: ' SEGURO', cost: 300 }] },
+      TODAY,
+    );
+    expect(rowsOf(plan)).toEqual([3, 5, 6, 8]);
+    expect(plan.duplicates).toBe(3);
+    expect(plan.rejected).toEqual([]);
+  });
+
+  it('rejects future expenses', () => {
+    const plan = planCsvImport(
+      [expense(2, '2025-07-01'), expense(3, TODAY, 'Parking'), reading(4, '2025-06-15', 100)],
+      // A stored reading that an odometer would contradict: an expense has none and is not compared.
+      { ...none, readings: [{ id: 'r1', date: '2025-06-01', value: 50_000 }] },
+      TODAY,
+    );
+    // Expenses go with refuels and maintenance, before the loose readings, and add no reading.
+    expect(rowsOf(plan)).toEqual([3]);
+    expect(plan.rejected).toEqual([
+      { row: 2, kind: 'expense', reason: 'future_date', conflict: null },
+      {
+        row: 4,
+        kind: 'odometer',
+        reason: 'odometer_conflict',
+        conflict: { date: '2025-06-01', value: 50_000 },
+      },
+    ]);
+  });
+
   it('rejects future dates', () => {
     const plan = planCsvImport(
       [service(2, '2025-07-01', null), reading(3, TODAY, 100), reading(4, '2025-07-01', 200)],
@@ -163,7 +207,7 @@ describe('csvImportSummary', () => {
     expect(summary).toEqual({
       dryRun: true,
       format: 'fuelio',
-      created: { odometer: 0, fuel: 2, maintenance: 2 },
+      created: { odometer: 0, fuel: 2, maintenance: 2, expense: 1 },
       duplicates: 0,
       rejected: [],
       errors: result.errors,
@@ -172,6 +216,29 @@ describe('csvImportSummary', () => {
       encodingReplaced: false,
     });
     expect(result.skipped.length).toBeGreaterThan(0);
+  });
+
+  it('summarizes created expenses', () => {
+    const result = parsed(new TextDecoder().decode(fixtureBytes('lubelogger-tax.csv')));
+    const summary = csvImportSummary(result, planCsvImport(result.rows, none, TODAY), {
+      dryRun: false,
+      encodingReplaced: false,
+    });
+    expect(csvImportSummarySchema.parse(summary)).toEqual(summary);
+    expect(summary.created).toEqual({ odometer: 0, fuel: 0, maintenance: 0, expense: 1 });
+    // A second import of the same rows creates nothing.
+    const again = planCsvImport(
+      result.rows,
+      {
+        ...none,
+        expenses: result.rows.map((row) => row.data as { date: string; title: string; cost: number }),
+      },
+      TODAY,
+    );
+    expect(csvImportSummary(result, again, { dryRun: false, encodingReplaced: false })).toMatchObject({
+      created: { odometer: 0, fuel: 0, maintenance: 0, expense: 0 },
+      duplicates: 1,
+    });
   });
 });
 
@@ -226,6 +293,6 @@ describe('decodeCsv', () => {
       encodingReplaced: replaced,
     });
     expect(summary.encodingReplaced).toBe(true);
-    expect(summary.created).toEqual({ odometer: 0, fuel: 0, maintenance: 2 });
+    expect(summary.created).toEqual({ odometer: 0, fuel: 0, maintenance: 2, expense: 0 });
   });
 });
