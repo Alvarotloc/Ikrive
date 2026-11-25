@@ -111,6 +111,7 @@ function buildPlan(document: DataExport, stored: StoredFiles) {
     maintenanceSchedules: [],
     maintenanceRecords: [],
     fuelLogs: [],
+    expenses: [],
     attachments: [],
     notificationChannels: [],
   };
@@ -228,6 +229,20 @@ function buildPlan(document: DataExport, stored: StoredFiles) {
         missedPrevious: fuelLog.missedPrevious,
         createdAt: date(fuelLog.createdAt),
         updatedAt: date(fuelLog.updatedAt),
+      });
+    }
+
+    for (const expense of vehicle.expenses) {
+      plan.expenses.push({
+        id: randomUUID(),
+        vehicleId,
+        date: expense.date,
+        category: expense.category,
+        title: expense.title,
+        description: expense.description,
+        cost: expense.cost,
+        createdAt: date(expense.createdAt),
+        updatedAt: date(expense.updatedAt),
       });
     }
   }

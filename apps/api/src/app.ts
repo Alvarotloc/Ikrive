@@ -31,6 +31,9 @@ import { createDataExportService } from './modules/data-export/service';
 import { createDataImportRepository } from './modules/data-import/repository';
 import { dataImportRoutes } from './modules/data-import/routes';
 import { createDataImportService } from './modules/data-import/service';
+import { createExpensesRepository } from './modules/expenses/repository';
+import { expensesRoutes } from './modules/expenses/routes';
+import { createExpensesService } from './modules/expenses/service';
 import { createFuelLogsRepository } from './modules/fuel-logs/repository';
 import { fuelLogsRoutes } from './modules/fuel-logs/routes';
 import { createFuelLogsService } from './modules/fuel-logs/service';
@@ -114,6 +117,7 @@ export async function buildApp({ config, db, fetch = globalThis.fetch, logStream
   const maintenanceRepo = createMaintenanceRepository(db);
   const schedulesRepo = createSchedulesRepository(db);
   const fuelLogsRepo = createFuelLogsRepository(db);
+  const expensesRepo = createExpensesRepository(db);
   const vehiclesService = createVehiclesService({
     repo: vehiclesRepo,
     storage,
@@ -133,17 +137,24 @@ export async function buildApp({ config, db, fetch = globalThis.fetch, logStream
     vehicles: vehiclesRepo,
     settings: settingsService,
   });
+  const expensesService = createExpensesService({
+    repo: expensesRepo,
+    vehicles: vehiclesRepo,
+    settings: settingsService,
+  });
   const csvImportService = createCsvImportService({
     repo: createCsvImportRepository(db),
     vehicles: vehiclesRepo,
     fuelLogs: fuelLogsRepo,
     maintenance: maintenanceRepo,
+    expenses: expensesRepo,
     settings: settingsService,
   });
   const statsService = createStatsService({
     vehicles: vehiclesRepo,
     fuelLogs: fuelLogsRepo,
     maintenance: maintenanceRepo,
+    expenses: expensesRepo,
   });
   const reportsService = createReportsService({
     vehicles: vehiclesRepo,
@@ -227,6 +238,7 @@ export async function buildApp({ config, db, fetch = globalThis.fetch, logStream
       await api.register(vehiclesRoutes, { service: vehiclesService });
       await api.register(maintenanceRoutes, { service: maintenanceService });
       await api.register(fuelLogsRoutes, { service: fuelLogsService });
+      await api.register(expensesRoutes, { service: expensesService });
       await api.register(csvImportRoutes, { service: csvImportService });
       await api.register(statsRoutes, { service: statsService });
       await api.register(reportsRoutes, { service: reportsService });

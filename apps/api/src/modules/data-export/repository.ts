@@ -3,6 +3,7 @@ import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
 import type { Db } from '../../db/client';
 import {
   attachments,
+  expenses,
   fuelLogs,
   maintenanceRecords,
   maintenanceSchedules,
@@ -63,6 +64,14 @@ export function createDataExportRepository(db: Db) {
         .orderBy(asc(fuelLogs.date), asc(fuelLogs.createdAt), rowid(fuelLogs))
         .all();
 
+      const expenseRows = db
+        .select(getTableColumns(expenses))
+        .from(expenses)
+        .innerJoin(vehicles, eq(vehicles.id, expenses.vehicleId))
+        .where(ownedBy(userId))
+        .orderBy(asc(expenses.date), asc(expenses.createdAt), rowid(expenses))
+        .all();
+
       const ownedRecordIds = db
         .select({ id: maintenanceRecords.id })
         .from(maintenanceRecords)
@@ -94,6 +103,7 @@ export function createDataExportRepository(db: Db) {
         maintenanceSchedules: schedules,
         maintenanceRecords: records,
         fuelLogs: fuel,
+        expenses: expenseRows,
         attachments: files,
         notificationChannels: channels,
       };
