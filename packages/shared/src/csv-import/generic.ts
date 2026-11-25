@@ -1,5 +1,10 @@
-import { MAINTENANCE_CATEGORIES, type MaintenanceCategory } from '../enums';
-import { matchMaintenanceCategory } from './categories';
+import {
+  EXPENSE_CATEGORIES,
+  type ExpenseCategory,
+  MAINTENANCE_CATEGORIES,
+  type MaintenanceCategory,
+} from '../enums';
+import { matchExpenseCategory, matchMaintenanceCategory } from './categories';
 import type { CsvDocument, CsvRecord } from './tokenizer';
 import type {
   CsvAdapterOutput,
@@ -24,6 +29,7 @@ export const CSV_REQUIRED_COLUMNS: Record<CsvRowKind, readonly (readonly CsvColu
   odometer: [['date'], ['value']],
   fuel: [['date'], ['odometer'], ['quantity'], ['totalPrice', 'pricePerUnit']],
   maintenance: [['date'], ['title']],
+  expense: [['date'], ['cost']],
 };
 
 /** Columns each kind of row can import, in the order the mapping form shows them. */
@@ -31,6 +37,7 @@ export const CSV_KIND_COLUMNS: Record<CsvRowKind, readonly CsvColumn[]> = {
   odometer: ['date', 'value'],
   fuel: ['date', 'odometer', 'quantity', 'totalPrice', 'pricePerUnit', 'fullTank', 'missedPrevious'],
   maintenance: ['date', 'odometer', 'title', 'category', 'description', 'workshop', 'cost'],
+  expense: ['date', 'category', 'title', 'description', 'cost'],
 };
 
 export const genericHeaders = (doc: CsvDocument) =>
@@ -55,6 +62,11 @@ export function missingGenericColumns(doc: CsvDocument, mapping: CsvGenericMappi
 const categoryOf = (raw: string): MaintenanceCategory => {
   const exact = MAINTENANCE_CATEGORIES.find((category) => category === normalizeText(raw));
   return exact ?? matchMaintenanceCategory(raw) ?? 'other';
+};
+
+const expenseCategoryOf = (raw: string): ExpenseCategory => {
+  const exact = EXPENSE_CATEGORIES.find((category) => category === normalizeText(raw));
+  return exact ?? matchExpenseCategory(raw) ?? 'other';
 };
 
 export function normalizeGeneric(doc: CsvDocument, mapping: CsvGenericMapping): CsvAdapterOutput {
@@ -83,6 +95,14 @@ export function normalizeGeneric(doc: CsvDocument, mapping: CsvGenericMapping): 
           pricePerUnit: readNumber(read(record, 'pricePerUnit'), context, 'pricePerUnit'),
           fullTank: readBoolean(read(record, 'fullTank'), 'fullTank'),
           missedPrevious: readBoolean(read(record, 'missedPrevious'), 'missedPrevious'),
+        };
+      } else if (mapping.kind === 'expense') {
+        input = {
+          date,
+          category: expenseCategoryOf(read(record, 'category')),
+          title: read(record, 'title'),
+          description: read(record, 'description'),
+          cost: readNumber(read(record, 'cost'), context, 'cost'),
         };
       } else {
         input = {

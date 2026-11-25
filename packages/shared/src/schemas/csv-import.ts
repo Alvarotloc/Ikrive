@@ -7,7 +7,7 @@ export const CSV_IMPORT_MAX_BYTES = 5 * 1024 * 1024;
 
 // The parser's unions as arrays, so the schemas below can use them without importing the parser.
 export const CSV_FORMATS = ['fuelio', 'drivvo', 'lubelogger', 'generic'] as const;
-export const CSV_ROW_KINDS = ['odometer', 'fuel', 'maintenance'] as const;
+export const CSV_ROW_KINDS = ['odometer', 'fuel', 'maintenance', 'expense'] as const;
 export const CSV_DATE_FORMATS = ['ymd', 'dmy', 'mdy'] as const;
 export const CSV_DECIMAL_SEPARATORS = ['.', ','] as const;
 export const CSV_COLUMNS = [
@@ -34,7 +34,7 @@ export const CSV_ROW_ERROR_CODES = [
   'out_of_range',
   'mixed_fuel_units',
 ] as const;
-export const CSV_SKIP_REASONS = ['not_maintenance', 'template', 'income'] as const;
+export const CSV_SKIP_REASONS = ['template', 'income'] as const;
 /** Why a parsed row is not imported, besides being a duplicate. */
 export const CSV_REJECT_REASONS = ['odometer_conflict', 'future_date'] as const;
 
@@ -73,7 +73,12 @@ export const csvImportSummarySchema = z.object({
   dryRun: z.boolean(),
   format: z.enum(CSV_FORMATS),
   /** In a dry run, what would be created. */
-  created: z.object({ odometer: countSchema, fuel: countSchema, maintenance: countSchema }),
+  created: z.object({
+    odometer: countSchema,
+    fuel: countSchema,
+    maintenance: countSchema,
+    expense: countSchema,
+  }),
   /** Rows already stored in the vehicle or repeated in the file. */
   duplicates: countSchema,
   rejected: z.array(

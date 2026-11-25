@@ -1,4 +1,5 @@
 import type { z } from 'zod';
+import { createExpenseSchema } from '../schemas/expenses';
 import { createFuelLogSchema } from '../schemas/fuel-logs';
 import { createMaintenanceRecordSchema } from '../schemas/maintenance';
 import { createOdometerReadingSchema } from '../schemas/vehicles';
@@ -53,6 +54,16 @@ function validateDraft(draft: CsvDraftRow): CsvRow | CsvRowError {
     const result = createFuelLogSchema.safeParse(draft.input);
     if (!result.success) return schemaError(draft, result.error);
     return { ...base, kind: 'fuel', data: result.data, key: csvRowKey({ kind: 'fuel', data: result.data }) };
+  }
+  if (draft.kind === 'expense') {
+    const result = createExpenseSchema.safeParse(draft.input);
+    if (!result.success) return schemaError(draft, result.error);
+    return {
+      ...base,
+      kind: 'expense',
+      data: result.data,
+      key: csvRowKey({ kind: 'expense', data: result.data }),
+    };
   }
   const result = createMaintenanceRecordSchema.safeParse(draft.input);
   if (!result.success) return schemaError(draft, result.error);

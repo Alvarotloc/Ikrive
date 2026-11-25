@@ -1,6 +1,7 @@
 import type { OdometerPoint } from '../domain/odometer';
 import { validateOdometerWrite } from '../domain/odometer-writes';
 import type { CsvImportSummary } from '../schemas/csv-import';
+import type { CreateExpense, Expense } from '../schemas/expenses';
 import type { CreateFuelLog } from '../schemas/fuel-logs';
 import type { CreateMaintenanceRecord } from '../schemas/maintenance';
 import { csvRowKey } from './keys';
@@ -24,6 +25,7 @@ export interface CsvImportExisting {
   readings: readonly (OdometerPoint & { id: string })[];
   fuelLogs: readonly Pick<CreateFuelLog, 'date' | 'odometer' | 'quantity' | 'totalPrice'>[];
   maintenance: readonly Pick<CreateMaintenanceRecord, 'date' | 'odometer' | 'title' | 'cost'>[];
+  expenses: readonly Pick<Expense, 'date' | 'title' | 'cost'>[];
 }
 
 export interface CsvImportPlan {
@@ -35,9 +37,13 @@ export interface CsvImportPlan {
 
 type Parsed = Extract<CsvImportResult, { status: 'parsed' }>;
 
-const rowOdometer = (row: CsvRow) => (row.kind === 'odometer' ? row.data.value : row.data.odometer);
+/** Expenses have no odometer: they only check their date and add no reading. */
+const rowOdometer = (row: CsvRow) => {
+  if (row.kind === 'odometer') return row.data.value;
+  return row.kind === 'expense' ? null : row.data.odometer;
+};
 
-/** Refuels and maintenance first, then the loose readings, each group by row number. */
+/** Refuels, maintenance and expenses first, then the loose readings, each group by row number. */
 const processingOrder = (a: CsvRow, b: CsvRow) =>
   Number(a.kind === 'odometer') - Number(b.kind === 'odometer') || a.sourceRow - b.sourceRow;
 
@@ -49,6 +55,7 @@ function storedKeys(existing: CsvImportExisting): Set<string> {
     ...existing.maintenance.map((record) =>
       csvRowKey({ kind: 'maintenance', data: record as CreateMaintenanceRecord }),
     ),
+    ...existing.expenses.map((expense) => csvRowKey({ kind: 'expense', data: expense as CreateExpense })),
   ]);
 }
 
@@ -99,7 +106,7 @@ export function csvImportSummary(
   plan: CsvImportPlan,
   flags: { dryRun: boolean; encodingReplaced: boolean },
 ): CsvImportSummary {
-  const created = { odometer: 0, fuel: 0, maintenance: 0 };
+  const created = { odometer: 0, fuel: 0, maintenance: 0, expense: 0 };
   for (const row of plan.accepted) created[row.kind] += 1;
   return {
     dryRun: flags.dryRun,
