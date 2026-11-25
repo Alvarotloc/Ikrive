@@ -658,6 +658,124 @@
       "export": "No se ha podido generar el export"
     }
   },
+  "csvImport": {
+    "eyebrow": "Importar",
+    "title": "Importar desde otra app",
+    "description": "Trae el historial de un vehículo desde Fuelio, Drivvo, LubeLogger o cualquier CSV. Antes de guardar nada verás qué se va a importar.",
+    "settingsCard": {
+      "title": "Importar desde otra app",
+      "description": "Añade a un vehículo los repostajes, mantenimientos y lecturas de kilometraje que exportaste en CSV desde Fuelio, Drivvo, LubeLogger u otra app.",
+      "link": "Importar un CSV"
+    },
+    "steps": {
+      "source": "Vehículo y fichero",
+      "format": "Formato"
+    },
+    "vehicle": "Vehículo",
+    "file": "Fichero CSV",
+    "noVehicles": "Para importar un CSV necesitas al menos un vehículo.",
+    "reading": "Leyendo el fichero…",
+    "tooLarge": "El fichero supera el tamaño máximo de {{max}} MB. Divídelo o exporta menos datos.",
+    "detected": "Formato detectado: {{format}}",
+    "optionsIntro": "No hemos podido deducir cómo están escritos algunos datos del fichero: indícalo para continuar.",
+    "genericIntro": "No reconocemos este formato: se importará como CSV genérico. Indica qué columna corresponde a cada campo; los marcados con * son obligatorios (en los repostajes basta con el precio total o el precio por unidad).",
+    "choose": "Elige…",
+    "fields": {
+      "kind": "Tipo de registro",
+      "dateFormat": "Formato de fecha",
+      "decimalSeparator": "Separador decimal"
+    },
+    "formats": {
+      "fuelio": "Fuelio",
+      "drivvo": "Drivvo",
+      "lubelogger": "LubeLogger",
+      "generic": "CSV genérico"
+    },
+    "kinds": {
+      "odometer": "Lecturas de kilometraje",
+      "fuel": "Repostajes",
+      "maintenance": "Mantenimientos"
+    },
+    "columns": {
+      "date": "Fecha",
+      "value": "Kilometraje",
+      "odometer": "Kilometraje",
+      "quantity": "Cantidad",
+      "totalPrice": "Precio total",
+      "pricePerUnit": "Precio por unidad",
+      "fullTank": "Depósito lleno",
+      "missedPrevious": "Repostaje anterior saltado",
+      "title": "Título",
+      "category": "Categoría",
+      "description": "Descripción",
+      "workshop": "Taller",
+      "cost": "Coste"
+    },
+    "dateFormats": {
+      "ymd": "Año-mes-día (2026-01-31)",
+      "dmy": "Día/mes/año (31/01/2026)",
+      "mdy": "Mes/día/año (01/31/2026)"
+    },
+    "decimalSeparators": {
+      "dot": "Punto (1234.56)",
+      "comma": "Coma (1234,56)"
+    },
+    "noColumn": "No importar",
+    "columnN": "Columna {{n}}",
+    "unitMismatch": "Las unidades del fichero ({{source}}) no coinciden con las de este vehículo ({{target}}). Ikrive no convierte unidades: cambia las de tus ajustes o elige otro fichero.",
+    "settingsLink": "Ir a Ajustes",
+    "preview": {
+      "title": "Vista previa",
+      "valid": "Válidas",
+      "duplicates": "Duplicadas",
+      "errors": "Con error",
+      "skipped": "Omitidas",
+      "loading": "Calculando la vista previa…",
+      "nothingToImport": "No hay nada que importar: ninguna fila es válida."
+    },
+    "droppedNotes": "Las notas de los repostajes no se importan: Ikrive no las guarda.",
+    "droppedStation": "La gasolinera de los repostajes no se importa: Ikrive no la guarda.",
+    "droppedBoth": "Las notas y la gasolinera de los repostajes no se importan: Ikrive no las guarda.",
+    "encoding": "Puede que el fichero no esté en UTF-8 y algunos caracteres se vean mal. Si es así, guárdalo en UTF-8 y vuelve a elegirlo.",
+    "import": "Importar",
+    "importing": "Importando…",
+    "result": {
+      "title": "Importación terminada",
+      "created": "Creados",
+      "omitted": "Omitidos",
+      "errors": "Errores",
+      "again": "Importar otro fichero",
+      "vehicle": "Ver el vehículo"
+    },
+    "issues": {
+      "show": "Ver filas ({{count}})",
+      "more": "y {{count}} más",
+      "row": "Fila {{row}}: {{reason}}"
+    },
+    "errorCodes": {
+      "malformed_row": "fila mal formada",
+      "missing_field": "falta un dato",
+      "invalid_date": "fecha no válida",
+      "invalid_number": "número no válido",
+      "invalid_boolean": "valor de sí/no no válido",
+      "out_of_range": "valor fuera de rango",
+      "mixed_fuel_units": "mezcla unidades de combustible"
+    },
+    "rejectReasons": {
+      "odometer_conflict": "el kilometraje no encaja con la lectura del {{date}} ({{value}})",
+      "future_date": "la fecha es futura"
+    },
+    "skipReasons": {
+      "not_maintenance": "no es un mantenimiento",
+      "template": "es una plantilla",
+      "income": "es un ingreso"
+    },
+    "errors": {
+      "tooLarge": "El fichero supera el tamaño máximo permitido.",
+      "cannotImport": "No se puede importar este CSV con estas opciones. Revisa el formato y vuelve a intentarlo.",
+      "vehicleNotFound": "No se ha encontrado el vehículo."
+    }
+  },
   "adminUsers": {
     "title": "Usuarios",
     "description": "Cuentas de esta instancia: roles, acceso y borrado.",
