@@ -1474,7 +1474,7 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
-      "status": "in_progress"
+      "status": "done"
     },
     {
       "id": 88,
@@ -1608,6 +1608,21 @@
       ],
       "sdd": false,
       "status": "done"
+    },
+    {
+      "id": 96,
+      "name": "vitest-cache-new-migrations",
+      "phase": "9",
+      "title": "Caché de Vitest con migraciones nuevas",
+      "description": "Aviso del implementer y del reviewer en Gate 2 de #87. Al añadir una migración en packages/db/migrations, los tests de apps/web fallan en local con «Missing migration file 0013_expenses.sql» hasta borrar node_modules/.vitest-cache: la caché de módulos de Vitest no invalida el import.meta.glob de apps/web/src/lib/data-source/local/migrations.ts cuando aparece un fichero nuevo. En CI no pasa porque la caché parte vacía. Va antes de #89 (vehicle-documents-api), que añade otra migración.",
+      "acceptance": [
+        "Se identifica la causa (caché de transformación, deps optimizadas o import.meta.glob) y el informe la documenta",
+        "Tras añadir un fichero de migración nuevo en local, pnpm test de apps/web pasa sin borrar ninguna caché a mano, con un test o una comprobación reproducible que lo demuestre",
+        "El cambio no ralentiza de forma apreciable la suite de apps/web",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
+      "status": "pending"
     }
   ]
 }

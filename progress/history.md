@@ -850,3 +850,13 @@
 - **Revisión:** APPROVED (`progress/review_slow-data-dir-test.md`). En Gate 2 el humano pidió aplicar el aviso 1 (señal y stderr en el mensaje si el hijo no sale con 1); APPROVED en la segunda vuelta. Avisos vigentes: el test se salta como root (ya pasaba); el bundle se reparte en chunks en `dist/`, así que el Dockerfile debe seguir copiando `dist/` entero.
 - **Tests:** api 391, web 759. `pnpm harness --full` en verde.
 - **Gate 2:** «merge» del humano → PR.
+
+## 2026-11-25 — #87 vehicle-expenses-api
+
+- **Rama:** `feat/vehicle-expenses-api` (`sdd: true`). Spec en `specs/vehicle-expenses-api/` (37 requirements, 32 tasks). Exploración en `progress/explore_vehicle-expenses-api_{api,local,csv}.md`.
+- **Cambios:** tabla `expenses` (migración `0013_expenses`; `date`, `category` de `EXPENSE_CATEGORIES`, `title?`, `description?`, `cost` > 0; sin km ni adjuntos; cascada con el vehículo). CRUD `/api/vehicles/:id/expenses` (404 de ajenos, fecha futura 400) y grupo `expenses` en el DataSource HTTP y local. `computeVehicleStats`: `spending.expenses`, `expensesByCategory`, `costPerDistance.expenses/total` (sin compra) y `expenses` por mes. Zip v1 con `expenses` `.default([])` (huella #44 intacta), export API/local e import API. CSV: `expense` como `CsvRowKind` (Fuelio `## Costs`, Drivvo `##Expense`, LubeLogger `tax`, genérico), `matchExpenseCategory`, clave `expense|fecha|título|importe`, sin lectura de odómetro; `not_maintenance` eliminado. Web mínima: `totalCreated`, `SUMMARY_KEYS`, i18n.
+- **Gate 1:** aprobado sin cambios; un solo spec. Se añadió al acceptance de `release-v0-4-0` el aviso de que un zip nuevo en un servidor anterior pierde los gastos.
+- **Revisión:** APPROVED a la primera (`progress/review_vehicle-expenses-api.md`). Avisos: etiqueta «Gastos» en plural; sin test propio de huella con zip v1 sin `expenses`; test local `rejects invalid, future and unknown expenses without writing` resetea `statements` dos veces; caché de Vitest con migraciones nuevas (→ #96); ayuda del coste total sin gastos hasta #88.
+- **Backlog:** añadido #96 `vitest-cache-new-migrations` (`sdd: false`), antes de #89.
+- **Tests:** shared 313, web 765, api 401, e2e 6. `pnpm harness --full` en verde.
+- **Gate 2:** «merge» del humano → PR.
