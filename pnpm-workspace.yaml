@@ -8,3 +8,9 @@ allowBuilds:
   esbuild: true
   sharp: true
   lefthook: true
+
+# Security fixes for transitive deps (Dependabot). Drop once the parents catch up.
+overrides:
+  undici@8: ^8.12.2
+  fast-uri@3: ^3.1.9
+  workbox-build>glob: ^14.0.2
