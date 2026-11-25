@@ -92,6 +92,13 @@
       "when": 1793960547374,
       "tag": "0012_data_imports",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1795617138562,
+      "tag": "0013_expenses",
+      "breakpoints": true
     }
   ]
 }
