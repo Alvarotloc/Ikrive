@@ -1,4 +1,4 @@
-import { spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { chmodSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -13,6 +13,32 @@ import {
 /** Root ignores file permissions, so the real permission checks cannot fail under it. */
 const isRoot = process.getuid?.() === 0;
 const ids = { uid: 1234, gid: 5678 };
+
+/**
+ * Runs `src/server.ts` as a real process without blocking the worker (unlike `spawnSync`) and
+ * resolves with its exit code, the signal that killed it (e.g. on timeout) and stderr.
+ */
+function runServer(env: NodeJS.ProcessEnv): Promise<{
+  status: number | null;
+  signal: NodeJS.Signals | null;
+  stderr: string;
+}> {
+  const child = spawn(process.execPath, ['--import', 'tsx', 'src/server.ts'], {
+    cwd: join(import.meta.dirname, '..'),
+    env,
+    stdio: ['ignore', 'ignore', 'pipe'],
+    timeout: 9_000,
+  });
+  let stderr = '';
+  child.stderr.setEncoding('utf8');
+  child.stderr.on('data', (chunk: string) => {
+    stderr += chunk;
+  });
+  return new Promise((resolve, reject) => {
+    child.on('error', reject);
+    child.on('close', (status, signal) => resolve({ status, signal, stderr }));
+  });
+}
 
 describe('ensureWritableDataDir', () => {
   let base: string;
@@ -125,24 +151,23 @@ describe('ensureWritableDataDirOrExit', () => {
 
   it.skipIf(isRoot)(
     'makes the server exit with 1 and a single clear line instead of SQLITE_CANTOPEN',
-    () => {
+    async () => {
       chmodSync(base, 0o500);
-      const apiDir = join(import.meta.dirname, '..');
-      const result = spawnSync(process.execPath, ['--import', 'tsx', 'src/server.ts'], {
-        cwd: apiDir,
-        // Only what the check needs: the test runner's own variables (PORT, BASE_URL…) are not valid config.
-        env: { PATH: process.env.PATH, NODE_ENV: 'test', DATA_DIR: join(base, 'data') },
-        encoding: 'utf8',
-        timeout: 30_000,
+      // Only what the check needs: the test runner's own variables (PORT, BASE_URL…) are not valid config.
+      const result = await runServer({
+        PATH: process.env.PATH,
+        NODE_ENV: 'test',
+        DATA_DIR: join(base, 'data'),
       });
-      expect(result.status).toBe(1);
+      expect(result.status, `signal: ${result.signal}, stderr: ${result.stderr}`).toBe(1);
       const lines = result.stderr.trim().split('\n');
       expect(lines).toHaveLength(1);
       expect(lines[0]).toContain(`DATA_DIR ${join(base, 'data')} is not writable`);
       expect(lines[0]).toContain('sudo chown -R 1000:1000 data');
       expect(result.stderr).not.toContain('SQLITE_CANTOPEN');
     },
-    40_000,
+    // Well under a second locally; the margin is for a cold tsx cache on a loaded CI runner.
+    10_000,
   );
 });
 
