@@ -6,9 +6,11 @@ import {
   costPerDistance,
   distanceByMonth,
   distanceDriven,
+  type StatsExpense,
   type StatsFuelLog,
   type StatsMaintenanceRecord,
   spendingByCategory,
+  spendingByExpenseCategory,
   spendingByMonth,
 } from './stats';
 
@@ -32,6 +34,12 @@ const maintenance = (
   category: StatsMaintenanceRecord['category'],
   cost: number | null,
 ): StatsMaintenanceRecord => ({ date, category, cost });
+
+const expense = (date: string, category: StatsExpense['category'], cost: number): StatsExpense => ({
+  date,
+  category,
+  cost,
+});
 
 describe('distance', () => {
   it('computes the distance driven', () => {
@@ -162,27 +170,28 @@ describe('costs', () => {
         refuel('2025-03-01', 11_000, 30, { totalPrice: 45.2 }),
       ],
       maintenance: [maintenance('2025-04-01', 'oil_change', 120), maintenance('2025-05-01', 'tires', null)],
+      expenses: [],
     });
-    expect(stats.costPerDistance).toEqual({ fuel: 0.035, maintenance: 0.04 });
+    expect(stats.costPerDistance).toEqual({ fuel: 0.035, maintenance: 0.04, expenses: 0, total: 0.075 });
     expect(costPerDistance(100, 3_000)).toBe(0.033);
   });
 
   it('returns null cost per distance without distance', () => {
     expect(costPerDistance(100, null)).toBeNull();
     expect(costPerDistance(100, 0)).toBeNull();
-    const base = { purchasePrice: null, fuelLogs: [refuel('2025-01-01', 10_000, 40)], maintenance: [] };
-    expect(computeVehicleStats({ ...base, readings: [] }).costPerDistance).toEqual({
-      fuel: null,
-      maintenance: null,
-    });
+    const base = {
+      purchasePrice: null,
+      fuelLogs: [refuel('2025-01-01', 10_000, 40)],
+      maintenance: [],
+      expenses: [expense('2025-01-01', 'tax', 110)],
+    };
+    const none = { fuel: null, maintenance: null, expenses: null, total: null };
+    expect(computeVehicleStats({ ...base, readings: [] }).costPerDistance).toEqual(none);
     const stopped = [
       { date: '2025-01-01', value: 10_000 },
       { date: '2025-03-01', value: 10_000 },
     ];
-    expect(computeVehicleStats({ ...base, readings: stopped }).costPerDistance).toEqual({
-      fuel: null,
-      maintenance: null,
-    });
+    expect(computeVehicleStats({ ...base, readings: stopped }).costPerDistance).toEqual(none);
   });
 
   it('computes the total cost of ownership', () => {
@@ -193,6 +202,7 @@ describe('costs', () => {
         refuel('2025-02-01', 10_500, 30, { totalPrice: 0.2 }),
       ],
       maintenance: [maintenance('2025-03-01', 'repair', 10.1), maintenance('2025-04-01', 'brakes', 20.2)],
+      expenses: [],
     };
     expect(computeVehicleStats({ ...input, purchasePrice: 15_000 }).spending).toMatchObject({
       purchase: 15_000,
@@ -225,7 +235,7 @@ describe('costs', () => {
   });
 
   it('spreads spending by month', () => {
-    expect(spendingByMonth([], [maintenance('2025-01-01', 'repair', null)])).toEqual([]);
+    expect(spendingByMonth([], [maintenance('2025-01-01', 'repair', null)], [])).toEqual([]);
     expect(
       spendingByMonth(
         [
@@ -238,12 +248,114 @@ describe('costs', () => {
           maintenance('2025-03-10', 'tires', 300),
           maintenance('2025-06-10', 'repair', null),
         ],
+        [],
       ),
     ).toEqual([
-      { month: '2024-12', fuel: 60, maintenance: 0 },
-      { month: '2025-01', fuel: 0, maintenance: 89.9 },
-      { month: '2025-02', fuel: 0, maintenance: 0 },
-      { month: '2025-03', fuel: 0.3, maintenance: 300 },
+      { month: '2024-12', fuel: 60, maintenance: 0, expenses: 0 },
+      { month: '2025-01', fuel: 0, maintenance: 89.9, expenses: 0 },
+      { month: '2025-02', fuel: 0, maintenance: 0, expenses: 0 },
+      { month: '2025-03', fuel: 0.3, maintenance: 300, expenses: 0 },
+    ]);
+  });
+
+  it('adds expenses to the total cost of ownership', () => {
+    const input = {
+      readings: [],
+      fuelLogs: [refuel('2025-01-01', 10_000, 40, { totalPrice: 0.1 })],
+      maintenance: [maintenance('2025-03-01', 'repair', 10.1)],
+      expenses: [expense('2025-02-01', 'insurance', 0.2), expense('2025-04-01', 'tolls', 20.2)],
+    };
+    expect(computeVehicleStats({ ...input, purchasePrice: 15_000 }).spending).toMatchObject({
+      purchase: 15_000,
+      fuel: 0.1,
+      maintenance: 10.1,
+      expenses: 20.4,
+      total: 15_030.6,
+    });
+    expect(computeVehicleStats({ ...input, purchasePrice: null }).spending).toMatchObject({
+      purchase: null,
+      expenses: 20.4,
+      total: 30.6,
+    });
+    expect(computeVehicleStats({ ...input, expenses: [], purchasePrice: null }).spending).toMatchObject({
+      expenses: 0,
+      total: 10.2,
+    });
+  });
+
+  it('computes the cost per distance of expenses and in total', () => {
+    const input = {
+      purchasePrice: 20_000,
+      readings: [
+        { date: '2025-01-01', value: 10_000 },
+        { date: '2025-07-01', value: 13_000 },
+      ],
+      fuelLogs: [refuel('2025-02-01', 10_500, 40, { totalPrice: 105.3 })],
+      maintenance: [maintenance('2025-04-01', 'oil_change', 120)],
+      expenses: [expense('2025-03-01', 'insurance', 400), expense('2025-05-01', 'parking', 3.5)],
+    };
+    // Expenses: 403.5 / 3000; total without the purchase: (105.3 + 120 + 403.5) / 3000.
+    expect(computeVehicleStats(input).costPerDistance).toEqual({
+      fuel: 0.035,
+      maintenance: 0.04,
+      expenses: 0.135,
+      total: 0.21,
+    });
+    expect(computeVehicleStats({ ...input, readings: [] }).costPerDistance).toEqual({
+      fuel: null,
+      maintenance: null,
+      expenses: null,
+      total: null,
+    });
+  });
+
+  it('groups expenses by category without touching maintenance', () => {
+    const expenses = [
+      expense('2025-01-01', 'parking', 10.1),
+      expense('2025-02-01', 'insurance', 400),
+      expense('2025-03-01', 'parking', 20.2),
+      expense('2025-04-01', 'other', 5),
+    ];
+    const grouped = [
+      { category: 'insurance', total: 400 },
+      { category: 'parking', total: 30.3 },
+      { category: 'other', total: 5 },
+    ];
+    expect(spendingByExpenseCategory(expenses)).toEqual(grouped);
+    expect(spendingByExpenseCategory([])).toEqual([]);
+    const stats = computeVehicleStats({
+      purchasePrice: null,
+      readings: [],
+      fuelLogs: [],
+      maintenance: [maintenance('2025-01-01', 'other', 50)],
+      expenses,
+    });
+    expect(stats.spending.expensesByCategory).toEqual(grouped);
+    expect(stats.spending.byCategory).toEqual([{ category: 'other', total: 50 }]);
+  });
+
+  it('spreads expenses by month', () => {
+    expect(spendingByMonth([], [], [expense('2025-02-10', 'fines', 200)])).toEqual([
+      { month: '2025-02', fuel: 0, maintenance: 0, expenses: 200 },
+    ]);
+    // Months with only expenses widen the range on both ends.
+    expect(
+      spendingByMonth(
+        [refuel('2025-03-02', 10_500, 30, { totalPrice: 50 })],
+        [maintenance('2025-03-10', 'tires', 300)],
+        [
+          expense('2025-05-01', 'tolls', 0.1),
+          expense('2025-01-20', 'insurance', 400),
+          expense('2025-05-31', 'tolls', 0.2),
+          expense('2025-03-15', 'parking', 2.5),
+        ],
+      ),
+    ).toEqual([
+      { month: '2025-01', fuel: 0, maintenance: 0, expenses: 400 },
+      { month: '2025-02', fuel: 0, maintenance: 0, expenses: 0 },
+      { month: '2025-03', fuel: 50, maintenance: 300, expenses: 2.5 },
+      { month: '2025-04', fuel: 0, maintenance: 0, expenses: 0 },
+      { month: '2025-05', fuel: 0, maintenance: 0, expenses: 0.3 },
     ]);
   });
 });
@@ -273,12 +385,14 @@ describe('computeVehicleStats', () => {
       ],
       fuelLogs: rows,
       maintenance: [maintenance('2025-01-01', 'other', 0)],
+      expenses: [expense('2025-01-01', 'parking', 0.01)],
     });
     const numbers = numbersIn(stats);
     expect(numbers.length).toBeGreaterThan(0);
     expect(numbers.every(Number.isFinite)).toBe(true);
     expect(stats.distance).toEqual({ driven: 0, perYear: null, perMonth: null });
-    expect(stats.costPerDistance).toEqual({ fuel: null, maintenance: null });
+    expect(stats.costPerDistance).toEqual({ fuel: null, maintenance: null, expenses: null, total: null });
+    expect(stats.spending).toMatchObject({ expenses: 0.01, total: 0.02 });
     expect(stats.consumption.average).toBe(3.75);
     expect(stats.series.consumptionBySegment).toEqual([
       { startDate: '2025-01-01', endDate: '2025-02-01', distance: 400, quantity: 0, consumption: 0 },

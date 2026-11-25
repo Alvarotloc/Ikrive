@@ -90,6 +90,18 @@ const fuelLog = (overrides: Partial<Vehicle['fuelLogs'][number]> = {}): Vehicle[
   ...overrides,
 });
 
+const expense = (overrides: Partial<Vehicle['expenses'][number]> = {}): Vehicle['expenses'][number] => ({
+  id: 'e-1',
+  date: '2024-03-01',
+  category: 'insurance',
+  title: 'Seguro anual',
+  description: null,
+  cost: 420.5,
+  createdAt: AT,
+  updatedAt: AT,
+  ...overrides,
+});
+
 /** A valid vehicle with every kind of child. */
 const vehicle = (overrides: Partial<Vehicle> = {}): Vehicle => ({
   id: V1,
@@ -115,6 +127,7 @@ const vehicle = (overrides: Partial<Vehicle> = {}): Vehicle => ({
   maintenanceSchedules: [schedule()],
   maintenanceRecords: [record()],
   fuelLogs: [fuelLog()],
+  expenses: [expense()],
   ...overrides,
 });
 
@@ -127,6 +140,7 @@ const emptyVehicle = (id = V2): Vehicle =>
     maintenanceSchedules: [],
     maintenanceRecords: [],
     fuelLogs: [],
+    expenses: [],
   });
 
 /** A valid document: one vehicle with every kind of child, one channel. */
@@ -178,6 +192,25 @@ describe('dataExportSchema', () => {
       fixture([vehicle({ maintenanceRecords: [record({ attachments: [attachment(), attachment()] })] })]),
     );
     rejects(fixture([vehicle({ fuelLogs: [fuelLog(), fuelLog({ odometerReadingId: null })] })]));
+  });
+
+  it('rejects duplicate expense ids', () => {
+    rejects(fixture([vehicle({ expenses: [expense(), expense({ category: 'tax' })] })]));
+    // Unique in the whole document, not only inside one vehicle.
+    rejects(fixture([vehicle(), vehicle({ ...emptyVehicle(), expenses: [expense()] })]));
+    expect(
+      dataExportSchema.safeParse(fixture([vehicle({ expenses: [expense(), expense({ id: 'e-2' })] })]))
+        .success,
+    ).toBe(true);
+  });
+
+  it('defaults expenses to an empty array in a v1 document', () => {
+    // A document written before expenses existed: its vehicles have no `expenses` key.
+    const { expenses: _expenses, ...old } = vehicle();
+    const document = { ...fixture(), vehicles: [old] };
+    const parsed = dataExportSchema.parse(document);
+    expect(parsed.vehicles[0]?.expenses).toEqual([]);
+    expect(parsed).toEqual({ ...document, vehicles: [{ ...old, expenses: [] }] });
   });
 
   it('rejects dangling scheduleId and odometerReadingId', () => {

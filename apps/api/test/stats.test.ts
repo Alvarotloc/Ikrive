@@ -28,6 +28,7 @@ function client(app: TestApp, cookie: string, vehicleId: string) {
     addReading: (date: string, value: number) => post('odometer', { date, value }),
     addFuelLog: (payload: Record<string, unknown>) => post('fuel-logs', payload),
     addMaintenance: (payload: Record<string, unknown>) => post('maintenance', payload),
+    addExpense: (payload: Record<string, unknown>) => post('expenses', payload),
   };
 }
 
@@ -61,16 +62,18 @@ async function seed(api: ReturnType<typeof client>) {
 const expectedStats = {
   distance: { driven: 1_000, perYear: 6_186, perMonth: 516 },
   consumption: { average: 7.5 },
-  costPerDistance: { fuel: 0.13, maintenance: 0.49 },
+  costPerDistance: { fuel: 0.13, maintenance: 0.49, expenses: 0, total: 0.62 },
   spending: {
     purchase: 15_000,
     fuel: 130,
     maintenance: 489.9,
+    expenses: 0,
     total: 15_619.9,
     byCategory: [
       { category: 'tires', total: 400 },
       { category: 'oil_change', total: 89.9 },
     ],
+    expensesByCategory: [],
   },
   series: {
     // Feb 1 is interpolated between Jan 25 (10 500) and Feb 10 (10 800): 10 631.
@@ -83,9 +86,9 @@ const expectedStats = {
       { startDate: '2025-01-10', endDate: '2025-02-10', distance: 600, quantity: 45, consumption: 7.5 },
     ],
     spendingByMonth: [
-      { month: '2025-01', fuel: 90, maintenance: 0 },
-      { month: '2025-02', fuel: 40, maintenance: 89.9 },
-      { month: '2025-03', fuel: 0, maintenance: 400 },
+      { month: '2025-01', fuel: 90, maintenance: 0, expenses: 0 },
+      { month: '2025-02', fuel: 40, maintenance: 89.9, expenses: 0 },
+      { month: '2025-03', fuel: 0, maintenance: 400, expenses: 0 },
     ],
   },
 };
@@ -114,9 +117,54 @@ describe('vehicle stats', () => {
     expect(response.json()).toEqual({
       distance: { driven: null, perYear: null, perMonth: null },
       consumption: { average: null },
-      costPerDistance: { fuel: null, maintenance: null },
-      spending: { purchase: 9_999.99, fuel: 0, maintenance: 0, total: 9_999.99, byCategory: [] },
+      costPerDistance: { fuel: null, maintenance: null, expenses: null, total: null },
+      spending: {
+        purchase: 9_999.99,
+        fuel: 0,
+        maintenance: 0,
+        expenses: 0,
+        total: 9_999.99,
+        byCategory: [],
+        expensesByCategory: [],
+      },
       series: { distanceByMonth: [], consumptionBySegment: [], spendingByMonth: [] },
+    });
+  });
+
+  it('includes expenses in the stats', async () => {
+    const { app, cookie } = await setup();
+    const vehicle = await createVehicle(app, cookie, { purchasePrice: 15_000 });
+    const api = client(app, cookie, vehicle.id);
+    await seed(api);
+    await api.addExpense({ date: '2024-12-20', category: 'insurance', cost: 400.1 });
+    await api.addExpense({ date: '2025-02-01', category: 'tolls', cost: 9.8 });
+    await api.addExpense({ date: '2025-02-28', category: 'tolls', cost: 0.2 });
+
+    const response = await api.stats();
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      ...expectedStats,
+      // Expenses: 410.1 / 1000; in total: (130 + 489.9 + 410.1) / 1000.
+      costPerDistance: { fuel: 0.13, maintenance: 0.49, expenses: 0.41, total: 1.03 },
+      spending: {
+        ...expectedStats.spending,
+        expenses: 410.1,
+        total: 16_030,
+        expensesByCategory: [
+          { category: 'insurance', total: 400.1 },
+          { category: 'tolls', total: 10 },
+        ],
+      },
+      series: {
+        ...expectedStats.series,
+        // December only has the insurance and widens the spending series.
+        spendingByMonth: [
+          { month: '2024-12', fuel: 0, maintenance: 0, expenses: 400.1 },
+          { month: '2025-01', fuel: 90, maintenance: 0, expenses: 0 },
+          { month: '2025-02', fuel: 40, maintenance: 89.9, expenses: 10 },
+          { month: '2025-03', fuel: 0, maintenance: 400, expenses: 0 },
+        ],
+      },
     });
   });
 

@@ -68,6 +68,18 @@ const attachment = (id: string, entityId: string) => ({
   createdAt: at(4),
 });
 
+const expense = (id: string, vehicleId: string) => ({
+  id,
+  vehicleId,
+  date: '2026-01-04',
+  category: 'tolls' as const,
+  title: null,
+  description: `peaje ${id}`,
+  cost: 12.4,
+  createdAt: at(9),
+  updatedAt: at(10),
+});
+
 function rows(): DataExportInputRows {
   return {
     vehicles: [vehicle('v1', 'photos/key-v1.webp'), vehicle('v2', null)],
@@ -105,6 +117,7 @@ function rows(): DataExportInputRows {
         updatedAt: at(6),
       },
     ],
+    expenses: [expense('e2', 'v1'), expense('e3', 'v2'), expense('e1', 'v1')],
     attachments: [attachment('a2', 'm1'), attachment('a1', 'm1'), attachment('a3', 'm3')],
     notificationChannels: [
       {
@@ -166,6 +179,26 @@ describe('buildDataExport', () => {
     expect(v1?.fuelLogs).toEqual([]);
     expect(v2?.fuelLogs.map((f) => f.id)).toEqual(['f1']);
     expect(v1?.createdAt).toBe('2026-01-01T10:00:00.000Z');
+  });
+
+  it('groups expenses by vehicle', () => {
+    const { document } = buildDataExport(input());
+    const [v1, v2] = document.vehicles;
+    expect(v1?.expenses.map((e) => e.id)).toEqual(['e2', 'e1']);
+    expect(v2?.expenses).toEqual([
+      {
+        id: 'e3',
+        date: '2026-01-04',
+        category: 'tolls',
+        title: null,
+        description: 'peaje e3',
+        cost: 12.4,
+        createdAt: '2026-01-01T10:09:00.000Z',
+        updatedAt: '2026-01-01T10:10:00.000Z',
+      },
+    ]);
+    const empty = buildDataExport(input({ rows: { ...rows(), expenses: [] } })).document;
+    expect(empty.vehicles.map((v) => v.expenses)).toEqual([[], []]);
   });
 
   it('drops owner ids and storage keys', () => {

@@ -14,7 +14,7 @@ import {
 const summary = (changes: Partial<CsvImportSummary> = {}): CsvImportSummary => ({
   dryRun: true,
   format: 'fuelio',
-  created: { odometer: 0, fuel: 0, maintenance: 0 },
+  created: { odometer: 0, fuel: 0, maintenance: 0, expense: 0 },
   duplicates: 0,
   rejected: [],
   errors: [],
@@ -85,7 +85,7 @@ describe('CSV import wizard', () => {
 
   it('counts valid, duplicate and error rows', () => {
     const s = summary({
-      created: { odometer: 2, fuel: 5, maintenance: 1 },
+      created: { odometer: 2, fuel: 5, maintenance: 1, expense: 0 },
       duplicates: 3,
       errors: [{ row: 4, code: 'invalid_date', field: 'date' }],
       rejected: [{ row: 7, kind: 'fuel', reason: 'future_date', conflict: null }],
@@ -96,10 +96,25 @@ describe('CSV import wizard', () => {
     expect(previewCounts(summary())).toEqual({ valid: 0, duplicates: 0, errors: 0, skipped: 0 });
   });
 
+  it('counts created expenses', () => {
+    const s = summary({ created: { odometer: 1, fuel: 2, maintenance: 3, expense: 4 }, duplicates: 2 });
+
+    expect(previewCounts(s)).toEqual({ valid: 10, duplicates: 2, errors: 0, skipped: 0 });
+    expect(
+      previewCounts(summary({ created: { odometer: 0, fuel: 0, maintenance: 0, expense: 1 } })).valid,
+    ).toBe(1);
+    expect(resultCounts({ ...s, dryRun: false }).created).toEqual({
+      odometer: 1,
+      fuel: 2,
+      maintenance: 3,
+      expense: 4,
+    });
+  });
+
   it('counts created, omitted and errors of the result', () => {
     const s = summary({
       dryRun: false,
-      created: { odometer: 2, fuel: 5, maintenance: 1 },
+      created: { odometer: 2, fuel: 5, maintenance: 1, expense: 0 },
       duplicates: 3,
       errors: [{ row: 4, code: 'invalid_date', field: 'date' }],
       rejected: [
@@ -118,7 +133,7 @@ describe('CSV import wizard', () => {
     });
 
     expect(resultCounts(s)).toEqual({
-      created: { odometer: 2, fuel: 5, maintenance: 1 },
+      created: { odometer: 2, fuel: 5, maintenance: 1, expense: 0 },
       omitted: 5,
       errors: 3,
     });

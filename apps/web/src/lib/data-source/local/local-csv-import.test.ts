@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { fuelLogs, maintenanceRecords, odometerReadings } from '@ikrive/db/schema';
+import { expenses, fuelLogs, maintenanceRecords, odometerReadings } from '@ikrive/db/schema';
 import { CSV_IMPORT_MAX_BYTES, csvImportSummarySchema, type Problem } from '@ikrive/shared';
 import { parseCsvImport } from '@ikrive/shared/csv-import';
 import { asc, count, eq, sql } from 'drizzle-orm';
@@ -70,9 +70,10 @@ async function snapshot() {
       .all(),
     fuelLogs: (await db.select({ n: count() }).from(fuelLogs).get())?.n ?? 0,
     maintenance: (await db.select({ n: count() }).from(maintenanceRecords).get())?.n ?? 0,
+    expenses: (await db.select({ n: count() }).from(expenses).get())?.n ?? 0,
   };
 }
-const EMPTY = { readings: [], fuelLogs: 0, maintenance: 0 };
+const EMPTY = { readings: [], fuelLogs: 0, maintenance: 0, expenses: 0 };
 
 describe('local CSV import', () => {
   it('imports a Fuelio file in one transaction', async () => {
@@ -82,7 +83,7 @@ describe('local CSV import', () => {
     expect(summary).toMatchObject({
       dryRun: false,
       format: 'fuelio',
-      created: { odometer: 0, fuel: 2, maintenance: 2 },
+      created: { odometer: 0, fuel: 2, maintenance: 2, expense: 1 },
       duplicates: 0,
       rejected: [],
       encodingReplaced: false,
@@ -134,7 +135,10 @@ describe('local CSV import', () => {
 
       const summary = await local.csvImport.import(vehicleId, csvFile(fixture('fuelio.csv')));
 
-      expect(summary).toMatchObject({ created: { odometer: 0, fuel: 0, maintenance: 0 }, duplicates: 4 });
+      expect(summary).toMatchObject({
+        created: { odometer: 0, fuel: 0, maintenance: 0, expense: 0 },
+        duplicates: 5,
+      });
       expect(await snapshot()).toEqual(before);
 
       // Data entered by hand counts too.
@@ -212,7 +216,50 @@ describe('local CSV import', () => {
         ],
         fuelLogs: 0,
         maintenance: 0,
+        expenses: 0,
       });
+    });
+
+    it('imports expenses and skips them on a second import', async () => {
+      const summary = await local.csvImport.import(vehicleId, csvFile(fixture('lubelogger-tax.csv')));
+
+      expect(csvImportSummarySchema.parse(summary)).toEqual(summary);
+      expect(summary).toMatchObject({
+        format: 'lubelogger',
+        created: { odometer: 0, fuel: 0, maintenance: 0, expense: 1 },
+        duplicates: 0,
+        skipped: [],
+      });
+      expect(writes().filter((query) => /^\s*begin/i.test(query))).toHaveLength(1);
+      expect(await local.expenses.list(vehicleId)).toEqual([
+        expect.objectContaining({
+          vehicleId,
+          date: '2025-01-15',
+          category: 'tax',
+          title: 'Impuesto de circulacion',
+          description: null,
+          cost: 110,
+        }),
+      ]);
+      // No reading for an expense.
+      expect(await snapshot()).toEqual({ ...EMPTY, expenses: 1 });
+
+      const again = await local.csvImport.import(vehicleId, csvFile(fixture('lubelogger-tax.csv')));
+      expect(again).toMatchObject({ created: { expense: 0 }, duplicates: 1 });
+
+      // An expense entered by hand with another category is a duplicate too.
+      await local.expenses.create(vehicleId, {
+        date: '2025-02-01',
+        category: 'other',
+        title: 'IVTM',
+        cost: 95.5,
+      });
+      const manual = csvFile('Date,Description,Cost\n2025-02-01,ivtm ,95.50\n2025-03-01,IVTM,95.50\n');
+      expect(await local.csvImport.import(vehicleId, manual)).toMatchObject({
+        created: { expense: 1 },
+        duplicates: 1,
+      });
+      expect((await snapshot()).expenses).toBe(3);
     });
   });
 

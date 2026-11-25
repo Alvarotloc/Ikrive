@@ -51,7 +51,7 @@ describe('openLocalDatabase', () => {
       sql`SELECT hash, created_at FROM __drizzle_migrations ORDER BY created_at`,
     );
 
-    expect(applied).toHaveLength(13);
+    expect(applied).toHaveLength(14);
     expect(applied.map(([, createdAt]) => Number(createdAt))).toEqual(
       BUNDLED_MIGRATIONS.map((migration) => migration.when),
     );
@@ -60,10 +60,11 @@ describe('openLocalDatabase', () => {
     expect(created('vehicles')).toBe(false);
     expect(created('maintenance_schedules')).toBe(false);
     expect(created('notifications')).toBe(true);
+    expect(created('expenses')).toBe(true);
 
-    // A third open has nothing left to apply and keeps the 13 rows.
+    // A third open has nothing left to apply and keeps the 14 rows.
     const again = await openLocalDatabase(callback);
-    expect(await again.values(sql`SELECT id FROM __drizzle_migrations`)).toHaveLength(13);
+    expect(await again.values(sql`SELECT id FROM __drizzle_migrations`)).toHaveLength(14);
     expect(await localSchema(again)).toEqual(apiSchema());
   });
 

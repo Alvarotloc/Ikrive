@@ -34,6 +34,26 @@ describe('csvRowKey', () => {
     );
   });
 
+  it('builds the expense key without category', () => {
+    const insurance = {
+      date: '2025-04-01',
+      category: 'insurance' as const,
+      title: '  Seguro Anual ',
+      cost: 420.5,
+    };
+    expect(csvRowKey({ kind: 'expense', data: insurance })).toBe('expense|2025-04-01|seguro anual|420.50');
+    // A category corrected after importing still matches the row of the file.
+    expect(csvRowKey({ kind: 'expense', data: { ...insurance, category: 'other', description: 'x' } })).toBe(
+      'expense|2025-04-01|seguro anual|420.50',
+    );
+    expect(csvRowKey({ kind: 'expense', data: { date: '2025-04-01', category: 'parking', cost: 3 } })).toBe(
+      'expense|2025-04-01||3.00',
+    );
+    expect(
+      csvRowKey({ kind: 'expense', data: { date: '2025-04-01', category: 'parking', title: null, cost: 3 } }),
+    ).toBe('expense|2025-04-01||3.00');
+  });
+
   it('builds the same key for a zero-cost maintenance in every format', () => {
     const drivvoHeader = Array.from({ length: 21 }, (_, index) => `C${index}`).join(',');
     const files = {

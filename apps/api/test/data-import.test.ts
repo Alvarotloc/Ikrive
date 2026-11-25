@@ -22,6 +22,7 @@ import type { Db } from '../src/db/client';
 import {
   attachments,
   dataImports,
+  expenses,
   fuelLogs,
   maintenanceRecords,
   maintenanceSchedules,
@@ -247,7 +248,7 @@ async function newUser(app: TestApp, email: string, name: string) {
 /**
  * A user with a bit of everything: active, archived and sold vehicles, readings of the three
  * sources, a schedule, a maintenance record linked to it with km and two attachments (PDF and PNG),
- * a photo, a fuel log, an ntfy channel without token and a gotify channel with one.
+ * a photo, a fuel log, an expense, an ntfy channel without token and a gotify channel with one.
  */
 async function seedUser(app: TestApp, email = 'ada@example.com', name = 'Ada') {
   const user = await newUser(app, email, name);
@@ -290,6 +291,13 @@ async function seedUser(app: TestApp, email = 'ada@example.com', name = 'Ada') {
     quantity: 40.5,
     totalPrice: 60.75,
   });
+  const expense = await api.post(`/api/vehicles/${active.id}/expenses`, {
+    date: '2025-04-01',
+    category: 'insurance',
+    title: 'Seguro anual',
+    description: 'Póliza',
+    cost: 420.5,
+  });
   await api.post('/api/notification-channels', {
     type: 'ntfy',
     config: { serverUrl: 'https://ntfy.example.com', topic: 'ikrive' },
@@ -298,7 +306,7 @@ async function seedUser(app: TestApp, email = 'ada@example.com', name = 'Ada') {
     type: 'gotify',
     config: { serverUrl: 'https://gotify.example.com', token: 'gotify-secret-token' },
   });
-  return { ...user, active, archived, sold, schedule, record, files, pdfAttachment, pngAttachment };
+  return { ...user, active, archived, sold, schedule, record, expense, files, pdfAttachment, pngAttachment };
 }
 
 /** Rows per table touched by the import, and every file in `uploads/` and `tmp/`. */
@@ -317,6 +325,7 @@ function snapshot(db: Db, dataDir: string) {
     maintenanceSchedules: rows(maintenanceSchedules),
     maintenanceRecords: rows(maintenanceRecords),
     fuelLogs: rows(fuelLogs),
+    expenses: rows(expenses),
     attachments: rows(attachments),
     notificationChannels: rows(notificationChannels),
     notifications: rows(notifications),
@@ -470,6 +479,7 @@ describe('data import', () => {
         maintenanceSchedules: 1,
         maintenanceRecords: 1,
         fuelLogs: 1,
+        expenses: 1,
         attachments: 2,
         photos: 1,
         notificationChannels: 1,
@@ -631,6 +641,24 @@ describe('data import', () => {
       ]);
     });
 
+    it('rejects duplicate expense ids', async () => {
+      const { app, db, dataDir, b, exported } = await setup();
+      const before = snapshot(db, dataDir);
+      const document = clone(exported.document);
+      const vehicle = document.vehicles[0];
+      const expense = vehicle?.expenses[0];
+      if (!vehicle || !expense) throw new Error('seed without an expense');
+      // The same id in another vehicle of the document.
+      (document.vehicles[1] as typeof vehicle).expenses = [{ ...expense, category: 'tax' }];
+
+      const response = await upload(app, b.cookie, await rezip(exported.entries, { document }));
+
+      expectRejected(response, 400, before, snapshot(db, dataDir));
+      expect(response.json().errors).toEqual([
+        { path: 'vehicles.1.expenses.0.id', message: 'Duplicate id in expenses' },
+      ]);
+    });
+
     it('rejects different currency or units', async () => {
       const { app, db, dataDir, b, exported } = await setup();
       await b.api.patch('/api/settings', { distanceUnit: 'mi' });
@@ -728,6 +756,64 @@ describe('data import', () => {
       expect(vehicleRow?.photo).toMatch(/^vehicles\/[0-9a-f-]{36}\.webp$/);
       const aPhoto = db.select().from(vehicles).where(eq(vehicles.id, a.active.id)).get()?.photo;
       expect(vehicleRow?.photo).not.toBe(aPhoto);
+    });
+
+    it('imports the expenses of an export', async () => {
+      const { app, db, a, b, exported } = await setup();
+
+      const response = await upload(app, b.cookie, exported.zip);
+      expect(response.statusCode, response.body).toBe(201);
+      expect((response.json() as DataImportSummary).expenses).toBe(1);
+
+      const bVehicles = db.select().from(vehicles).where(eq(vehicles.ownerId, b.userId)).all();
+      const imported = bVehicles.find((vehicle) => vehicle.plate === '1234ABC');
+      const rows = db
+        .select()
+        .from(expenses)
+        .where(
+          inArray(
+            expenses.vehicleId,
+            bVehicles.map((vehicle) => vehicle.id),
+          ),
+        )
+        .all();
+      expect(rows).toEqual([
+        {
+          id: expect.any(String),
+          vehicleId: imported?.id,
+          date: '2025-04-01',
+          category: 'insurance',
+          title: 'Seguro anual',
+          description: 'Póliza',
+          cost: 420.5,
+          createdAt: new Date(a.expense.createdAt),
+          updatedAt: new Date(a.expense.updatedAt),
+        },
+      ]);
+      expect(rows[0]?.id).not.toBe(a.expense.id);
+      expect(imported?.id).not.toBe(a.active.id);
+      // A keeps its own expense.
+      expect(db.select().from(expenses).where(eq(expenses.id, a.expense.id)).get()?.vehicleId).toBe(
+        a.active.id,
+      );
+    });
+
+    it('imports a v1 zip without expenses', async () => {
+      const { app, db, b, exported } = await setup();
+      // A document written before expenses existed: no `expenses` key in its vehicles.
+      const document = clone(exported.document);
+      const old = {
+        ...document,
+        vehicles: document.vehicles.map(({ expenses: _expenses, ...vehicle }) => vehicle),
+      };
+      expect(JSON.stringify(old)).not.toContain('"expenses"');
+      const before = db.select({ n: count() }).from(expenses).get()?.n;
+
+      const response = await upload(app, b.cookie, await rezip(exported.entries, { document: old }));
+
+      expect(response.statusCode, response.body).toBe(201);
+      expect(response.json()).toMatchObject({ vehicles: 3, fuelLogs: 1, maintenanceRecords: 1, expenses: 0 });
+      expect(db.select({ n: count() }).from(expenses).get()?.n).toBe(before);
     });
 
     it('adds to existing data', async () => {

@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { createExpenseSchema } from '../schemas/expenses';
 import { createFuelLogSchema } from '../schemas/fuel-logs';
 import { createMaintenanceRecordSchema } from '../schemas/maintenance';
 import { createOdometerReadingSchema } from '../schemas/vehicles';
@@ -108,18 +109,20 @@ describe('parseCsvImport', () => {
   });
 
   it('returns schema-valid data for every kind', () => {
-    const rows = ['fuelio.csv', 'drivvo.csv', 'lubelogger-odometer.csv'].flatMap(
+    const rows = ['fuelio.csv', 'drivvo.csv', 'lubelogger-odometer.csv', 'lubelogger-tax.csv'].flatMap(
       (name) => parsed(fixture(name)).rows,
     );
-    expect(new Set(rows.map((row) => row.kind))).toEqual(new Set(['fuel', 'maintenance', 'odometer']));
+    expect(new Set(rows.map((row) => row.kind))).toEqual(
+      new Set(['fuel', 'maintenance', 'odometer', 'expense']),
+    );
+    const schemas = {
+      fuel: createFuelLogSchema,
+      maintenance: createMaintenanceRecordSchema,
+      odometer: createOdometerReadingSchema,
+      expense: createExpenseSchema,
+    };
     for (const row of rows) {
-      const schema =
-        row.kind === 'fuel'
-          ? createFuelLogSchema
-          : row.kind === 'maintenance'
-            ? createMaintenanceRecordSchema
-            : createOdometerReadingSchema;
-      expect(schema.safeParse(row.data).success, row.key).toBe(true);
+      expect(schemas[row.kind].safeParse(row.data).success, row.key).toBe(true);
     }
   });
 
@@ -161,22 +164,49 @@ describe('parseCsvImport', () => {
     expect(result.rows[0]?.data).toMatchObject({ quantity: 40.5, totalPrice: 60.75, pricePerUnit: 1.5 });
   });
 
-  it('ignores skipped rows when detecting decimals', () => {
-    const text = [
-      '"## Log"',
-      FUELIO_HEADER,
-      fuelioRow('40,5', '60,75'),
-      '"## CostCategories"',
-      '"CostTypeID","Name","priority"',
-      '"2","Seguro","0"',
-      '"## Costs"',
-      COSTS_HEADER,
-      '"Seguro","01/02/2025","10","2","","300.50","0","0","9"',
-    ].join('\n');
-    const result = parsed(text);
-    expect(result.decimalSeparator).toBe(',');
-    expect(result.dateFormat).toBe('ymd');
-    expect(result.skipped).toEqual([{ row: 9, reason: 'not_maintenance', label: 'Seguro' }]);
+  it('uses expense cells when detecting decimals', () => {
+    const costs = (cost: string, date = '2025-02-01') =>
+      [
+        '"## CostCategories"',
+        '"CostTypeID","Name","priority"',
+        '"2","Seguro","0"',
+        '"## Costs"',
+        COSTS_HEADER,
+        `"Seguro","${date}","10","2","","${cost}","0","0","9"`,
+      ].join('\n');
+    // The refuel has no decimals: the expense proves the separator.
+    const proven = parsed(`"## Log"\n${FUELIO_HEADER}\n${fuelioRow('40', '60')}\n${costs('300,50')}`);
+    expect(proven.decimalSeparator).toBe(',');
+    expect(proven.skipped).toEqual([]);
+    expect(proven.rows.find((row) => row.kind === 'expense')?.data).toMatchObject({ cost: 300.5 });
+    // An expense with the other separator makes the file ambiguous.
+    expect(
+      parseCsvImport(`"## Log"\n${FUELIO_HEADER}\n${fuelioRow('40,5', '60,75')}\n${costs('300.50')}`, {
+        target,
+      }),
+    ).toMatchObject({ status: 'needs_options', format: 'fuelio', missing: ['decimalSeparator'] });
+    // Its date too: a non-ISO expense date next to ISO refuels needs the date format.
+    expect(
+      parseCsvImport(
+        `"## Log"\n${FUELIO_HEADER}\n${fuelioRow('40,5', '60,75')}\n${costs('300', '01/02/2025')}`,
+        {
+          target,
+        },
+      ),
+    ).toMatchObject({ status: 'needs_options', format: 'fuelio', missing: ['dateFormat'] });
+    const dated = parsed(
+      `"## Log"\n${FUELIO_HEADER}\n${fuelioRow('40,5', '60,75')}\n${costs('300', '01/02/2025')}`,
+      {
+        dateFormat: 'dmy',
+      },
+    );
+    expect(dated.rows.find((row) => row.kind === 'expense')?.data).toEqual({
+      date: '2025-02-01',
+      category: 'insurance',
+      title: 'Seguro',
+      description: null,
+      cost: 300,
+    });
   });
 
   it('still asks for the separator when imported columns mix them', () => {
