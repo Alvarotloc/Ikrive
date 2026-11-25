@@ -1474,7 +1474,7 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
-      "status": "pending"
+      "status": "in_progress"
     },
     {
       "id": 88,
@@ -1571,6 +1571,7 @@
         "CHANGELOG.md tiene la sección [0.4.0] con fecha y [Unreleased] queda vacío",
         "La versión de todos los package.json del monorepo es 0.4.0",
         "docs/PLAN.md marca la fase 9 como hecha y el README refleja las funciones nuevas",
+        "Las notas de la release avisan de que un zip exportado con v0.4.0 e importado en una versión anterior pierde los gastos sin aviso (no se soporta volver a una versión anterior)",
         "pnpm harness --full pasa en verde",
         "Prueba manual en el APK del asistente de importación CSV (#86): el selector de ficheros acepta un .csv desde el gestor de archivos, la vista previa y la importación funcionan en modo local y un CSV cercano a 5 MiB no bloquea la pantalla"
       ],
