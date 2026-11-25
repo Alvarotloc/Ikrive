@@ -634,6 +634,7 @@
       "maintenanceSchedules": "Programaciones",
       "maintenanceRecords": "Mantenimientos",
       "fuelLogs": "Repostajes",
+      "expenses": "Gastos",
       "attachments": "Adjuntos",
       "photos": "Fotos",
       "notificationChannels": "Canales de notificación"
@@ -694,7 +695,8 @@
     "kinds": {
       "odometer": "Lecturas de kilometraje",
       "fuel": "Repostajes",
-      "maintenance": "Mantenimientos"
+      "maintenance": "Mantenimientos",
+      "expense": "Gastos"
     },
     "columns": {
       "date": "Fecha",
@@ -766,7 +768,6 @@
       "future_date": "la fecha es futura"
     },
     "skipReasons": {
-      "not_maintenance": "no es un mantenimiento",
       "template": "es una plantilla",
       "income": "es un ingreso"
     },

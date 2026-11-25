@@ -1,4 +1,4 @@
-import { fuelLogs, maintenanceRecords, odometerReadings } from '@ikrive/db/schema';
+import { expenses, fuelLogs, maintenanceRecords, odometerReadings } from '@ikrive/db/schema';
 import { CSV_IMPORT_MAX_BYTES, csvImportRequestSchema, fuelQuantityUnit, todayIn } from '@ikrive/shared';
 import {
   type CsvRow,
@@ -10,6 +10,7 @@ import {
 } from '@ikrive/shared/csv-import';
 import type { DataSource } from '../types';
 import type { LocalDb, LocalTx } from './database';
+import { listExpenses } from './expenses';
 import { fileBytes } from './files';
 import { listFuelLogs } from './fuel-logs';
 import { listMaintenanceRecords } from './maintenance';
@@ -34,6 +35,8 @@ async function applyRows(tx: LocalTx, vehicleId: string, rows: readonly CsvRow[]
     } else if (row.kind === 'fuel') {
       const odometerReadingId = await insertReading(row.data.date, row.data.odometer, 'fuel');
       await tx.insert(fuelLogs).values({ ...row.data, vehicleId, odometerReadingId });
+    } else if (row.kind === 'expense') {
+      await tx.insert(expenses).values({ ...row.data, vehicleId });
     } else {
       const { odometer } = row.data;
       const odometerReadingId =
@@ -74,6 +77,7 @@ export function localCsvImport(db: LocalDb): DataSource['csvImport'] {
           readings: await listReadings(db, vehicleId),
           fuelLogs: await listFuelLogs(db, vehicleId),
           maintenance: await listMaintenanceRecords(db, vehicleId),
+          expenses: await listExpenses(db, vehicleId),
         },
         todayIn(timezone),
       );

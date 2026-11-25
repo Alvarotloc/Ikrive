@@ -1,6 +1,7 @@
 import { computeVehicleStats } from '@ikrive/shared';
 import type { DataSource } from '../types';
 import type { LocalDb } from './database';
+import { listExpenses } from './expenses';
 import { listFuelLogs } from './fuel-logs';
 import { listMaintenanceRecords } from './maintenance';
 import { listReadings, requireVehicle } from './vehicles';
@@ -13,6 +14,7 @@ export function localStats(db: LocalDb): DataSource['stats'] {
       const readings = await listReadings(db, vehicleId);
       const fuelLogs = await listFuelLogs(db, vehicleId);
       const maintenance = await listMaintenanceRecords(db, vehicleId);
+      const expenses = await listExpenses(db, vehicleId);
       return computeVehicleStats({
         purchasePrice: vehicle.purchasePrice,
         readings: readings.map(({ date, value }) => ({ date, value })),
@@ -28,6 +30,7 @@ export function localStats(db: LocalDb): DataSource['stats'] {
             missedPrevious,
           })),
         maintenance: maintenance.map(({ date, category, cost }) => ({ date, category, cost })),
+        expenses: expenses.map(({ date, category, cost }) => ({ date, category, cost })),
       });
     },
   };

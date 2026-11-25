@@ -63,7 +63,8 @@ export function importOptions(
   };
 }
 
-const totalCreated = (s: CsvImportSummary) => s.created.odometer + s.created.fuel + s.created.maintenance;
+const totalCreated = (s: CsvImportSummary) =>
+  s.created.odometer + s.created.fuel + s.created.maintenance + s.created.expense;
 
 /** Counters of the preview: valid = would be created, errors = unreadable + rejected rows. */
 export function previewCounts(s: CsvImportSummary) {

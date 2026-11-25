@@ -5,6 +5,7 @@ import type {
   CalendarFeed,
   CalendarFeedSecret,
   ClientConfig,
+  CreateExpenseInput,
   CreateFuelLogInput,
   CreateMaintenanceRecordInput,
   CreateMaintenanceScheduleInput,
@@ -15,6 +16,7 @@ import type {
   CsvImportRequestInput,
   CsvImportSummary,
   DataImportSummary,
+  Expense,
   FuelLog,
   MaintenanceRecord,
   MaintenanceSchedule,
@@ -28,6 +30,7 @@ import type {
   ReportShare,
   ReportShareSecret,
   SaleReportOptions,
+  UpdateExpenseInput,
   UpdateFuelLogInput,
   UpdateMaintenanceRecordInput,
   UpdateMaintenanceScheduleInput,
@@ -93,6 +96,12 @@ export interface DataSource {
     create(vehicleId: string, log: CreateFuelLogInput): Promise<FuelLog>;
     update(vehicleId: string, logId: string, changes: UpdateFuelLogInput): Promise<FuelLog>;
     remove(vehicleId: string, logId: string): Promise<void>;
+  };
+  expenses: {
+    list(vehicleId: string): Promise<Expense[]>;
+    create(vehicleId: string, expense: CreateExpenseInput): Promise<Expense>;
+    update(vehicleId: string, expenseId: string, changes: UpdateExpenseInput): Promise<Expense>;
+    remove(vehicleId: string, expenseId: string): Promise<void>;
   };
   maintenance: {
     list(vehicleId: string): Promise<MaintenanceRecord[]>;
