@@ -841,3 +841,12 @@
 - **Revisión:** APPROVED en la segunda ronda (`progress/review_csv-import-web.md`); faltaba el test de R1 en modo local. Avisos: `key` de fila `${type}:${row}` colisionaría si el parser diera dos errores por fila; «Kilometraje» también con millas, coherente con el resto de la app.
 - **Tests:** shared 292, web 759, api 391. `pnpm harness --full` en verde.
 - **Gate 2:** «merge» del humano → PR.
+
+## 2026-11-25 — #95 slow-data-dir-test
+
+- **Rama:** `feat/slow-data-dir-test` (`sdd: false`). Adelantada a #87 a petición del humano.
+- **Medición:** tsx solo ~40 ms; el coste (~1,1 s, 2,3–2,9 s con caché de tsx fría) era el grafo de imports estáticos de `app.ts`, jobs y dispatcher que `server.ts` cargaba antes de comprobar `DATA_DIR` (`progress/impl_slow-data-dir-test.md`).
+- **Cambios:** `server.ts` solo importa de forma estática `./config` y `./lib/data-dir`; el resto con `import()` tras `ensureWritableDataDirOrExit`, mismo orden de arranque. El test usa `spawn` asíncrono (no bloquea el worker), mantiene las aserciones e2e y baja el timeout de 40 s a 10 s. De ~2,6–3,6 s a ~150 ms aislado (~415 ms en la suite). Bundle de producción verificado (health, SIGTERM, DATA_DIR sin permisos).
+- **Revisión:** APPROVED (`progress/review_slow-data-dir-test.md`). En Gate 2 el humano pidió aplicar el aviso 1 (señal y stderr en el mensaje si el hijo no sale con 1); APPROVED en la segunda vuelta. Avisos vigentes: el test se salta como root (ya pasaba); el bundle se reparte en chunks en `dist/`, así que el Dockerfile debe seguir copiando `dist/` entero.
+- **Tests:** api 391, web 759. `pnpm harness --full` en verde.
+- **Gate 2:** «merge» del humano → PR.

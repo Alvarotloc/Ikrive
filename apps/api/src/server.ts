@@ -1,14 +1,26 @@
-import { buildApp, databasePath } from './app';
+// Only the config and the data folder check are imported statically: the rest (Fastify, Better Auth,
+// react-pdf, sharp…) takes about a second to load, and a non-writable volume must fail before that.
 import { loadConfig } from './config';
-import { createDb, runMigrations } from './db/client';
-import { runOdometerNudge, startOdometerNudgeJob } from './jobs/odometer-nudge.job';
-import { runReminders, startRemindersJob } from './jobs/reminders.job';
 import { ensureWritableDataDirOrExit } from './lib/data-dir';
-import { createNotificationDispatcher } from './modules/notification-channels/dispatcher';
 
 const config = loadConfig();
 // Before opening SQLite: a non-writable volume would otherwise crash with SQLITE_CANTOPEN.
 ensureWritableDataDirOrExit(config.DATA_DIR);
+
+const [
+  { buildApp, databasePath },
+  { createDb, runMigrations },
+  { runOdometerNudge, startOdometerNudgeJob },
+  { runReminders, startRemindersJob },
+  { createNotificationDispatcher },
+] = await Promise.all([
+  import('./app'),
+  import('./db/client'),
+  import('./jobs/odometer-nudge.job'),
+  import('./jobs/reminders.job'),
+  import('./modules/notification-channels/dispatcher'),
+]);
+
 const db = createDb(databasePath(config));
 runMigrations(db);
 
