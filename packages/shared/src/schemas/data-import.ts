@@ -29,6 +29,7 @@ export const dataImportSummarySchema = z.object({
   maintenanceSchedules: countSchema,
   maintenanceRecords: countSchema,
   fuelLogs: countSchema,
+  expenses: countSchema,
   attachments: countSchema,
   /** Vehicle photos. */
   photos: countSchema,

@@ -1,4 +1,4 @@
-import type { MaintenanceCategory } from '../enums';
+import type { ExpenseCategory, MaintenanceCategory } from '../enums';
 import type { VehicleStats } from '../schemas/stats';
 import {
   averageDistancePerMonth,
@@ -22,17 +22,25 @@ export interface StatsMaintenanceRecord {
   cost: number | null;
 }
 
+export interface StatsExpense {
+  date: string;
+  category: ExpenseCategory;
+  cost: number;
+}
+
 export interface VehicleStatsInput {
   purchasePrice: number | null;
   readings: readonly OdometerPoint[];
   fuelLogs: readonly StatsFuelLog[];
   maintenance: readonly StatsMaintenanceRecord[];
+  expenses: readonly StatsExpense[];
 }
 
 export type ConsumptionSegment = VehicleStats['series']['consumptionBySegment'][number];
 export type DistanceByMonth = VehicleStats['series']['distanceByMonth'][number];
 export type SpendingByMonth = VehicleStats['series']['spendingByMonth'][number];
 export type SpendingByCategory = VehicleStats['spending']['byCategory'][number];
+export type SpendingByExpenseCategory = VehicleStats['spending']['expensesByCategory'][number];
 
 const round = (value: number, decimals: number) => {
   const factor = 10 ** decimals;
@@ -188,20 +196,34 @@ export function spendingByCategory(records: readonly StatsMaintenanceRecord[]): 
     .sort((a, b) => b.total - a.total);
 }
 
+/** Expenses per category, highest total first. */
+export function spendingByExpenseCategory(expenses: readonly StatsExpense[]): SpendingByExpenseCategory[] {
+  const totals = new Map<ExpenseCategory, number>();
+  for (const expense of expenses) {
+    totals.set(expense.category, (totals.get(expense.category) ?? 0) + expense.cost);
+  }
+  return [...totals]
+    .map(([category, total]) => ({ category, total: roundMoney(total) }))
+    .sort((a, b) => b.total - a.total);
+}
+
 /**
- * Fuel and maintenance spending per month, from the first to the last month with a refuel or a
- * maintenance with a cost, with 0 in the months in between without spending.
+ * Fuel, maintenance and expense spending per month, from the first to the last month with a refuel, a
+ * maintenance with a cost or an expense, with 0 in the months in between without spending.
  */
 export function spendingByMonth(
   logs: readonly StatsFuelLog[],
   records: readonly StatsMaintenanceRecord[],
+  expenses: readonly StatsExpense[],
 ): SpendingByMonth[] {
   const costs = withCost(records);
-  const months = [...logs, ...costs].map((entry) => monthOf(entry.date)).sort();
+  const months = [...logs, ...costs, ...expenses].map((entry) => monthOf(entry.date)).sort();
   const first = months[0];
   const last = months[months.length - 1];
   if (first === undefined || last === undefined) return [];
-  const totals = new Map(monthRange(first, last).map((month) => [month, { fuel: 0, maintenance: 0 }]));
+  const totals = new Map(
+    monthRange(first, last).map((month) => [month, { fuel: 0, maintenance: 0, expenses: 0 }]),
+  );
   for (const log of logs) {
     const month = totals.get(monthOf(log.date));
     if (month) month.fuel += log.totalPrice;
@@ -210,10 +232,15 @@ export function spendingByMonth(
     const month = totals.get(monthOf(record.date));
     if (month) month.maintenance += record.cost;
   }
-  return [...totals].map(([month, { fuel, maintenance }]) => ({
+  for (const expense of expenses) {
+    const month = totals.get(monthOf(expense.date));
+    if (month) month.expenses += expense.cost;
+  }
+  return [...totals].map(([month, { fuel, maintenance, expenses: spent }]) => ({
     month,
     fuel: roundMoney(fuel),
     maintenance: roundMoney(maintenance),
+    expenses: roundMoney(spent),
   }));
 }
 
@@ -223,10 +250,12 @@ export function computeVehicleStats({
   readings,
   fuelLogs,
   maintenance,
+  expenses,
 }: VehicleStatsInput): VehicleStats {
   const driven = distanceDriven(readings);
   const fuel = sum(fuelLogs.map((log) => log.totalPrice));
   const maintenanceCost = sum(withCost(maintenance).map((record) => record.cost));
+  const expensesCost = sum(expenses.map((expense) => expense.cost));
   return {
     distance: {
       driven,
@@ -237,18 +266,22 @@ export function computeVehicleStats({
     costPerDistance: {
       fuel: costPerDistance(fuel, driven),
       maintenance: costPerDistance(maintenanceCost, driven),
+      expenses: costPerDistance(expensesCost, driven),
+      total: costPerDistance(fuel + maintenanceCost + expensesCost, driven),
     },
     spending: {
       purchase: purchasePrice === null ? null : roundMoney(purchasePrice),
       fuel: roundMoney(fuel),
       maintenance: roundMoney(maintenanceCost),
-      total: roundMoney((purchasePrice ?? 0) + fuel + maintenanceCost),
+      expenses: roundMoney(expensesCost),
+      total: roundMoney((purchasePrice ?? 0) + fuel + maintenanceCost + expensesCost),
       byCategory: spendingByCategory(maintenance),
+      expensesByCategory: spendingByExpenseCategory(expenses),
     },
     series: {
       distanceByMonth: distanceByMonth(readings),
       consumptionBySegment: consumptionSegments(fuelLogs),
-      spendingByMonth: spendingByMonth(fuelLogs, maintenance),
+      spendingByMonth: spendingByMonth(fuelLogs, maintenance, expenses),
     },
   };
 }

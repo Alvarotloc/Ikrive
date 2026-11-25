@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MAINTENANCE_CATEGORIES } from '../enums';
+import { EXPENSE_CATEGORIES, MAINTENANCE_CATEGORIES } from '../enums';
 import { isoDateSchema } from './vehicles';
 
 /** Calendar month, `YYYY-MM`. */
@@ -18,14 +18,24 @@ export const vehicleStatsSchema = z.object({
   }),
   /** Quantity per 100 units of distance (L/100 km, kWh/100 km, gal/100 mi). */
   consumption: z.object({ average: z.number().nullable() }),
-  costPerDistance: z.object({ fuel: z.number().nullable(), maintenance: z.number().nullable() }),
+  costPerDistance: z.object({
+    fuel: z.number().nullable(),
+    maintenance: z.number().nullable(),
+    expenses: z.number().nullable(),
+    /** Cost of use per unit of distance: fuel + maintenance + expenses, without the purchase. */
+    total: z.number().nullable(),
+  }),
   spending: z.object({
     purchase: z.number().nullable(),
     fuel: z.number(),
     maintenance: z.number(),
-    /** Total cost of ownership: purchase + fuel + maintenance. */
+    expenses: z.number(),
+    /** Total cost of ownership: purchase + fuel + maintenance + expenses. */
     total: z.number(),
+    /** Maintenance cost per category. */
     byCategory: z.array(z.object({ category: z.enum(MAINTENANCE_CATEGORIES), total: z.number() })),
+    /** Expenses per category. */
+    expensesByCategory: z.array(z.object({ category: z.enum(EXPENSE_CATEGORIES), total: z.number() })),
   }),
   series: z.object({
     distanceByMonth: z.array(z.object({ month: monthSchema, distance: z.number().int() })),
@@ -38,7 +48,9 @@ export const vehicleStatsSchema = z.object({
         consumption: z.number(),
       }),
     ),
-    spendingByMonth: z.array(z.object({ month: monthSchema, fuel: z.number(), maintenance: z.number() })),
+    spendingByMonth: z.array(
+      z.object({ month: monthSchema, fuel: z.number(), maintenance: z.number(), expenses: z.number() }),
+    ),
   }),
 });
 export type VehicleStats = z.infer<typeof vehicleStatsSchema>;

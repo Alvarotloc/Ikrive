@@ -17,6 +17,7 @@ import { attachmentExportPath, photoExportPath } from './data-export';
 type Reading = DataExportVehicle['odometerReadings'][number];
 type Schedule = DataExportVehicle['maintenanceSchedules'][number];
 type FuelLog = DataExportVehicle['fuelLogs'][number];
+type Expense = DataExportVehicle['expenses'][number];
 
 interface ChildOfVehicle {
   vehicleId: string;
@@ -29,6 +30,7 @@ export type DataExportVehicleRow = Omit<
   | 'maintenanceSchedules'
   | 'maintenanceRecords'
   | 'fuelLogs'
+  | 'expenses'
   | 'archivedAt'
   | 'createdAt'
   | 'updatedAt'
@@ -48,6 +50,8 @@ export type DataExportRecordRow = Omit<
 > &
   ChildOfVehicle & { createdAt: Date; updatedAt: Date };
 export type DataExportFuelLogRow = Omit<FuelLog, 'createdAt' | 'updatedAt'> &
+  ChildOfVehicle & { createdAt: Date; updatedAt: Date };
+export type DataExportExpenseRow = Omit<Expense, 'createdAt' | 'updatedAt'> &
   ChildOfVehicle & { createdAt: Date; updatedAt: Date };
 export type DataExportAttachmentRow = Omit<DataExportAttachment, 'path' | 'createdAt'> & {
   /** Id of the maintenance record it belongs to. */
@@ -71,6 +75,7 @@ export interface DataExportInputRows {
   maintenanceSchedules: DataExportScheduleRow[];
   maintenanceRecords: DataExportRecordRow[];
   fuelLogs: DataExportFuelLogRow[];
+  expenses: DataExportExpenseRow[];
   attachments: DataExportAttachmentRow[];
   notificationChannels: DataExportChannelRow[];
 }
@@ -131,6 +136,7 @@ export function buildDataExport({ rows, settings, appVersion, exportedAt, presen
   const schedulesOf = groupBy(rows.maintenanceSchedules, (row) => row.vehicleId);
   const recordsOf = groupBy(rows.maintenanceRecords, (row) => row.vehicleId);
   const fuelLogsOf = groupBy(rows.fuelLogs, (row) => row.vehicleId);
+  const expensesOf = groupBy(rows.expenses, (row) => row.vehicleId);
   const attachmentsOf = groupBy(
     rows.attachments.filter((row) => present.attachmentIds.has(row.id)),
     (row) => row.entityId,
@@ -224,6 +230,16 @@ export function buildDataExport({ rows, settings, appVersion, exportedAt, presen
         missedPrevious: fuelLog.missedPrevious,
         createdAt: iso(fuelLog.createdAt),
         updatedAt: iso(fuelLog.updatedAt),
+      })),
+      expenses: (expensesOf.get(row.id) ?? []).map((expense) => ({
+        id: expense.id,
+        date: expense.date,
+        category: expense.category,
+        title: expense.title,
+        description: expense.description,
+        cost: expense.cost,
+        createdAt: iso(expense.createdAt),
+        updatedAt: iso(expense.updatedAt),
       })),
     };
   };
