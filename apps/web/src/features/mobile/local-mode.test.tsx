@@ -396,6 +396,13 @@ describe('local mode', () => {
     expect(screen.queryByLabelText('Fichero de export de Ikrive (.zip)')).not.toBeInTheDocument();
   });
 
+  it('settings link to the CSV import', async () => {
+    await renderApp('/settings');
+
+    expect(await screen.findByRole('heading', { name: 'Importar desde otra app' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Importar un CSV' })).toHaveAttribute('href', '/import');
+  });
+
   it('exports the local data through the share sheet', async () => {
     nativeExport.shareExportFile.mockResolvedValue(undefined);
     const vehicle = await (await localData()).vehicles.create({ make: 'Seat', model: 'Ibiza' });

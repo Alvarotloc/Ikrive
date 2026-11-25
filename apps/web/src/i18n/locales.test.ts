@@ -1,5 +1,18 @@
-import { FUEL_QUANTITY_UNITS, MAINTENANCE_CATEGORIES, NOTIFICATION_CHANNEL_TYPES } from '@ikrive/shared';
+import {
+  CSV_COLUMNS,
+  CSV_DATE_FORMATS,
+  CSV_DECIMAL_SEPARATORS,
+  CSV_FORMATS,
+  CSV_REJECT_REASONS,
+  CSV_ROW_ERROR_CODES,
+  CSV_ROW_KINDS,
+  CSV_SKIP_REASONS,
+  FUEL_QUANTITY_UNITS,
+  MAINTENANCE_CATEGORIES,
+  NOTIFICATION_CHANNEL_TYPES,
+} from '@ikrive/shared';
 import { describe, expect, it } from 'vitest';
+import { DECIMAL_SEPARATOR_KEYS } from '@/features/csv-import/wizard';
 import en from './locales/en.json';
 import es from './locales/es.json';
 
@@ -37,6 +50,31 @@ describe('locales', () => {
       for (const unit of FUEL_QUANTITY_UNITS) {
         expect(locale.fuel.units[unit]).toEqual(expect.any(String));
         expect(locale.fuel.units[unit]).not.toBe('');
+      }
+    }
+  });
+
+  it('defines a label for every CSV import value', () => {
+    for (const locale of [es, en]) {
+      const labels = locale.csvImport;
+      const groups: [Record<string, string>, readonly string[]][] = [
+        [labels.formats, CSV_FORMATS],
+        [labels.kinds, CSV_ROW_KINDS],
+        [labels.columns, CSV_COLUMNS],
+        [labels.dateFormats, CSV_DATE_FORMATS],
+        [
+          labels.decimalSeparators,
+          CSV_DECIMAL_SEPARATORS.map((separator) => DECIMAL_SEPARATOR_KEYS[separator]),
+        ],
+        [labels.errorCodes, CSV_ROW_ERROR_CODES],
+        [labels.rejectReasons, CSV_REJECT_REASONS],
+        [labels.skipReasons, CSV_SKIP_REASONS],
+      ];
+      for (const [group, values] of groups) {
+        for (const value of values) {
+          expect(group[value]).toEqual(expect.any(String));
+          expect(group[value]).not.toBe('');
+        }
       }
     }
   });
