@@ -15,6 +15,7 @@ import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ServerRouteImport } from './routes/server'
 import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppImportRouteImport } from './routes/_app/import'
 import { Route as AppOdometerRouteImport } from './routes/_app/odometer'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppAdminUsersRouteImport } from './routes/_app/admin/users'
@@ -50,6 +51,11 @@ const WelcomeRoute = WelcomeRouteImport.update({
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppImportRoute = AppImportRouteImport.update({
+  id: '/import',
+  path: '/import',
   getParentRoute: () => AppRoute,
 } as any)
 const AppOdometerRoute = AppOdometerRouteImport.update({
@@ -96,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/server': typeof ServerRoute
   '/welcome': typeof WelcomeRoute
+  '/import': typeof AppImportRoute
   '/odometer': typeof AppOdometerRoute
   '/settings': typeof AppSettingsRoute
   '/admin/users': typeof AppAdminUsersRoute
@@ -109,6 +116,7 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/server': typeof ServerRoute
   '/welcome': typeof WelcomeRoute
+  '/import': typeof AppImportRoute
   '/odometer': typeof AppOdometerRoute
   '/settings': typeof AppSettingsRoute
   '/': typeof AppIndexRoute
@@ -125,6 +133,7 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/server': typeof ServerRoute
   '/welcome': typeof WelcomeRoute
+  '/_app/import': typeof AppImportRoute
   '/_app/odometer': typeof AppOdometerRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/': typeof AppIndexRoute
@@ -142,6 +151,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/server'
     | '/welcome'
+    | '/import'
     | '/odometer'
     | '/settings'
     | '/admin/users'
@@ -155,6 +165,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/server'
     | '/welcome'
+    | '/import'
     | '/odometer'
     | '/settings'
     | '/'
@@ -170,6 +181,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/server'
     | '/welcome'
+    | '/_app/import'
     | '/_app/odometer'
     | '/_app/settings'
     | '/_app/'
@@ -232,6 +244,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/import': {
+      id: '/_app/import'
+      path: '/import'
+      fullPath: '/import'
+      preLoaderRoute: typeof AppImportRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/odometer': {
       id: '/_app/odometer'
       path: '/odometer'
@@ -285,6 +304,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppImportRoute: typeof AppImportRoute
   AppOdometerRoute: typeof AppOdometerRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
@@ -296,6 +316,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppImportRoute: AppImportRoute,
   AppOdometerRoute: AppOdometerRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,

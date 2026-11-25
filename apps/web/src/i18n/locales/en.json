@@ -658,6 +658,124 @@
       "export": "The export could not be generated"
     }
   },
+  "csvImport": {
+    "eyebrow": "Import",
+    "title": "Import from another app",
+    "description": "Bring a vehicle's history from Fuelio, Drivvo, LubeLogger or any CSV. You will see what is going to be imported before anything is saved.",
+    "settingsCard": {
+      "title": "Import from another app",
+      "description": "Add to a vehicle the refuels, maintenance records and odometer readings you exported as CSV from Fuelio, Drivvo, LubeLogger or another app.",
+      "link": "Import a CSV"
+    },
+    "steps": {
+      "source": "Vehicle and file",
+      "format": "Format"
+    },
+    "vehicle": "Vehicle",
+    "file": "CSV file",
+    "noVehicles": "You need at least one vehicle to import a CSV.",
+    "reading": "Reading the file…",
+    "tooLarge": "The file is over the {{max}} MB limit. Split it or export less data.",
+    "detected": "Detected format: {{format}}",
+    "optionsIntro": "We could not work out how some values of the file are written: tell us to continue.",
+    "genericIntro": "We do not recognize this format: it will be imported as a generic CSV. Choose the column of each field; the ones marked with * are required (for refuels, either the total price or the price per unit is enough).",
+    "choose": "Choose…",
+    "fields": {
+      "kind": "Record type",
+      "dateFormat": "Date format",
+      "decimalSeparator": "Decimal separator"
+    },
+    "formats": {
+      "fuelio": "Fuelio",
+      "drivvo": "Drivvo",
+      "lubelogger": "LubeLogger",
+      "generic": "Generic CSV"
+    },
+    "kinds": {
+      "odometer": "Odometer readings",
+      "fuel": "Refuels",
+      "maintenance": "Maintenance records"
+    },
+    "columns": {
+      "date": "Date",
+      "value": "Odometer",
+      "odometer": "Odometer",
+      "quantity": "Quantity",
+      "totalPrice": "Total price",
+      "pricePerUnit": "Price per unit",
+      "fullTank": "Full tank",
+      "missedPrevious": "Missed previous refuel",
+      "title": "Title",
+      "category": "Category",
+      "description": "Description",
+      "workshop": "Workshop",
+      "cost": "Cost"
+    },
+    "dateFormats": {
+      "ymd": "Year-month-day (2026-01-31)",
+      "dmy": "Day/month/year (31/01/2026)",
+      "mdy": "Month/day/year (01/31/2026)"
+    },
+    "decimalSeparators": {
+      "dot": "Dot (1234.56)",
+      "comma": "Comma (1234,56)"
+    },
+    "noColumn": "Do not import",
+    "columnN": "Column {{n}}",
+    "unitMismatch": "The file units ({{source}}) do not match the units of this vehicle ({{target}}). Ikrive does not convert units: change them in your settings or choose another file.",
+    "settingsLink": "Go to Settings",
+    "preview": {
+      "title": "Preview",
+      "valid": "Valid",
+      "duplicates": "Duplicates",
+      "errors": "With errors",
+      "skipped": "Skipped",
+      "loading": "Computing the preview…",
+      "nothingToImport": "Nothing to import: no row is valid."
+    },
+    "droppedNotes": "Refuel notes are not imported: Ikrive does not store them.",
+    "droppedStation": "Refuel stations are not imported: Ikrive does not store them.",
+    "droppedBoth": "Refuel notes and stations are not imported: Ikrive does not store them.",
+    "encoding": "The file may not be UTF-8 and some characters may look wrong. If so, save it as UTF-8 and choose it again.",
+    "import": "Import",
+    "importing": "Importing…",
+    "result": {
+      "title": "Import finished",
+      "created": "Created",
+      "omitted": "Skipped",
+      "errors": "Errors",
+      "again": "Import another file",
+      "vehicle": "View the vehicle"
+    },
+    "issues": {
+      "show": "Show rows ({{count}})",
+      "more": "and {{count}} more",
+      "row": "Row {{row}}: {{reason}}"
+    },
+    "errorCodes": {
+      "malformed_row": "malformed row",
+      "missing_field": "missing value",
+      "invalid_date": "invalid date",
+      "invalid_number": "invalid number",
+      "invalid_boolean": "invalid yes/no value",
+      "out_of_range": "value out of range",
+      "mixed_fuel_units": "mixes fuel units"
+    },
+    "rejectReasons": {
+      "odometer_conflict": "the odometer does not fit the reading of {{date}} ({{value}})",
+      "future_date": "the date is in the future"
+    },
+    "skipReasons": {
+      "not_maintenance": "not a maintenance record",
+      "template": "a template",
+      "income": "an income"
+    },
+    "errors": {
+      "tooLarge": "The file is over the size limit.",
+      "cannotImport": "This CSV cannot be imported with these options. Check the format and try again.",
+      "vehicleNotFound": "The vehicle was not found."
+    }
+  },
   "adminUsers": {
     "title": "Users",
     "description": "Accounts on this instance: roles, access and deletion.",

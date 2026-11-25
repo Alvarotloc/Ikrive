@@ -7,7 +7,7 @@ export {
   planCsvImport,
 } from './apply';
 export { detectCsvFormat } from './detect';
-export { CSV_REQUIRED_COLUMNS } from './generic';
+export { CSV_KIND_COLUMNS, CSV_REQUIRED_COLUMNS } from './generic';
 export { csvRowKey } from './keys';
 export { parseCsvImport } from './parse';
 export type {

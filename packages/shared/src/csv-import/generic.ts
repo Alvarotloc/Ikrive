@@ -26,7 +26,8 @@ export const CSV_REQUIRED_COLUMNS: Record<CsvRowKind, readonly (readonly CsvColu
   maintenance: [['date'], ['title']],
 };
 
-const KIND_COLUMNS: Record<CsvRowKind, readonly CsvColumn[]> = {
+/** Columns each kind of row can import, in the order the mapping form shows them. */
+export const CSV_KIND_COLUMNS: Record<CsvRowKind, readonly CsvColumn[]> = {
   odometer: ['date', 'value'],
   fuel: ['date', 'odometer', 'quantity', 'totalPrice', 'pricePerUnit', 'fullTank', 'missedPrevious'],
   maintenance: ['date', 'odometer', 'title', 'category', 'description', 'workshop', 'cost'],
@@ -40,7 +41,7 @@ export function missingGenericColumns(doc: CsvDocument, mapping: CsvGenericMappi
   const width = doc.records[0]?.fields.length ?? 0;
   const isValid = (index: number) => Number.isInteger(index) && index >= 0 && index < width;
   const missing = new Set<CsvColumn>();
-  for (const column of KIND_COLUMNS[mapping.kind]) {
+  for (const column of CSV_KIND_COLUMNS[mapping.kind]) {
     const index = mapping.columns[column];
     if (index !== undefined && !isValid(index)) missing.add(column);
   }

@@ -831,3 +831,13 @@
 - **Revisión:** APPROVED a la primera (`progress/review_csv-import-apply.md`). Avisos para #86/#87: R7 «del mismo fichero» solo probado en la función pura (ningún formato mezcla tipos; añadir e2e cuando #87 lo haga); `options` después de `file` se ignora en silencio; fallo de escritura local llega como error del motor, no `ApiError`; `rejected` va en orden de proceso, no de fila; mensaje de `unit_mismatch` omite unidades nulas del origen.
 - **Tests:** shared 292, web 731, api 391. `pnpm harness --full` en verde.
 - **Gate 2:** «merge» del humano → PR.
+
+## 2026-11-25 — #86 csv-import-web
+
+- **Rama:** `feat/csv-import-web` (`sdd: true`). Spec en `specs/csv-import-web/` (23 requirements, 18 tasks).
+- **Cambios:** ruta `/import` con tarjeta de acceso en Ajustes (servidor y local). El navegador analiza con el parser de #84 para mostrar el formato detectado, pedir solo las opciones que faltan o mapear un CSV genérico; los recuentos salen de la vista previa (`dryRun`) de #85 y la importación es la misma llamada sin `dryRun`. Avisos de notas/gasolinera, UTF-8 y `unit_mismatch` (solo informa). Ficheros por encima de `CSV_IMPORT_MAX_BYTES` no se leen. `CSV_KIND_COLUMNS` exportado en shared. Sin cambios de BD ni API.
+- **Gate 1:** aprobado tras un cambio: Importar desactivado con 0 filas válidas (R15 ampliado, R23).
+- **Prueba en teléfono:** opción A, se hace en el APK dentro de la release #93 (añadido a su acceptance).
+- **Revisión:** APPROVED en la segunda ronda (`progress/review_csv-import-web.md`); faltaba el test de R1 en modo local. Avisos: `key` de fila `${type}:${row}` colisionaría si el parser diera dos errores por fila; «Kilometraje» también con millas, coherente con el resto de la app.
+- **Tests:** shared 292, web 759, api 391. `pnpm harness --full` en verde.
+- **Gate 2:** «merge» del humano → PR.

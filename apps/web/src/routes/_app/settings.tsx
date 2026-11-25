@@ -8,7 +8,8 @@ import {
   WEEKDAYS,
 } from '@ikrive/shared';
 import { useSuspenseQuery } from '@tanstack/react-query';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
+import { Upload } from 'lucide-react';
 import { Suspense, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
@@ -213,6 +214,20 @@ function SettingsPage() {
         </CardContent>
       </Card>
       <DataPortabilitySection />
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('csvImport.settingsCard.title')}</CardTitle>
+          <CardDescription>{t('csvImport.settingsCard.description')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild variant="outline">
+            <Link to="/import">
+              <Upload aria-hidden />
+              {t('csvImport.settingsCard.link')}
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }

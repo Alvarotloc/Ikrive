@@ -1,4 +1,4 @@
-import type { VehicleListQuery } from '@ikrive/shared';
+import type { CsvImportRequestInput, VehicleListQuery } from '@ikrive/shared';
 
 export const queryKeys = {
   me: ['me'] as const,
@@ -7,6 +7,14 @@ export const queryKeys = {
   calendarFeed: ['calendar-feed'] as const,
   /** Every account of the instance (admin only); any admin action refreshes it, locks included. */
   adminUsers: ['admin-users'] as const,
+  csvImport: {
+    /**
+     * Dry run of a CSV import. `fileId` stands for the `File` (which serializes as `{}`); any other
+     * vehicle, file or options is another preview.
+     */
+    preview: (vehicleId: string, fileId: number, options: Omit<CsvImportRequestInput, 'dryRun'>) =>
+      ['csv-import', 'preview', vehicleId, fileId, options] as const,
+  },
   notifications: {
     all: ['notifications'] as const,
     list: ['notifications', 'list'] as const,

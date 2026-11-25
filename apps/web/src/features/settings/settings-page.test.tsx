@@ -132,6 +132,34 @@ describe('settings page', () => {
     expect(screen.getByRole('button', { name: 'Importar datos' })).toBeInTheDocument();
   });
 
+  it('links to the CSV import', async () => {
+    const { user, router } = await renderSettings();
+
+    expect(await screen.findByRole('heading', { name: 'Importar desde otra app' })).toBeInTheDocument();
+    const link = screen.getByRole('link', { name: 'Importar un CSV' });
+    expect(link).toHaveAttribute('href', '/import');
+
+    // The import page loads every vehicle: archived and sold ones too.
+    const statuses: (string | null)[] = [];
+    mockApi({
+      'GET /me': { body: me },
+      'GET /notifications': { body: { items: [], total: 0, unreadCount: 0 } },
+      'GET /settings': { body: DEFAULT_USER_SETTINGS },
+      'GET /vehicles': (request) => {
+        statuses.push(new URL(request.url).searchParams.get('status'));
+        return { body: [] };
+      },
+    });
+    await user.click(link);
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Importar desde otra app' }),
+    ).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/import');
+    expect(screen.getByText('Para importar un CSV necesitas al menos un vehículo.')).toBeInTheDocument();
+    expect(statuses).toEqual(['all']);
+  });
+
   it('web: hides the phone notifications card and never loads the native module', async () => {
     await renderSettings();
 
