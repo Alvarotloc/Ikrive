@@ -22,7 +22,7 @@ export function VehicleStatsSection({ vehicle }: { vehicle: Pick<Vehicle, 'id' |
         <CardDescription>{t('stats.description')}</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-6">
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           <Metric
             label={t('stats.metrics.perYear')}
             value={distance.perYear === null ? '—' : format.distance(distance.perYear)}
@@ -46,6 +46,11 @@ export function VehicleStatsSection({ vehicle }: { vehicle: Pick<Vehicle, 'id' |
             hint={costPerDistance.maintenance === null ? t('stats.pending.costPerDistance') : undefined}
           />
           <Metric
+            label={t('stats.metrics.expensesCostPerDistance', { unit })}
+            value={costPerDistance.expenses === null ? '—' : format.costPerDistance(costPerDistance.expenses)}
+            hint={costPerDistance.expenses === null ? t('stats.pending.costPerDistance') : undefined}
+          />
+          <Metric
             label={t('stats.metrics.totalCost')}
             value={format.money(spending.total)}
             hint={t('stats.metrics.totalCostHint', {
@@ -53,6 +58,7 @@ export function VehicleStatsSection({ vehicle }: { vehicle: Pick<Vehicle, 'id' |
               purchase: spending.purchase === null ? undefined : format.money(spending.purchase),
               fuel: format.money(spending.fuel),
               maintenance: format.money(spending.maintenance),
+              expenses: format.money(spending.expenses),
             })}
           />
         </div>
