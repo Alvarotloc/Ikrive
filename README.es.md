@@ -64,7 +64,7 @@ pnpm screenshots  # regenera las capturas de docs/screenshots/
 pnpm --filter @ikrive/api job reminders   # lanza un job contra la BD de DATA_DIR (reminders | odometer-nudge)
 ```
 
-Más detalles sobre la arquitectura y cómo contribuir en [CONTRIBUTING.md](CONTRIBUTING.md). Las dudas e ideas van a [Discussions](https://github.com/Alvarotloc/Ikrive/discussions) y los fallos a [Issues](https://github.com/Alvarotloc/Ikrive/issues). Para informar de una vulnerabilidad, consulta [SECURITY.md](SECURITY.md).
+Más detalles sobre la arquitectura y cómo contribuir en [CONTRIBUTING.md](CONTRIBUTING.md). Las dudas e ideas van a [Discussions](https://github.com/Alvarotloc/Ikrive/discussions) y los fallos a [Issues](https://github.com/Alvarotloc/Ikrive/issues). Para informar de una vulnerabilidad, consulta [SECURITY.md](SECURITY.md). Quien participa sigue el [código de conducta](CODE_OF_CONDUCT.md).
 
 ## Roadmap
 
