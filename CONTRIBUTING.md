@@ -1,5 +1,7 @@
 # Contribuir a Ikrive
 
+Al participar en el proyecto aceptas su [código de conducta](CODE_OF_CONDUCT.md).
+
 ## Estructura
 
 ```

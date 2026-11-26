@@ -68,7 +68,7 @@ pnpm screenshots  # regenerates the screenshots in docs/screenshots/
 pnpm --filter @ikrive/api job reminders   # runs a job against the DATA_DIR database (reminders | odometer-nudge)
 ```
 
-Architecture and contribution details in [CONTRIBUTING.md](CONTRIBUTING.md) (in Spanish). Questions and ideas go to [Discussions](https://github.com/Alvarotloc/Ikrive/discussions); bugs to [Issues](https://github.com/Alvarotloc/Ikrive/issues). To report a vulnerability, see [SECURITY.md](SECURITY.md).
+Architecture and contribution details in [CONTRIBUTING.md](CONTRIBUTING.md) (in Spanish). Questions and ideas go to [Discussions](https://github.com/Alvarotloc/Ikrive/discussions); bugs to [Issues](https://github.com/Alvarotloc/Ikrive/issues). To report a vulnerability, see [SECURITY.md](SECURITY.md). Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Roadmap
 
