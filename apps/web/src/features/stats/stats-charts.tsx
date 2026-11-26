@@ -13,17 +13,26 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { categorySpendingRows } from './category-spending';
 import { useStatsFormat } from './use-stats-format';
 
 const CHART_HEIGHT = 240;
 // The first paint uses this size until the container is measured (and in jsdom, which never measures it).
 const INITIAL_DIMENSION = { width: 480, height: CHART_HEIGHT };
 
+/** Height of a row of «Spending per category»: below it the axis would skip category names. */
+const CATEGORY_ROW_HEIGHT = 22;
+/** What the category chart takes besides its rows: the number axis, the legend and the margins. */
+const CATEGORY_CHART_CHROME = 70;
+
 // Theme tokens: the dark mode switches them, so the charts follow it with no extra code.
+// Other expenses use the warning amber: `--color-deep` is almost the card in dark mode and almost the fuel
+// series in light mode, while the amber stands out from both teal series and the card in both themes.
 const COLORS = {
   primary: 'var(--color-primary)',
   fuel: 'var(--color-primary)',
   maintenance: 'var(--color-accent-strong)',
+  expenses: 'var(--color-warning)',
   grid: 'var(--color-border)',
   text: 'var(--color-muted-foreground)',
 };
@@ -44,11 +53,14 @@ export function ChartFigure({
   title,
   empty,
   emptyText,
+  height = CHART_HEIGHT,
   children,
 }: {
   title: string;
   empty: boolean;
   emptyText: string;
+  /** Height of the chart, `CHART_HEIGHT` by default. */
+  height?: number;
   children: ReactNode;
 }) {
   // Not every browser (nor jsdom) names a figure after its caption: link them explicitly.
@@ -64,7 +76,7 @@ export function ChartFigure({
       {empty ? (
         <p className="py-3 text-sm text-muted-foreground">{emptyText}</p>
       ) : (
-        <ResponsiveContainer width="100%" height={CHART_HEIGHT} initialDimension={INITIAL_DIMENSION}>
+        <ResponsiveContainer width="100%" height={height} initialDimension={{ ...INITIAL_DIMENSION, height }}>
           {children}
         </ResponsiveContainer>
       )}
@@ -72,15 +84,15 @@ export function ChartFigure({
   );
 }
 
-/** The four statistics charts: distance and spending per month, consumption per segment and spending per category. */
+/**
+ * The four statistics charts: distance and spending per month, consumption per segment and spending per
+ * category (maintenance and other expenses together).
+ */
 export function StatsCharts({ stats, fuelType }: { stats: VehicleStats; fuelType: FuelType }) {
   const { t } = useTranslation();
   const format = useStatsFormat(fuelType);
   const { distanceByMonth, consumptionBySegment, spendingByMonth } = stats.series;
-  const byCategory = stats.spending.byCategory.map(({ category, total }) => ({
-    name: t(`maintenance.categories.${category}`),
-    total,
-  }));
+  const byCategory = categorySpendingRows(stats.spending, t);
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
@@ -169,6 +181,12 @@ export function StatsCharts({ stats, fuelType }: { stats: VehicleStats; fuelType
             name={t('stats.series.maintenance')}
             stackId="spending"
             fill={COLORS.maintenance}
+          />
+          <Bar
+            dataKey="expenses"
+            name={t('stats.series.expenses')}
+            stackId="spending"
+            fill={COLORS.expenses}
             radius={[4, 4, 0, 0]}
           />
         </BarChart>
@@ -178,21 +196,37 @@ export function StatsCharts({ stats, fuelType }: { stats: VehicleStats; fuelType
         title={t('stats.charts.spendingByCategory')}
         empty={byCategory.length === 0}
         emptyText={t('stats.empty.spendingByCategory')}
+        height={Math.max(CHART_HEIGHT, byCategory.length * CATEGORY_ROW_HEIGHT + CATEGORY_CHART_CHROME)}
       >
         <BarChart data={byCategory} layout="vertical">
           <CartesianGrid horizontal={false} stroke={COLORS.grid} />
           <XAxis type="number" tickFormatter={format.number} tick={tick} {...axis} />
-          {/* Wide enough for the longest category name ("Inspección", "Reparación"). */}
-          <YAxis type="category" dataKey="name" tick={tick} width={96} {...axis} />
+          {/* Wide enough for the longest category name ("Inspección", "Reparación", "Neumáticos"). */}
+          {/* Every row is a different category: never skip its name. */}
+          <YAxis type="category" dataKey="name" tick={tick} width={96} interval={0} {...axis} />
+          {/* Each row has a value in one series only: `filterNull` (the default) leaves the other out. */}
           <Tooltip
             contentStyle={tooltipStyle}
             cursor={tooltipCursor}
+            filterNull
             formatter={(value) => format.money(Number(value))}
           />
+          <Legend
+            wrapperStyle={{ fontSize: 13 }}
+            formatter={(value) => <span style={{ color: 'var(--color-foreground)' }}>{value}</span>}
+          />
           <Bar
-            dataKey="total"
+            dataKey="maintenance"
             name={t('stats.series.maintenance')}
+            stackId="category"
             fill={COLORS.maintenance}
+            radius={[0, 4, 4, 0]}
+          />
+          <Bar
+            dataKey="expenses"
+            name={t('stats.series.expenses')}
+            stackId="category"
+            fill={COLORS.expenses}
             radius={[0, 4, 4, 0]}
           />
         </BarChart>

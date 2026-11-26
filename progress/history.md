@@ -869,3 +869,13 @@
 - **Revisión:** APPROVED a la primera (`progress/review_vitest-cache-new-migrations.md`). Avisos: el regex también casa en comentarios/strings (inocuo); el plugin sobra si Vitest corrige la comprobación literal (reportable upstream); la caché local se regenera una vez.
 - **Tests:** web 768, api 401. `pnpm harness --full` en verde.
 - **Gate 2:** «merge» del humano → PR.
+
+## 2026-11-26 — #88 vehicle-expenses-web
+
+- **Rama:** `feat/vehicle-expenses-web` (`sdd: true`). Spec en `specs/vehicle-expenses-web/` (23 requirements, 16 tasks).
+- **Cambios:** sección «Otros gastos» en la ficha (`features/expenses/`): listado por fecha desc, filtro por categorías presentes, alta solo en vehículos activos, edición y borrado con confirmación, servidor y local. Estadísticas: gastos en la ayuda de «Coste total», métrica «Otros gastos por km» (rejilla 3×2), serie apilada «Otros gastos» en «Gasto por mes» y «Gasto por categoría» conjunta (`categorySpendingRows`) con dos series. Solo web.
+- **Gate 1:** aprobado con un cambio: `other` = «Varios» / «Miscellaneous».
+- **Desviaciones aceptadas:** serie de gastos con `--color-warning` (ámbar) porque `--color-deep` no contrastaba (1,15:1 en oscuro); eje Y de categorías con `interval={0}` y altura creciente con más de 8 filas.
+- **Revisión:** APPROVED a la primera (`progress/review_vehicle-expenses-web.md`). Avisos: badge de ancho variable desalinea títulos en escritorio (igual en mantenimientos/repostajes; pulido conjunto aparte); token `--chart-*` propio si `--color-warning` se usa para avisos en stats; importe 0 con mensaje genérico; «Tax» singular en en; radio superior en meses sin gastos.
+- **Tests:** shared 313, web 803, api 401, e2e 7. `pnpm harness --full` en verde.
+- **Gate 2:** «merge» del humano → PR.

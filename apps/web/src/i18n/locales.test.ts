@@ -7,6 +7,7 @@ import {
   CSV_ROW_ERROR_CODES,
   CSV_ROW_KINDS,
   CSV_SKIP_REASONS,
+  EXPENSE_CATEGORIES,
   FUEL_QUANTITY_UNITS,
   MAINTENANCE_CATEGORIES,
   NOTIFICATION_CHANNEL_TYPES,
@@ -34,6 +35,17 @@ describe('locales', () => {
         expect(locale.maintenance.categories[category]).not.toBe('');
       }
     }
+  });
+
+  it('defines a label for every expense category', () => {
+    for (const locale of [es, en]) {
+      for (const category of EXPENSE_CATEGORIES) {
+        expect(locale.expenses.categories[category]).toEqual(expect.any(String));
+        expect(locale.expenses.categories[category]).not.toBe('');
+      }
+    }
+    expect(es.expenses.categories.other).toBe('Varios');
+    expect(en.expenses.categories.other).toBe('Miscellaneous');
   });
 
   it('defines a label for every notification channel type', () => {

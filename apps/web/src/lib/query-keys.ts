@@ -32,11 +32,13 @@ export const queryKeys = {
     maintenanceSpending: (id: string) => ['vehicles', 'detail', id, 'maintenance', 'spending'] as const,
     /** Under `vehicles.all`: saving a refuel refreshes the vehicle's odometer and readings too. */
     fuelLogs: (id: string) => ['vehicles', 'detail', id, 'fuel-logs'] as const,
+    /** Under `detail(id)`: saving or deleting an expense refreshes it and the statistics. */
+    expenses: (id: string) => ['vehicles', 'detail', id, 'expenses'] as const,
     /** Under `vehicles.all`: saving a maintenance record refreshes the next due dates too. */
     schedules: (id: string) => ['vehicles', 'detail', id, 'schedules'] as const,
     /**
      * Under `vehicles.all`: refuel, maintenance, odometer and vehicle mutations already invalidate the
-     * whole tree, so the statistics refresh with them.
+     * whole tree, and expense mutations the vehicle's `detail(id)`, so the statistics refresh with them.
      */
     stats: (id: string) => ['vehicles', 'detail', id, 'stats'] as const,
     /** Public links to the sale report; creating or revoking one refreshes it. */
