@@ -580,6 +580,31 @@ describe('local mode', () => {
     expect(within(dialog).getByRole('button', { name: 'Descargar' })).toBeEnabled();
   });
 
+  it('vehicle page adds an expense on the device and counts it in the total cost', async () => {
+    mockObjectUrls();
+    const local = await localData();
+    const vehicle = await local.vehicles.create({ make: 'Seat', model: 'Ibiza' });
+    const { user } = await renderApp(`/vehicles/${vehicle.id}`);
+
+    expect(await screen.findByText('Todavía no hay gastos registrados.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Añadir gasto' }));
+    const form = await screen.findByRole('dialog');
+    await user.selectOptions(within(form).getByLabelText('Categoría'), 'tax');
+    await user.type(within(form).getByLabelText('Título'), 'Impuesto de circulación');
+    await user.type(within(form).getByLabelText('Importe (EUR)'), '98,50');
+    await user.click(within(form).getByRole('button', { name: 'Guardar' }));
+
+    expect(await screen.findByText('Gasto añadido')).toBeInTheDocument();
+    expect(await screen.findByText('Impuesto de circulación')).toBeInTheDocument();
+    expect(await local.expenses.list(vehicle.id)).toEqual([
+      expect.objectContaining({ category: 'tax', title: 'Impuesto de circulación', cost: 98.5 }),
+    ]);
+    // No purchase price, refuels nor maintenance: the expense is the whole cost.
+    const total = (await screen.findByText('Coste total')).closest('div') as HTMLElement;
+    await waitFor(() => expect(total).toHaveTextContent(/98,50\s€/));
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('maintenance shows attachments', async () => {
     mockObjectUrls();
     const local = await localData();

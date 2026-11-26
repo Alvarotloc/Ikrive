@@ -27,18 +27,21 @@ const imperial = {
 const withData: VehicleStats = {
   distance: { driven: 12_000, perYear: 14_600, perMonth: 1_217 },
   consumption: { average: 6.54 },
-  costPerDistance: { fuel: 0.085, maintenance: 0.0412, expenses: 0, total: 0.126 },
+  costPerDistance: { fuel: 0.085, maintenance: 0.0412, expenses: 0.0453, total: 0.1715 },
   spending: {
     purchase: 18_000,
     fuel: 1_020.5,
     maintenance: 494.4,
-    expenses: 0,
-    total: 19_514.9,
+    expenses: 543.8,
+    total: 20_058.7,
     byCategory: [
       { category: 'tires', total: 400 },
       { category: 'oil_change', total: 94.4 },
     ],
-    expensesByCategory: [],
+    expensesByCategory: [
+      { category: 'insurance', total: 512.3 },
+      { category: 'other', total: 31.5 },
+    ],
   },
   series: {
     distanceByMonth: [
@@ -50,8 +53,8 @@ const withData: VehicleStats = {
       { startDate: '2025-02-01', endDate: '2025-03-01', distance: 700, quantity: 46.5, consumption: 6.64 },
     ],
     spendingByMonth: [
-      { month: '2025-01', fuel: 60, maintenance: 94.4, expenses: 0 },
-      { month: '2025-02', fuel: 70, maintenance: 0, expenses: 0 },
+      { month: '2025-01', fuel: 60, maintenance: 94.4, expenses: 512.3 },
+      { month: '2025-02', fuel: 70, maintenance: 0, expenses: 31.5 },
     ],
   },
 };
@@ -129,12 +132,17 @@ describe('VehicleStatsSection', () => {
         `${money(0.041, 'USD', { min: 2, max: 3 })}/mi`,
       ),
     ).toBeInTheDocument();
+    expect(
+      await within(await metric('Otros gastos por mi')).findByText(
+        `${money(0.045, 'USD', { min: 2, max: 3 })}/mi`,
+      ),
+    ).toBeInTheDocument();
 
     const total = await metric('Coste total');
-    expect(await within(total).findByText(money(19_514.9, 'USD'))).toBeInTheDocument();
+    expect(await within(total).findByText(money(20_058.7, 'USD'))).toBeInTheDocument();
     expect(
       within(total).getByText(
-        `Compra ${money(18_000, 'USD')} · combustible ${money(1_020.5, 'USD')} · mantenimiento ${money(494.4, 'USD')}`,
+        `Compra ${money(18_000, 'USD')} · combustible ${money(1_020.5, 'USD')} · mantenimiento ${money(494.4, 'USD')} · otros gastos ${money(543.8, 'USD')}`,
       ),
     ).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Estadísticas' })).toBeInTheDocument();
@@ -167,7 +175,7 @@ describe('VehicleStatsSection', () => {
       ),
     ).toBeInTheDocument();
 
-    for (const label of ['Combustible por km', 'Mantenimiento por km']) {
+    for (const label of ['Combustible por km', 'Mantenimiento por km', 'Otros gastos por km']) {
       const card = await metric(label);
       expect(within(card).getByText('—')).toBeInTheDocument();
       expect(
@@ -181,12 +189,17 @@ describe('VehicleStatsSection', () => {
   });
 
   it('leaves the purchase out of the total breakdown when there is no purchase price', async () => {
-    setup({ ...withoutData, spending: { ...withoutData.spending, purchase: null, fuel: 50, total: 50 } });
+    setup({
+      ...withoutData,
+      spending: { ...withoutData.spending, purchase: null, fuel: 50, expenses: 20, total: 70 },
+    });
 
     const total = await metric('Coste total');
-    expect(within(total).getByText(money(50))).toBeInTheDocument();
+    expect(within(total).getByText(money(70))).toBeInTheDocument();
     expect(
-      within(total).getByText(`Combustible ${money(50)} · mantenimiento ${money(0)}`),
+      within(total).getByText(
+        `Combustible ${money(50)} · mantenimiento ${money(0)} · otros gastos ${money(20)}`,
+      ),
     ).toBeInTheDocument();
   });
 
@@ -211,13 +224,52 @@ describe('VehicleStatsSection', () => {
       'Distancia por mes': 'Hacen falta al menos dos lecturas del odómetro para ver la distancia por mes.',
       'Consumo por tramo':
         'Hacen falta dos repostajes de depósito lleno sin repostajes olvidados entre ellos para ver el consumo.',
-      'Gasto por mes': 'Hace falta un repostaje o un mantenimiento con coste para ver el gasto por mes.',
-      'Gasto por categoría': 'Hace falta un mantenimiento con coste para ver el gasto por categoría.',
+      'Gasto por mes':
+        'Hace falta un repostaje, un mantenimiento con coste o un gasto para ver el gasto por mes.',
+      'Gasto por categoría':
+        'Hace falta un mantenimiento con coste o un gasto para ver el gasto por categoría.',
     };
     for (const [name, text] of Object.entries(empty)) {
       const figure = await screen.findByRole('figure', { name });
       expect(within(figure).getByText(text)).toBeInTheDocument();
       expect(figure.querySelector('svg')).toBeNull();
     }
+  });
+  it('shows expense categories next to maintenance in the category breakdown', async () => {
+    setup(withData);
+
+    const figure = await screen.findByRole('figure', { name: 'Gasto por categoría' });
+    const ticks = [
+      ...figure.querySelectorAll('.recharts-yAxis-tick-labels .recharts-cartesian-axis-tick-value'),
+    ];
+    // Highest total first, each label from its own namespace.
+    expect(ticks.map((tick) => tick.textContent)).toEqual(['Seguro', 'Neumáticos', 'Aceite', 'Varios']);
+    expect(within(figure).getByText('Mantenimiento')).toBeInTheDocument();
+    expect(within(figure).getByText('Otros gastos')).toBeInTheDocument();
+  });
+
+  it('shows the expense categories even without maintenance spending', async () => {
+    setup({
+      ...withoutData,
+      spending: {
+        ...withoutData.spending,
+        expenses: 31.5,
+        total: 18_031.5,
+        expensesByCategory: [{ category: 'other', total: 31.5 }],
+      },
+    });
+
+    const figure = await screen.findByRole('figure', { name: 'Gasto por categoría' });
+    expect(figure.querySelector('svg')).not.toBeNull();
+    expect(within(figure).getByText('Varios')).toBeInTheDocument();
+  });
+
+  it('stacks other expenses in the spending per month', async () => {
+    setup(withData);
+
+    const figure = await screen.findByRole('figure', { name: 'Gasto por mes' });
+    expect(figure.querySelectorAll('.recharts-bar')).toHaveLength(3);
+    const legend = [...figure.querySelectorAll('.recharts-legend-item-text')];
+    expect(legend.map((item) => item.textContent)).toEqual(['Combustible', 'Mantenimiento', 'Otros gastos']);
   });
 });

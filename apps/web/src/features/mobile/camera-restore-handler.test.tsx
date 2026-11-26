@@ -143,6 +143,7 @@ function setup(routes: MockRoutes = {}) {
     'GET /vehicles/v1/maintenance/spending': { body: { total: 0 } },
     'GET /vehicles/v1/schedules': { body: [] },
     'GET /vehicles/v1/fuel-logs': { body: [] },
+    'GET /vehicles/v1/expenses': { body: [] },
     'GET /vehicles/v1/stats': { body: stats },
     'GET /vehicles/v1/maintenance/r1/attachments': { body: [] },
     ...routes,
