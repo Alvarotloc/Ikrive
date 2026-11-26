@@ -860,3 +860,12 @@
 - **Backlog:** añadido #96 `vitest-cache-new-migrations` (`sdd: false`), antes de #89.
 - **Tests:** shared 313, web 765, api 401, e2e 6. `pnpm harness --full` en verde.
 - **Gate 2:** «merge» del humano → PR.
+
+## 2026-11-26 — #96 vitest-cache-new-migrations
+
+- **Rama:** `feat/vitest-cache-new-migrations` (`sdd: false`). Adelantada a #88 y #89 a petición del humano.
+- **Causa:** el `fsModuleCache` de Vitest 5 (activo por defecto, `node_modules/.vitest-cache`) solo excluye los módulos con el literal `import.meta.glob(`; `apps/web/src/lib/data-source/local/migrations.ts` usa `import.meta.glob<string>(` y se cacheaba con la lista de `.sql` antigua (`progress/impl_vitest-cache-new-migrations.md`).
+- **Cambios:** plugin en `apps/web/vitest.config.ts` con `configureVitest` + `defineCacheKeyGenerator(skipImportMetaGlob)` (`src/test/fs-module-cache.ts`, 3 tests, uno sobre el `migrations.ts` real). `database.test.ts` usa `BUNDLED_MIGRATIONS.length` en vez de 14 fijo. Repro con migración temporal en verde y contraprueba sin plugin en rojo; sin coste de tiempo apreciable (~11 s).
+- **Revisión:** APPROVED a la primera (`progress/review_vitest-cache-new-migrations.md`). Avisos: el regex también casa en comentarios/strings (inocuo); el plugin sobra si Vitest corrige la comprobación literal (reportable upstream); la caché local se regenera una vez.
+- **Tests:** web 768, api 401. `pnpm harness --full` en verde.
+- **Gate 2:** «merge» del humano → PR.
