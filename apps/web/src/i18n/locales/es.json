@@ -394,6 +394,39 @@
       "maxDecimals_other": "Como mucho {{count}} decimales."
     }
   },
+  "expenses": {
+    "title": "Otros gastos",
+    "add": "Añadir gasto",
+    "edit": "Editar gasto",
+    "empty": "Todavía no hay gastos registrados.",
+    "filterLabel": "Filtrar por categoría",
+    "all": "Todas",
+    "created": "Gasto añadido",
+    "updated": "Gasto actualizado",
+    "deleted": "Gasto eliminado",
+    "deleteTitle": "¿Eliminar «{{name}}» del {{date}}?",
+    "deleteDescription": "Se borrará el gasto. No se puede deshacer.",
+    "editLabel": "Editar «{{name}}» del {{date}}",
+    "deleteLabel": "Eliminar «{{name}}» del {{date}}",
+    "fields": {
+      "date": "Fecha",
+      "category": "Categoría",
+      "title": "Título",
+      "cost": "Importe ({{currency}})",
+      "description": "Descripción"
+    },
+    "categories": {
+      "insurance": "Seguro",
+      "tax": "Impuestos",
+      "tolls": "Peajes",
+      "parking": "Parking",
+      "fines": "Multas",
+      "other": "Varios"
+    },
+    "errors": {
+      "future": "La fecha no puede ser futura."
+    }
+  },
   "schedules": {
     "title": "Próximos mantenimientos",
     "add": "Añadir regla",
@@ -536,9 +569,10 @@
       "consumption": "Consumo medio",
       "fuelCostPerDistance": "Combustible por {{unit}}",
       "maintenanceCostPerDistance": "Mantenimiento por {{unit}}",
+      "expensesCostPerDistance": "Otros gastos por {{unit}}",
       "totalCost": "Coste total",
-      "totalCostHint": "Compra {{purchase}} · combustible {{fuel}} · mantenimiento {{maintenance}}",
-      "totalCostHint_noPurchase": "Combustible {{fuel}} · mantenimiento {{maintenance}}"
+      "totalCostHint": "Compra {{purchase}} · combustible {{fuel}} · mantenimiento {{maintenance}} · otros gastos {{expenses}}",
+      "totalCostHint_noPurchase": "Combustible {{fuel}} · mantenimiento {{maintenance}} · otros gastos {{expenses}}"
     },
     "pending": {
       "perYear": "Hacen falta lecturas del odómetro separadas al menos 30 días",
@@ -555,13 +589,14 @@
       "distance": "Distancia",
       "consumption": "Consumo",
       "fuel": "Combustible",
-      "maintenance": "Mantenimiento"
+      "maintenance": "Mantenimiento",
+      "expenses": "Otros gastos"
     },
     "empty": {
       "distanceByMonth": "Hacen falta al menos dos lecturas del odómetro para ver la distancia por mes.",
       "consumptionBySegment": "Hacen falta dos repostajes de depósito lleno sin repostajes olvidados entre ellos para ver el consumo.",
-      "spendingByMonth": "Hace falta un repostaje o un mantenimiento con coste para ver el gasto por mes.",
-      "spendingByCategory": "Hace falta un mantenimiento con coste para ver el gasto por categoría."
+      "spendingByMonth": "Hace falta un repostaje, un mantenimiento con coste o un gasto para ver el gasto por mes.",
+      "spendingByCategory": "Hace falta un mantenimiento con coste o un gasto para ver el gasto por categoría."
     }
   },
   "saleReport": {

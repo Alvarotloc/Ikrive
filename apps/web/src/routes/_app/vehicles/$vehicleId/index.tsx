@@ -6,6 +6,8 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ExpensesSection } from '@/features/expenses/expenses-section';
+import { expensesQuery } from '@/features/expenses/queries';
 import { FuelLogsSection } from '@/features/fuel/fuel-logs-section';
 import { fuelLogsQuery } from '@/features/fuel/queries';
 import { MaintenanceSpendingMetric } from '@/features/maintenance/maintenance-spending';
@@ -35,6 +37,7 @@ export const Route = createFileRoute('/_app/vehicles/$vehicleId/')({
         queryClient.ensureQueryData(maintenanceSpendingQuery(vehicleId)),
         queryClient.ensureQueryData(schedulesQuery(vehicleId)),
         queryClient.ensureQueryData(fuelLogsQuery(vehicleId)),
+        queryClient.ensureQueryData(expensesQuery(vehicleId)),
         queryClient.ensureQueryData(statsQuery(vehicleId)),
       ]);
     } catch (error) {
@@ -174,6 +177,8 @@ function VehiclePage() {
       <SchedulesSection vehicle={vehicle} />
 
       <MaintenanceSection vehicle={vehicle} />
+
+      <ExpensesSection vehicle={vehicle} />
 
       <VehicleStatsSection vehicle={vehicle} />
 

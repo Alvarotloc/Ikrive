@@ -394,6 +394,39 @@
       "maxDecimals_other": "At most {{count}} decimals."
     }
   },
+  "expenses": {
+    "title": "Other expenses",
+    "add": "Add expense",
+    "edit": "Edit expense",
+    "empty": "No expenses recorded yet.",
+    "filterLabel": "Filter by category",
+    "all": "All",
+    "created": "Expense added",
+    "updated": "Expense updated",
+    "deleted": "Expense deleted",
+    "deleteTitle": "Delete “{{name}}” of {{date}}?",
+    "deleteDescription": "The expense will be erased. This can't be undone.",
+    "editLabel": "Edit “{{name}}” of {{date}}",
+    "deleteLabel": "Delete “{{name}}” of {{date}}",
+    "fields": {
+      "date": "Date",
+      "category": "Category",
+      "title": "Title",
+      "cost": "Amount ({{currency}})",
+      "description": "Description"
+    },
+    "categories": {
+      "insurance": "Insurance",
+      "tax": "Tax",
+      "tolls": "Tolls",
+      "parking": "Parking",
+      "fines": "Fines",
+      "other": "Miscellaneous"
+    },
+    "errors": {
+      "future": "The date can't be in the future."
+    }
+  },
   "schedules": {
     "title": "Upcoming maintenance",
     "add": "Add schedule",
@@ -536,9 +569,10 @@
       "consumption": "Average consumption",
       "fuelCostPerDistance": "Fuel per {{unit}}",
       "maintenanceCostPerDistance": "Maintenance per {{unit}}",
+      "expensesCostPerDistance": "Other expenses per {{unit}}",
       "totalCost": "Total cost",
-      "totalCostHint": "Purchase {{purchase}} · fuel {{fuel}} · maintenance {{maintenance}}",
-      "totalCostHint_noPurchase": "Fuel {{fuel}} · maintenance {{maintenance}}"
+      "totalCostHint": "Purchase {{purchase}} · fuel {{fuel}} · maintenance {{maintenance}} · other expenses {{expenses}}",
+      "totalCostHint_noPurchase": "Fuel {{fuel}} · maintenance {{maintenance}} · other expenses {{expenses}}"
     },
     "pending": {
       "perYear": "Needs odometer readings at least 30 days apart",
@@ -555,13 +589,14 @@
       "distance": "Distance",
       "consumption": "Consumption",
       "fuel": "Fuel",
-      "maintenance": "Maintenance"
+      "maintenance": "Maintenance",
+      "expenses": "Other expenses"
     },
     "empty": {
       "distanceByMonth": "Needs at least two odometer readings to show the distance per month.",
       "consumptionBySegment": "Needs two full-tank refuels with no missed refuel between them to show the consumption.",
-      "spendingByMonth": "Needs a refuel or a maintenance record with a cost to show the spending per month.",
-      "spendingByCategory": "Needs a maintenance record with a cost to show the spending per category."
+      "spendingByMonth": "Needs a refuel, a maintenance record with a cost or an expense to show the spending per month.",
+      "spendingByCategory": "Needs a maintenance record with a cost or an expense to show the spending per category."
     }
   },
   "saleReport": {
