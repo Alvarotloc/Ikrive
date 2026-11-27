@@ -1508,7 +1508,7 @@
         "pnpm harness --full pasa en verde"
       ],
       "sdd": true,
-      "status": "in_progress"
+      "status": "ready_to_merge"
     },
     {
       "id": 90,
@@ -1562,11 +1562,28 @@
       "status": "pending"
     },
     {
+      "id": 98,
+      "name": "data-import-strict-schemas",
+      "phase": "9",
+      "title": "Import: mismos límites que al crear",
+      "description": "El esquema del zip (data.json) aplica a cada entidad los límites de longitud, rango y formato de su esquema de creación, reutilizándolos, para que un zip manipulado no meta valores que la API rechazaría al crear. Entra en v0.4.0: va antes de release-v0-4-0.",
+      "acceptance": [
+        "Cada esquema de export de vehículos, lecturas de odómetro, reglas, registros de mantenimiento, adjuntos, repostajes, gastos, documentos, ajustes y canales reutiliza los límites de su esquema de creación y no los duplica",
+        "Un zip con un valor fuera de rango en cualquier entidad responde 400 con la ruta del campo en errors y no escribe nada en la BD ni en disco",
+        "Un zip exportado por la versión actual, con valores en los límites máximos, se reimporta sin errores (ida y vuelta)",
+        "Un zip v1 antiguo, sin gastos ni documentos, se sigue importando",
+        "Las URLs de los canales del zip pasan la misma validación que al crear un canal",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
       "id": 93,
       "name": "release-v0-4-0",
       "phase": "9",
       "title": "Release v0.4.0 y cierre de la fase 9",
-      "description": "CHANGELOG, versión de los package.json, estado de la fase en docs/PLAN.md y README. El tag v0.4.0 solo se sube con confirmación explícita del humano tras el merge.",
+      "description": "CHANGELOG, versión de los package.json, estado de la fase en docs/PLAN.md y README. El tag v0.4.0 solo se sube con confirmación explícita del humano tras el merge. Va después de data-import-strict-schemas (#98), que entra en esta versión.",
       "acceptance": [
         "CHANGELOG.md tiene la sección [0.4.0] con fecha y [Unreleased] queda vacío",
         "La versión de todos los package.json del monorepo es 0.4.0",
