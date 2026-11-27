@@ -21,6 +21,7 @@ import type {
   ReportShareSecret,
   UserSettings,
   Vehicle,
+  VehicleDocument,
   VehicleStats,
 } from '@ikrive/shared';
 import { saleReportPath } from '@/features/reports/sale-report';
@@ -44,6 +45,9 @@ const csvImportBody = (file: File, options: object) => {
 
 const attachmentsPath = (vehicleId: string, recordId: string) =>
   `/vehicles/${vehicleId}/maintenance/${recordId}/attachments`;
+
+const documentAttachmentsPath = (vehicleId: string, documentId: string) =>
+  `/vehicles/${vehicleId}/documents/${documentId}/attachments`;
 
 const CALENDAR_FEED_PATH = '/settings/calendar-feed';
 
@@ -91,6 +95,13 @@ export const httpDataSource: DataSource = {
       api.patch<Expense>(`/vehicles/${vehicleId}/expenses/${expenseId}`, changes),
     remove: (vehicleId, expenseId) => api.delete<void>(`/vehicles/${vehicleId}/expenses/${expenseId}`),
   },
+  documents: {
+    list: (vehicleId) => api.get<VehicleDocument[]>(`/vehicles/${vehicleId}/documents`),
+    create: (vehicleId, document) => api.post<VehicleDocument>(`/vehicles/${vehicleId}/documents`, document),
+    update: (vehicleId, documentId, changes) =>
+      api.patch<VehicleDocument>(`/vehicles/${vehicleId}/documents/${documentId}`, changes),
+    remove: (vehicleId, documentId) => api.delete<void>(`/vehicles/${vehicleId}/documents/${documentId}`),
+  },
   maintenance: {
     list: (vehicleId) => api.get<MaintenanceRecord[]>(`/vehicles/${vehicleId}/maintenance`),
     spending: (vehicleId) => api.get<MaintenanceSpending>(`/vehicles/${vehicleId}/maintenance/spending`),
@@ -105,6 +116,13 @@ export const httpDataSource: DataSource = {
       api.post<Attachment>(attachmentsPath(vehicleId, recordId), fileBody(file)),
     remove: (vehicleId, recordId, attachmentId) =>
       api.delete<void>(`${attachmentsPath(vehicleId, recordId)}/${attachmentId}`),
+  },
+  documentAttachments: {
+    list: (vehicleId, documentId) => api.get<Attachment[]>(documentAttachmentsPath(vehicleId, documentId)),
+    upload: (vehicleId, documentId, file) =>
+      api.post<Attachment>(documentAttachmentsPath(vehicleId, documentId), fileBody(file)),
+    remove: (vehicleId, documentId, attachmentId) =>
+      api.delete<void>(`${documentAttachmentsPath(vehicleId, documentId)}/${attachmentId}`),
   },
   schedules: {
     list: (vehicleId) => api.get<MaintenanceSchedule[]>(`/vehicles/${vehicleId}/schedules`),

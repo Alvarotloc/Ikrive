@@ -6,6 +6,7 @@ import {
   maintenanceRecords,
   maintenanceSchedules,
   odometerReadings,
+  vehicleDocuments,
   vehicles,
 } from '@ikrive/db/schema';
 import {
@@ -17,7 +18,7 @@ import {
   type UserSettings,
 } from '@ikrive/shared';
 import { streamDataExportZip } from '@ikrive/shared/data-export-zip';
-import { and, asc, eq, getTableColumns, inArray, type SQL, sql } from 'drizzle-orm';
+import { and, asc, eq, getTableColumns, inArray, or, type SQL, sql } from 'drizzle-orm';
 import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
 import type { DataSource, ExportedFile } from '../types';
 import type { LocalDb } from './database';
@@ -97,10 +98,23 @@ export async function loadLocalExportRows(db: LocalDb): Promise<DataExportInputR
     .orderBy(asc(expenses.date), asc(expenses.createdAt), rowid(expenses))
     .all();
 
+  const documentRows = await db
+    .select(getTableColumns(vehicleDocuments))
+    .from(vehicleDocuments)
+    .innerJoin(vehicles, eq(vehicles.id, vehicleDocuments.vehicleId))
+    .where(owned)
+    .orderBy(asc(vehicleDocuments.createdAt), rowid(vehicleDocuments))
+    .all();
+
   const ownedRecordIds = db
     .select({ id: maintenanceRecords.id })
     .from(maintenanceRecords)
     .innerJoin(vehicles, eq(vehicles.id, maintenanceRecords.vehicleId))
+    .where(owned);
+  const ownedDocumentIds = db
+    .select({ id: vehicleDocuments.id })
+    .from(vehicleDocuments)
+    .innerJoin(vehicles, eq(vehicles.id, vehicleDocuments.vehicleId))
     .where(owned);
   const files = await db
     .select()
@@ -108,8 +122,10 @@ export async function loadLocalExportRows(db: LocalDb): Promise<DataExportInputR
     .where(
       and(
         eq(attachments.ownerId, LOCAL_USER_ID),
-        eq(attachments.entityType, 'maintenance'),
-        inArray(attachments.entityId, ownedRecordIds),
+        or(
+          and(eq(attachments.entityType, 'maintenance'), inArray(attachments.entityId, ownedRecordIds)),
+          and(eq(attachments.entityType, 'document'), inArray(attachments.entityId, ownedDocumentIds)),
+        ),
       ),
     )
     .orderBy(asc(attachments.createdAt), rowid(attachments))
@@ -122,6 +138,7 @@ export async function loadLocalExportRows(db: LocalDb): Promise<DataExportInputR
     maintenanceRecords: records,
     fuelLogs: fuel,
     expenses: expenseRows,
+    documents: documentRows,
     attachments: files,
     notificationChannels: [],
   };

@@ -26,7 +26,7 @@ async function readStored(files: LocalFileStore, { key, mimeType }: StoredFile):
 
 /**
  * `files` of the local `DataSource`: the files behind the local URLs of its DTOs (photo, attachment and
- * thumbnail), following the same vehicle -> record -> attachment chain as the API. Only the lookup of the
+ * thumbnail), following the same vehicle -> record or document -> attachment chain as the API. Only the lookup of the
  * row goes through `queue`; reading the file and making the thumbnail do not hold the database.
  */
 export function localFiles(
@@ -42,7 +42,7 @@ export function localFiles(
       if (!photo) throw notFound('This vehicle has no photo');
       return { key: photo, mimeType: 'image/webp', fileName: null, thumbnail: false };
     }
-    const row = await requireAttachment(db, target.vehicleId, target.recordId, target.attachmentId);
+    const row = await requireAttachment(db, target, target.attachmentId);
     if (target.kind === 'attachment') {
       return { key: row.storageKey, mimeType: row.mimeType, fileName: row.originalName, thumbnail: false };
     }

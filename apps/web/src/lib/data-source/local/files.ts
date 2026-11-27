@@ -1,4 +1,4 @@
-import { detectAttachmentType } from '@ikrive/shared';
+import { type AttachmentEntityType, detectAttachmentType } from '@ikrive/shared';
 import type { AnnexImage } from '@ikrive/shared/sale-report-pdf';
 import type { OpenExportSink } from './export-sink';
 import { problem } from './problems';
@@ -71,17 +71,32 @@ const LOCAL_SCHEME = 'local://';
 export const localPhotoUrl = (vehicle: { id: string; photo: string }): string =>
   `${LOCAL_SCHEME}vehicles/${vehicle.id}/photo?v=${vehicle.photo.slice(-13, -5)}`;
 
-/** URL of an attachment of a maintenance record (its thumbnail adds `/thumbnail`). */
-export const localAttachmentUrl = (vehicleId: string, recordId: string, attachmentId: string): string =>
-  `${LOCAL_SCHEME}vehicles/${vehicleId}/maintenance/${recordId}/attachments/${attachmentId}`;
+/** Path segment of each attachment parent in the URLs, the same as the API's. */
+const SEGMENTS: Record<AttachmentEntityType, string> = { maintenance: 'maintenance', document: 'documents' };
+
+/** URL of an attachment of a maintenance record or a document (its thumbnail adds `/thumbnail`). */
+export const localAttachmentUrl = (
+  vehicleId: string,
+  entityType: AttachmentEntityType,
+  entityId: string,
+  attachmentId: string,
+): string =>
+  `${LOCAL_SCHEME}vehicles/${vehicleId}/${SEGMENTS[entityType]}/${entityId}/attachments/${attachmentId}`;
 
 /** The file a local URL points to. */
 export type LocalUrl =
   | { kind: 'photo'; vehicleId: string }
-  | { kind: 'attachment' | 'thumbnail'; vehicleId: string; recordId: string; attachmentId: string };
+  | {
+      kind: 'attachment' | 'thumbnail';
+      vehicleId: string;
+      entityType: AttachmentEntityType;
+      entityId: string;
+      attachmentId: string;
+    };
 
 const PHOTO = /^vehicles\/([^/]+)\/photo$/;
-const ATTACHMENT = /^vehicles\/([^/]+)\/maintenance\/([^/]+)\/attachments\/([^/]+)(\/thumbnail)?$/;
+const ATTACHMENT =
+  /^vehicles\/([^/]+)\/(maintenance|documents)\/([^/]+)\/attachments\/([^/]+)(\/thumbnail)?$/;
 
 /** What a local URL points to, ignoring its query (`?v=`, `?inline=1`); `null` for any other URL. */
 export function parseLocalUrl(url: string): LocalUrl | null {
@@ -90,12 +105,13 @@ export function parseLocalUrl(url: string): LocalUrl | null {
   const photo = PHOTO.exec(path);
   if (photo?.[1]) return { kind: 'photo', vehicleId: photo[1] };
   const attachment = ATTACHMENT.exec(path);
-  if (attachment?.[1] && attachment[2] && attachment[3]) {
+  if (attachment?.[1] && attachment[2] && attachment[3] && attachment[4]) {
     return {
-      kind: attachment[4] ? 'thumbnail' : 'attachment',
+      kind: attachment[5] ? 'thumbnail' : 'attachment',
       vehicleId: attachment[1],
-      recordId: attachment[2],
-      attachmentId: attachment[3],
+      entityType: attachment[2] === 'documents' ? 'document' : 'maintenance',
+      entityId: attachment[3],
+      attachmentId: attachment[4],
     };
   }
   return null;
