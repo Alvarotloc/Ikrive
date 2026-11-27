@@ -1,8 +1,9 @@
-import type { NotificationChannelType } from '../enums';
+import type { AttachmentEntityType, NotificationChannelType } from '../enums';
 import {
   DATA_EXPORT_FORMAT_VERSION,
   type DataExport,
   type DataExportAttachment,
+  type DataExportDocument,
   type DataExportMaintenanceRecord,
   type DataExportVehicle,
   dataExportSchema,
@@ -31,6 +32,7 @@ export type DataExportVehicleRow = Omit<
   | 'maintenanceRecords'
   | 'fuelLogs'
   | 'expenses'
+  | 'documents'
   | 'archivedAt'
   | 'createdAt'
   | 'updatedAt'
@@ -53,8 +55,12 @@ export type DataExportFuelLogRow = Omit<FuelLog, 'createdAt' | 'updatedAt'> &
   ChildOfVehicle & { createdAt: Date; updatedAt: Date };
 export type DataExportExpenseRow = Omit<Expense, 'createdAt' | 'updatedAt'> &
   ChildOfVehicle & { createdAt: Date; updatedAt: Date };
+export type DataExportDocumentRow = Omit<DataExportDocument, 'attachments' | 'createdAt' | 'updatedAt'> &
+  ChildOfVehicle & { createdAt: Date; updatedAt: Date };
 export type DataExportAttachmentRow = Omit<DataExportAttachment, 'path' | 'createdAt'> & {
-  /** Id of the maintenance record it belongs to. */
+  /** Kind of entity it belongs to. */
+  entityType: AttachmentEntityType;
+  /** Id of the maintenance record or document it belongs to. */
   entityId: string;
   storageKey: string;
   createdAt: Date;
@@ -76,6 +82,8 @@ export interface DataExportInputRows {
   maintenanceRecords: DataExportRecordRow[];
   fuelLogs: DataExportFuelLogRow[];
   expenses: DataExportExpenseRow[];
+  documents: DataExportDocumentRow[];
+  /** Of the maintenance records and the documents. */
   attachments: DataExportAttachmentRow[];
   notificationChannels: DataExportChannelRow[];
 }
@@ -137,9 +145,10 @@ export function buildDataExport({ rows, settings, appVersion, exportedAt, presen
   const recordsOf = groupBy(rows.maintenanceRecords, (row) => row.vehicleId);
   const fuelLogsOf = groupBy(rows.fuelLogs, (row) => row.vehicleId);
   const expensesOf = groupBy(rows.expenses, (row) => row.vehicleId);
+  const documentsOf = groupBy(rows.documents, (row) => row.vehicleId);
   const attachmentsOf = groupBy(
     rows.attachments.filter((row) => present.attachmentIds.has(row.id)),
-    (row) => row.entityId,
+    (row) => `${row.entityType}:${row.entityId}`,
   );
 
   const attachmentOf = (row: DataExportAttachmentRow) => {
@@ -216,7 +225,7 @@ export function buildDataExport({ rows, settings, appVersion, exportedAt, presen
         scheduleId: record.scheduleId,
         createdAt: iso(record.createdAt),
         updatedAt: iso(record.updatedAt),
-        attachments: (attachmentsOf.get(record.id) ?? []).map(attachmentOf),
+        attachments: (attachmentsOf.get(`maintenance:${record.id}`) ?? []).map(attachmentOf),
       })),
       fuelLogs: (fuelLogsOf.get(row.id) ?? []).map((fuelLog) => ({
         id: fuelLog.id,
@@ -240,6 +249,17 @@ export function buildDataExport({ rows, settings, appVersion, exportedAt, presen
         cost: expense.cost,
         createdAt: iso(expense.createdAt),
         updatedAt: iso(expense.updatedAt),
+      })),
+      documents: (documentsOf.get(row.id) ?? []).map((document) => ({
+        id: document.id,
+        type: document.type,
+        title: document.title,
+        expiryDate: document.expiryDate,
+        warnDays: document.warnDays,
+        notes: document.notes,
+        createdAt: iso(document.createdAt),
+        updatedAt: iso(document.updatedAt),
+        attachments: (attachmentsOf.get(`document:${document.id}`) ?? []).map(attachmentOf),
       })),
     };
   };

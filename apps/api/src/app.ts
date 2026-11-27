@@ -31,6 +31,9 @@ import { createDataExportService } from './modules/data-export/service';
 import { createDataImportRepository } from './modules/data-import/repository';
 import { dataImportRoutes } from './modules/data-import/routes';
 import { createDataImportService } from './modules/data-import/service';
+import { createDocumentsRepository } from './modules/documents/repository';
+import { documentsRoutes } from './modules/documents/routes';
+import { createDocumentsService } from './modules/documents/service';
 import { createExpensesRepository } from './modules/expenses/repository';
 import { expensesRoutes } from './modules/expenses/routes';
 import { createExpensesService } from './modules/expenses/service';
@@ -118,6 +121,7 @@ export async function buildApp({ config, db, fetch = globalThis.fetch, logStream
   const schedulesRepo = createSchedulesRepository(db);
   const fuelLogsRepo = createFuelLogsRepository(db);
   const expensesRepo = createExpensesRepository(db);
+  const documentsRepo = createDocumentsRepository(db);
   const vehiclesService = createVehiclesService({
     repo: vehiclesRepo,
     storage,
@@ -141,6 +145,13 @@ export async function buildApp({ config, db, fetch = globalThis.fetch, logStream
     repo: expensesRepo,
     vehicles: vehiclesRepo,
     settings: settingsService,
+  });
+  const documentsService = createDocumentsService({
+    repo: documentsRepo,
+    vehicles: vehiclesRepo,
+    settings: settingsService,
+    attachments: attachmentsRepo,
+    storage,
   });
   const csvImportService = createCsvImportService({
     repo: createCsvImportRepository(db),
@@ -213,6 +224,7 @@ export async function buildApp({ config, db, fetch = globalThis.fetch, logStream
   const attachmentsService = createAttachmentsService({
     repo: attachmentsRepo,
     maintenance: maintenanceRepo,
+    documents: documentsRepo,
     vehicles: vehiclesRepo,
     storage,
   });
@@ -239,13 +251,15 @@ export async function buildApp({ config, db, fetch = globalThis.fetch, logStream
       await api.register(maintenanceRoutes, { service: maintenanceService });
       await api.register(fuelLogsRoutes, { service: fuelLogsService });
       await api.register(expensesRoutes, { service: expensesService });
+      await api.register(documentsRoutes, { service: documentsService });
       await api.register(csvImportRoutes, { service: csvImportService });
       await api.register(statsRoutes, { service: statsService });
       await api.register(reportsRoutes, { service: reportsService });
       await api.register(reportSharesRoutes, { service: reportSharesService });
       await api.register(publicReportRoutes, { service: reportSharesService });
       await api.register(schedulesRoutes, { service: schedulesService });
-      await api.register(attachmentsRoutes, { service: attachmentsService });
+      await api.register(attachmentsRoutes, { service: attachmentsService, entityType: 'maintenance' });
+      await api.register(attachmentsRoutes, { service: attachmentsService, entityType: 'document' });
       await api.register(notificationsRoutes, { service: notificationsService });
       await api.register(notificationChannelsRoutes, { service: notificationChannelsService });
       await api.register(adminRoutes, { db, dispatcher });

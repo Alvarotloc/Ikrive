@@ -84,6 +84,13 @@ async function vehicleWithRecord(title = 'Revisión') {
   return { vehicle, record };
 }
 
+/** A vehicle with a document. */
+async function vehicleWithDocument(title = 'Póliza') {
+  const vehicle = await local.vehicles.create({ make: 'Seat', model: 'Ibiza' });
+  const document = await local.documents.create(vehicle.id, { type: 'insurance', title });
+  return { vehicle, document };
+}
+
 describe('local DataSource files', () => {
   it('uploads an attachment with its detected type, hash and sanitized name', async () => {
     const { vehicle, record } = await vehicleWithRecord();
@@ -457,6 +464,126 @@ describe('local DataSource files', () => {
     expect(await db.select().from(attachments)).toEqual([]);
     expect(await problemOf(local.vehicles.get(other.vehicle.id))).toEqual(notFound('Vehicle not found'));
     expect(store.keys()).toEqual([keptRow?.storageKey]);
+  });
+
+  it('uploads, lists, serves and deletes document attachments', async () => {
+    const { vehicle, document } = await vehicleWithDocument();
+    images.requested.length = 0;
+
+    const pdf = attachmentSchema.parse(
+      await local.documentAttachments.upload(vehicle.id, document.id, file(PDF, 'Póliza.pdf')),
+    );
+    expect(pdf).toEqual({
+      id: expect.any(String),
+      originalName: 'Póliza.pdf',
+      mimeType: 'application/pdf',
+      size: PDF.length,
+      sha256: sha256(PDF),
+      url: `local://vehicles/${vehicle.id}/documents/${document.id}/attachments/${pdf.id}`,
+      thumbnailUrl: null,
+      createdAt: expect.any(String),
+    });
+    const jpeg = attachmentSchema.parse(
+      await local.documentAttachments.upload(vehicle.id, document.id, file(JPEG, 'foto.jpg')),
+    );
+    expect(jpeg.thumbnailUrl).toBe(`${jpeg.url}/thumbnail`);
+
+    const rows = await db.select().from(attachments);
+    expect(rows.every((row) => row.entityType === 'document' && row.entityId === document.id)).toBe(true);
+    expect(rows.map((row) => row.storageKey).sort()).toEqual(store.keys());
+    expect(await local.documentAttachments.list(vehicle.id, document.id)).toEqual([pdf, jpeg]);
+
+    const original = await local.files.get(`${pdf.url}?inline=1`);
+    expect(original.fileName).toBe('Póliza.pdf');
+    expect(original.blob.type).toBe('application/pdf');
+    expect(await bytesOf(original.blob)).toEqual(PDF);
+    const thumbnail = await local.files.get(jpeg.thumbnailUrl ?? '');
+    expect(thumbnail.blob.type).toBe('image/webp');
+    expect(images.requested).toEqual([320]);
+    expect(await problemOf(local.files.get(`${pdf.url}/thumbnail`))).toEqual(
+      notFound('Only images have a thumbnail'),
+    );
+
+    await local.documentAttachments.remove(vehicle.id, document.id, jpeg.id);
+    expect(await local.documentAttachments.list(vehicle.id, document.id)).toEqual([pdf]);
+    expect(store.keys()).toHaveLength(1);
+    expect(await problemOf(local.files.get(jpeg.url))).toEqual(notFound('Attachment not found'));
+
+    // Deleting the document deletes its attachments and their files.
+    await local.documents.remove(vehicle.id, document.id);
+    expect(await db.select().from(attachments)).toEqual([]);
+    expect(store.keys()).toEqual([]);
+  });
+
+  it('rejects unsupported or oversized document attachments and writes nothing', async () => {
+    const { vehicle, document } = await vehicleWithDocument();
+    statements = [];
+
+    for (const data of [TEXT, GIF, CORRUPT_JPEG]) {
+      expect(
+        await problemOf(local.documentAttachments.upload(vehicle.id, document.id, file(data, 'x.jpg'))),
+      ).toEqual({
+        type: 'about:blank',
+        title: 'Unsupported Media Type',
+        status: 415,
+        detail: 'Only PDF, JPEG, PNG and WebP files are allowed',
+      });
+    }
+    expect(
+      await problemOf(local.documentAttachments.upload(vehicle.id, document.id, tooBig('big.pdf'))),
+    ).toEqual({ type: 'about:blank', title: 'request file too large', status: 413 });
+
+    expect(writes()).toEqual([]);
+    expect(store.keys()).toEqual([]);
+  });
+
+  it('hides attachments of other documents', async () => {
+    const { vehicle, document } = await vehicleWithDocument();
+    const sibling = await local.documents.create(vehicle.id, { type: 'inspection', title: 'ITV' });
+    const other = await vehicleWithDocument('Ajena');
+    const { record } = await vehicleWithRecord();
+    const attachment = await local.documentAttachments.upload(vehicle.id, document.id, file(PDF, 'a.pdf'));
+    const keys = store.keys();
+    statements = [];
+
+    expect(await problemOf(local.documentAttachments.list('nope', document.id))).toEqual(
+      notFound('Vehicle not found'),
+    );
+    expect(await problemOf(local.documentAttachments.list(vehicle.id, 'nope'))).toEqual(
+      notFound('Document not found'),
+    );
+    // A document of another vehicle, or a maintenance record, is not a document of this vehicle.
+    expect(await problemOf(local.documentAttachments.list(vehicle.id, other.document.id))).toEqual(
+      notFound('Document not found'),
+    );
+    expect(
+      await problemOf(local.documentAttachments.upload(vehicle.id, record.id, file(PDF, 'a.pdf'))),
+    ).toEqual(notFound('Document not found'));
+    expect(await local.documentAttachments.list(vehicle.id, sibling.id)).toEqual([]);
+    expect(await problemOf(local.documentAttachments.remove(vehicle.id, sibling.id, attachment.id))).toEqual(
+      notFound('Attachment not found'),
+    );
+    // Under the maintenance group or a maintenance URL, a document is not a record.
+    expect(await problemOf(local.attachments.list(vehicle.id, document.id))).toEqual(
+      notFound('Maintenance record not found'),
+    );
+    expect(
+      await problemOf(
+        local.files.get(
+          `local://vehicles/${vehicle.id}/maintenance/${document.id}/attachments/${attachment.id}`,
+        ),
+      ),
+    ).toEqual(notFound('Maintenance record not found'));
+    expect(
+      await problemOf(
+        local.files.get(
+          `local://vehicles/${vehicle.id}/documents/${sibling.id}/attachments/${attachment.id}`,
+        ),
+      ),
+    ).toEqual(notFound('Attachment not found'));
+
+    expect(writes()).toEqual([]);
+    expect(store.keys()).toEqual(keys);
   });
 
   it('removes the stored file when the database write fails', async () => {

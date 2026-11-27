@@ -61,6 +61,7 @@ describe('openLocalDatabase', () => {
     expect(created('maintenance_schedules')).toBe(false);
     expect(created('notifications')).toBe(true);
     expect(created('expenses')).toBe(true);
+    expect(created('vehicle_documents')).toBe(true);
 
     // A third open has nothing left to apply and keeps one row per migration.
     const again = await openLocalDatabase(callback);

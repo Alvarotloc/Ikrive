@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
+  type AttachmentEntityType,
   DATA_EXPORT_FORMAT_VERSION,
   type DataExport,
   type DataExportAttachment,
@@ -101,7 +102,7 @@ function parseDocument(data: Buffer): DataExport {
 
 /**
  * Rows with new ids for everything in the document. References (`scheduleId`, `odometerReadingId`,
- * the attachments' `entityId`) are translated through the old → new id maps; the rest of the
+ * the attachments' `entityId`, of a record or a document) are translated through the old → new id maps; the rest of the
  * fields and the timestamps are kept as they are.
  */
 function buildPlan(document: DataExport, stored: StoredFiles) {
@@ -112,11 +113,34 @@ function buildPlan(document: DataExport, stored: StoredFiles) {
     maintenanceRecords: [],
     fuelLogs: [],
     expenses: [],
+    documents: [],
     attachments: [],
     notificationChannels: [],
   };
   let photos = 0;
   let skippedChannels = 0;
+
+  const addAttachments = (
+    entityType: AttachmentEntityType,
+    entityId: string,
+    attachments: readonly DataExportAttachment[],
+  ) => {
+    for (const attachment of attachments) {
+      const file = stored.get(attachment.path);
+      if (!file) throw new Error(`File of ${attachment.path} not stored`);
+      plan.attachments.push({
+        id: randomUUID(),
+        entityType,
+        entityId,
+        originalName: sanitizeFileName(attachment.originalName, file.extension),
+        mimeType: attachment.mimeType,
+        size: attachment.size,
+        sha256: attachment.sha256,
+        storageKey: file.key,
+        createdAt: date(attachment.createdAt),
+      });
+    }
+  };
 
   for (const vehicle of document.vehicles) {
     const vehicleId = randomUUID();
@@ -198,21 +222,7 @@ function buildPlan(document: DataExport, stored: StoredFiles) {
         createdAt: date(record.createdAt),
         updatedAt: date(record.updatedAt),
       });
-      for (const attachment of record.attachments) {
-        const file = stored.get(attachment.path);
-        if (!file) throw new Error(`File of ${attachment.path} not stored`);
-        plan.attachments.push({
-          id: randomUUID(),
-          entityType: 'maintenance',
-          entityId: id,
-          originalName: sanitizeFileName(attachment.originalName, file.extension),
-          mimeType: attachment.mimeType,
-          size: attachment.size,
-          sha256: attachment.sha256,
-          storageKey: file.key,
-          createdAt: date(attachment.createdAt),
-        });
-      }
+      addAttachments('maintenance', id, record.attachments);
     }
 
     for (const fuelLog of vehicle.fuelLogs) {
@@ -244,6 +254,22 @@ function buildPlan(document: DataExport, stored: StoredFiles) {
         createdAt: date(expense.createdAt),
         updatedAt: date(expense.updatedAt),
       });
+    }
+
+    for (const document of vehicle.documents) {
+      const id = randomUUID();
+      plan.documents.push({
+        id,
+        vehicleId,
+        type: document.type,
+        title: document.title,
+        expiryDate: document.expiryDate,
+        warnDays: document.warnDays,
+        notes: document.notes,
+        createdAt: date(document.createdAt),
+        updatedAt: date(document.updatedAt),
+      });
+      addAttachments('document', id, document.attachments);
     }
   }
 
@@ -288,8 +314,8 @@ function referencedFiles(document: DataExport, zip: ZipReader): ReferencedFile[]
     if (vehicle.photoPath !== null) {
       files.push({ path: vehicle.photoPath, entry: find(vehicle.photoPath), kind: 'photo' });
     }
-    for (const record of vehicle.maintenanceRecords) {
-      for (const attachment of record.attachments) {
+    for (const { attachments } of [...vehicle.maintenanceRecords, ...vehicle.documents]) {
+      for (const attachment of attachments) {
         files.push({ path: attachment.path, entry: find(attachment.path), kind: 'attachment', attachment });
       }
     }

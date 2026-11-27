@@ -1,5 +1,11 @@
 import { LOCAL_USER_ID } from '@ikrive/db';
-import { attachments, maintenanceRecords, odometerReadings, vehicles } from '@ikrive/db/schema';
+import {
+  attachments,
+  maintenanceRecords,
+  odometerReadings,
+  vehicleDocuments,
+  vehicles,
+} from '@ikrive/db/schema';
 import {
   archivedAtAfterUpdate,
   canDeleteOdometerReading,
@@ -16,7 +22,7 @@ import {
   validateOdometerWrite,
   vehicleStatus,
 } from '@ikrive/shared';
-import { and, desc, eq, inArray, isNotNull, isNull, type SQL } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, isNull, or, type SQL } from 'drizzle-orm';
 import type { DataSource } from '../types';
 import type { LocalDb } from './database';
 import { assertUploadSize, assertWebp, fileBytes, type LocalDeps, localPhotoUrl, removeFiles } from './files';
@@ -128,8 +134,9 @@ export function localVehicles(db: LocalDb, { files, images }: LocalDeps): DataSo
     },
 
     /**
-     * Its readings, fuel logs, maintenance records and schedules go with it (`on delete cascade`); the
-     * attachments of its records are deleted in the same transaction. Their files and the photo, afterwards.
+     * Its readings, fuel logs, maintenance records, schedules, expenses and documents go with it (`on delete
+     * cascade`); the attachments of its records and documents are deleted in the same transaction. Their
+     * files and the photo, afterwards.
      */
     async remove(id) {
       const vehicle = await requireVehicle(db, id);
@@ -138,9 +145,18 @@ export function localVehicles(db: LocalDb, { files, images }: LocalDeps): DataSo
           .select({ id: maintenanceRecords.id })
           .from(maintenanceRecords)
           .where(eq(maintenanceRecords.vehicleId, id));
+        const documents = tx
+          .select({ id: vehicleDocuments.id })
+          .from(vehicleDocuments)
+          .where(eq(vehicleDocuments.vehicleId, id));
         const removed = await tx
           .delete(attachments)
-          .where(and(eq(attachments.entityType, 'maintenance'), inArray(attachments.entityId, records)))
+          .where(
+            or(
+              and(eq(attachments.entityType, 'maintenance'), inArray(attachments.entityId, records)),
+              and(eq(attachments.entityType, 'document'), inArray(attachments.entityId, documents)),
+            ),
+          )
           .returning({ storageKey: attachments.storageKey })
           .all();
         await tx.delete(vehicles).where(eq(vehicles.id, id));

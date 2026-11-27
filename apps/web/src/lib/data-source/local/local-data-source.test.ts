@@ -1,11 +1,14 @@
 import {
+  attachments,
   expenses,
   fuelLogs,
   maintenanceRecords,
   maintenanceSchedules,
   odometerReadings,
+  vehicleDocuments,
 } from '@ikrive/db/schema';
 import {
+  addDays,
   clientConfigSchema,
   computeVehicleStats,
   DEFAULT_USER_SETTINGS,
@@ -19,6 +22,7 @@ import {
   type Problem,
   todayIn,
   userSettingsSchema,
+  vehicleDocumentSchema,
   vehicleSchema,
   vehicleStatsSchema,
 } from '@ikrive/shared';
@@ -157,6 +161,10 @@ describe('local DataSource', () => {
       scheduleId: schedule.id,
     });
     await local.expenses.create(vehicle.id, { date: '2024-04-01', category: 'insurance', cost: 300 });
+    const document = await local.documents.create(vehicle.id, { type: 'insurance', title: 'Póliza' });
+    const pdf = new File([new TextEncoder().encode('%PDF-1.7\npoliza')], 'poliza.pdf');
+    await local.documentAttachments.upload(vehicle.id, document.id, pdf);
+    expect(store.keys()).toHaveLength(1);
 
     await local.vehicles.remove(vehicle.id);
 
@@ -166,6 +174,9 @@ describe('local DataSource', () => {
     expect(await db.select().from(maintenanceRecords)).toEqual([]);
     expect(await db.select().from(maintenanceSchedules)).toEqual([]);
     expect(await db.select().from(expenses)).toEqual([]);
+    expect(await db.select().from(vehicleDocuments)).toEqual([]);
+    expect(await db.select().from(attachments)).toEqual([]);
+    expect(store.keys()).toEqual([]);
   });
 
   it('rejects unknown ids with 404', async () => {
@@ -539,6 +550,132 @@ describe('local DataSource', () => {
 
     expect(writes()).toEqual([]);
     expect(await local.expenses.list(vehicle.id)).toEqual([expense]);
+  });
+
+  it('creates, lists, edits and deletes documents like the API', async () => {
+    const vehicle = await createVehicle();
+    const today = todayIn(DEFAULT_USER_SETTINGS.timezone);
+
+    const created = vehicleDocumentSchema.parse(
+      await local.documents.create(vehicle.id, {
+        type: 'insurance',
+        title: '  Póliza ',
+        expiryDate: addDays(today, 10),
+        notes: '   ',
+      }),
+    );
+    expect(created).toEqual({
+      id: expect.any(String),
+      vehicleId: vehicle.id,
+      type: 'insurance',
+      title: 'Póliza',
+      expiryDate: addDays(today, 10),
+      warnDays: 30,
+      notes: null,
+      status: 'expiring',
+      createdAt: expect.any(String),
+      updatedAt: expect.any(String),
+    });
+
+    const undated = await local.documents.create(vehicle.id, { type: 'registration', title: 'Permiso' });
+    expect(undated).toMatchObject({ expiryDate: null, warnDays: 30, status: 'valid' });
+    // Same expiry date: the oldest first.
+    const older = await local.documents.create(vehicle.id, {
+      type: 'inspection',
+      title: 'ITV',
+      expiryDate: addDays(today, 10),
+    });
+    await db
+      .update(vehicleDocuments)
+      .set({ createdAt: new Date('2020-01-01T00:00:00Z') })
+      .where(eq(vehicleDocuments.id, older.id));
+    const expired = await local.documents.create(vehicle.id, {
+      type: 'other',
+      title: 'Tarjeta',
+      expiryDate: addDays(today, -1),
+      warnDays: 0,
+    });
+    expect(expired.status).toBe('expired');
+
+    const list = await local.documents.list(vehicle.id);
+    expect(list.map((document) => vehicleDocumentSchema.parse(document).id)).toEqual([
+      expired.id,
+      older.id,
+      created.id,
+      undated.id,
+    ]);
+
+    const renewed = await local.documents.update(vehicle.id, created.id, {
+      expiryDate: addDays(today, 365),
+      title: 'Póliza nueva',
+    });
+    expect(renewed).toEqual({
+      ...created,
+      title: 'Póliza nueva',
+      expiryDate: addDays(today, 365),
+      status: 'valid',
+      updatedAt: expect.any(String),
+    });
+
+    await local.documents.remove(vehicle.id, created.id);
+    expect((await local.documents.list(vehicle.id)).map((document) => document.id)).toEqual([
+      expired.id,
+      older.id,
+      undated.id,
+    ]);
+  });
+
+  it('rejects invalid and unknown documents without writing', async () => {
+    const vehicle = await createVehicle();
+    const document = await local.documents.create(vehicle.id, { type: 'insurance', title: 'Póliza' });
+    statements = [];
+
+    for (const input of [
+      { type: 'insurance', title: '  ' },
+      { type: 'insurance', title: 'x'.repeat(121) },
+      { type: 'insurance', title: 'x', expiryDate: '01/03/2099' },
+      { type: 'insurance', title: 'x', warnDays: 366 },
+      { type: 'insurance', title: 'x', notes: 'x'.repeat(2001) },
+    ] as const) {
+      expect(await problemOf(local.documents.create(vehicle.id, input)), JSON.stringify(input)).toMatchObject(
+        {
+          status: 400,
+          title: 'Validation failed',
+        },
+      );
+    }
+    expect(await problemOf(local.documents.update(vehicle.id, document.id, { warnDays: -1 }))).toMatchObject({
+      status: 400,
+      title: 'Validation failed',
+      errors: [{ path: 'warnDays' }],
+    });
+
+    const vehicleNotFound = {
+      type: 'about:blank',
+      title: 'Not Found',
+      status: 404,
+      detail: 'Vehicle not found',
+    };
+    expect(await problemOf(local.documents.list('nope'))).toEqual(vehicleNotFound);
+    expect(await problemOf(local.documents.create('nope', { type: 'other', title: 'x' }))).toEqual(
+      vehicleNotFound,
+    );
+    expect(await problemOf(local.documents.update('nope', document.id, { title: 'x' }))).toEqual(
+      vehicleNotFound,
+    );
+    expect(await problemOf(local.documents.remove('nope', document.id))).toEqual(vehicleNotFound);
+
+    const other = await createVehicle({ make: 'Renault', model: 'Clio' });
+    statements = [];
+    const documentNotFound = { ...vehicleNotFound, detail: 'Document not found' };
+    expect(await problemOf(local.documents.update(other.id, document.id, { title: 'x' }))).toEqual(
+      documentNotFound,
+    );
+    expect(await problemOf(local.documents.remove(other.id, document.id))).toEqual(documentNotFound);
+    expect(await problemOf(local.documents.remove(vehicle.id, 'nope'))).toEqual(documentNotFound);
+
+    expect(writes()).toEqual([]);
+    expect(await local.documents.list(vehicle.id)).toEqual([document]);
   });
 
   it('computes the same stats as computeVehicleStats', async () => {

@@ -12,6 +12,7 @@ import type {
   CreateNotificationChannelInput,
   CreateOdometerReading,
   CreateReportShare,
+  CreateVehicleDocumentInput,
   CreateVehicleInput,
   CsvImportRequestInput,
   CsvImportSummary,
@@ -36,9 +37,11 @@ import type {
   UpdateMaintenanceScheduleInput,
   UpdateNotificationChannelInput,
   UpdateUserSettings,
+  UpdateVehicleDocumentInput,
   UpdateVehicleInput,
   UserSettings,
   Vehicle,
+  VehicleDocument,
   VehicleListQuery,
   VehicleStats,
 } from '@ikrive/shared';
@@ -103,6 +106,16 @@ export interface DataSource {
     update(vehicleId: string, expenseId: string, changes: UpdateExpenseInput): Promise<Expense>;
     remove(vehicleId: string, expenseId: string): Promise<void>;
   };
+  documents: {
+    list(vehicleId: string): Promise<VehicleDocument[]>;
+    create(vehicleId: string, document: CreateVehicleDocumentInput): Promise<VehicleDocument>;
+    update(
+      vehicleId: string,
+      documentId: string,
+      changes: UpdateVehicleDocumentInput,
+    ): Promise<VehicleDocument>;
+    remove(vehicleId: string, documentId: string): Promise<void>;
+  };
   maintenance: {
     list(vehicleId: string): Promise<MaintenanceRecord[]>;
     spending(vehicleId: string): Promise<MaintenanceSpending>;
@@ -118,6 +131,11 @@ export interface DataSource {
     list(vehicleId: string, recordId: string): Promise<Attachment[]>;
     upload(vehicleId: string, recordId: string, file: File): Promise<Attachment>;
     remove(vehicleId: string, recordId: string, attachmentId: string): Promise<void>;
+  };
+  documentAttachments: {
+    list(vehicleId: string, documentId: string): Promise<Attachment[]>;
+    upload(vehicleId: string, documentId: string, file: File): Promise<Attachment>;
+    remove(vehicleId: string, documentId: string, attachmentId: string): Promise<void>;
   };
   schedules: {
     list(vehicleId: string): Promise<MaintenanceSchedule[]>;

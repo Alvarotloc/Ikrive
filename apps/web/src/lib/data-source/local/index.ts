@@ -1,9 +1,10 @@
 import type { ClientConfig, Me } from '@ikrive/shared';
 import type { DataSource } from '../types';
-import { localAttachments } from './attachments';
+import { localAttachments, localDocumentAttachments } from './attachments';
 import { localCsvImport } from './csv-import';
 import { localDataPortability } from './data-export';
 import { LOCAL_USER, type LocalDb } from './database';
+import { localDocuments } from './documents';
 import { localExpenses } from './expenses';
 import { LOCAL_MAX_UPLOAD_MB, type LocalDeps } from './files';
 import { localFiles } from './files-get';
@@ -61,8 +62,10 @@ export function createLocalDataSource(db: LocalDb, deps: LocalDeps): DataSource 
     odometer: serialized(queue, localOdometer(db)),
     fuelLogs: serialized(queue, localFuelLogs(db)),
     expenses: serialized(queue, localExpenses(db)),
+    documents: serialized(queue, localDocuments(db, deps)),
     maintenance: serialized(queue, localMaintenance(db, deps)),
     attachments: serialized(queue, localAttachments(db, deps)),
+    documentAttachments: serialized(queue, localDocumentAttachments(db, deps)),
     schedules: serialized(queue, localSchedules(db)),
     stats: serialized(queue, localStats(db)),
     saleReport: localSaleReport(db, deps, queue),

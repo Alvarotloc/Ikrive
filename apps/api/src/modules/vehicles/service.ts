@@ -84,7 +84,7 @@ export function createVehiclesService({ repo, storage, settings, attachments }: 
       return toDto(repo.update(id, { ...changes, archivedAt }));
     },
 
-    /** Deletes the vehicle with the attachments of its maintenance records: rows first, files afterwards. */
+    /** Deletes the vehicle with the attachments of its records and documents: rows first, files afterwards. */
     async remove(userId: string, id: string) {
       const vehicle = requireOwned(userId, id);
       const files = attachments.listByVehicle(id).map((row) => row.storageKey);

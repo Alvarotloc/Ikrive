@@ -255,6 +255,7 @@ Objetivo: que quien viene de otra app traiga su historial, que el coste total re
 - **Documentos con caducidad:** póliza, permiso de circulación, ITV y otros, con adjunto, fecha de vencimiento y aviso por los canales existentes. Features: `vehicle-documents-api` y `vehicle-documents-web`.
 - **Login OIDC/SSO:** opcional y configurado por entorno, para Authentik, Authelia, Pocket ID, Keycloak y similares. Solo con servidor. Features: `oidc-login-api` y `oidc-login-web`.
 - **Modo «En este teléfono»:** importación, gastos y documentos funcionan también en local, y las tablas nuevas entran en el zip de export/import.
+- **Import más estricto:** el zip aplica al importar los mismos límites que al crear cada entidad. Feature: `data-import-strict-schemas`.
 - **Mantenimiento de la suite:** `slow-and-flaky-tests` y `slow-data-dir-test` arreglan el test lento del zip de exportación y el test intermitente de la cámara, que ponen la CI en rojo, y el test lento de `DATA_DIR` en la API.
 - **Cierre:** `release-v0-4-0`.
 

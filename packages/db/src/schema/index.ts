@@ -2,6 +2,7 @@ export * from './attachments';
 export * from './auth';
 export * from './calendar';
 export * from './data-imports';
+export * from './documents';
 export * from './expenses';
 export * from './fuel';
 export * from './maintenance';

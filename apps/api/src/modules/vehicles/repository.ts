@@ -9,6 +9,7 @@ import {
   odometerReadings,
   user,
   userSettings,
+  vehicleDocuments,
   vehicles,
 } from '../../db/schema';
 
@@ -59,9 +60,9 @@ export function createVehiclesRepository(db: Db) {
       return db.update(vehicles).set(values).where(eq(vehicles.id, id)).returning().get();
     },
     /**
-     * Deletes a vehicle. Its readings and maintenance records go with it through the foreign keys;
-     * the attachment rows of those records have no foreign key, so they are deleted first here
-     * (their files are removed by the service afterwards).
+     * Deletes a vehicle. Its readings, maintenance records and documents go with it through the
+     * foreign keys; the attachment rows of those records and documents have no foreign key, so they
+     * are deleted first here (their files are removed by the service afterwards).
      */
     delete(id: string) {
       db.transaction((tx) => {
@@ -69,8 +70,17 @@ export function createVehiclesRepository(db: Db) {
           .select({ id: maintenanceRecords.id })
           .from(maintenanceRecords)
           .where(eq(maintenanceRecords.vehicleId, id));
+        const documents = tx
+          .select({ id: vehicleDocuments.id })
+          .from(vehicleDocuments)
+          .where(eq(vehicleDocuments.vehicleId, id));
         tx.delete(attachments)
-          .where(and(eq(attachments.entityType, 'maintenance'), inArray(attachments.entityId, records)))
+          .where(
+            or(
+              and(eq(attachments.entityType, 'maintenance'), inArray(attachments.entityId, records)),
+              and(eq(attachments.entityType, 'document'), inArray(attachments.entityId, documents)),
+            ),
+          )
           .run();
         tx.delete(vehicles).where(eq(vehicles.id, id)).run();
       });

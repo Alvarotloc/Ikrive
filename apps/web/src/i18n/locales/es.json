@@ -489,7 +489,9 @@
     "types": {
       "schedule_due_soon": "Mantenimiento próximo",
       "schedule_overdue": "Mantenimiento vencido",
-      "odometer_nudge": "Registra los km"
+      "odometer_nudge": "Registra los km",
+      "document_expiring": "Documento a punto de caducar",
+      "document_expired": "Documento caducado"
     }
   },
   "notificationChannels": {
@@ -670,6 +672,7 @@
       "maintenanceRecords": "Mantenimientos",
       "fuelLogs": "Repostajes",
       "expenses": "Gastos",
+      "documents": "Documentos",
       "attachments": "Adjuntos",
       "photos": "Fotos",
       "notificationChannels": "Canales de notificación"

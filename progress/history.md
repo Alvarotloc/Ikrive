@@ -888,3 +888,20 @@
 - **Revisión:** APPROVED a la primera (`progress/review_list-badge-column-alignment.md`). Avisos: `subgrid` requiere Chrome/WebView 117 (hueco 111–116; degrada a la disposición móvil o la anterior sin perder contenido); E2E solo en es; odómetro sigue sin alinear en móvil a propósito.
 - **Tests:** `pnpm harness --full` en verde; `pnpm test:e2e` 8/8.
 - **Gate 2:** «merge» del humano → PR.
+
+## 2026-11-27 — #89 vehicle-documents-api
+
+- **Rama:** `feat/vehicle-documents-api` (`sdd: true`). Spec en `specs/vehicle-documents-api/` (33 requirements, 28 tasks), con 3 exploraciones previas (`progress/explore_vehicle-documents-api_*.md`).
+- **Cambios:**
+  - **Datos y API:** tabla `vehicle_documents` (migración `0014`) y CRUD `/api/vehicles/:id/documents` con `status` vigente/próximo/caducado calculado en la zona horaria del usuario y listado por vencimiento.
+  - **Adjuntos:** el módulo de adjuntos pasa a padre genérico (`maintenance` | `document`, rutas registradas dos veces) y admite varios ficheros por documento; se borran con el documento y con el vehículo.
+  - **Avisos:** van en el mismo `runReminders`, con la clave `document:<id>:<status>:<expiryDate>`, que vuelve a avisar al renovar.
+  - **Modo local:** el mismo CRUD, los adjuntos y `generateLocalReminders`, con las mismas funciones puras.
+  - **Zip:** `documents` en el v1 con `.default([])`.
+- **Gate 1:** aprobado sin cambios al spec y sin partir la feature. El criterio de downgrade de #93 se amplía para incluir documentos.
+- **Gate 2:** el humano pide dos cambios a partir de los avisos del reviewer: reutilizar `vehicleName` y un test de la hora de aviso. Segunda vuelta APPROVED.
+- **Revisión:** APPROVED (`progress/review_vehicle-documents-api.md`). Avisos pendientes:
+  - el esquema de export no aplica los límites de creación; se abre #98 `data-import-strict-schemas`, que entra en v0.4.0 antes de #93;
+  - `evaluated` del job cuenta también los documentos.
+- **Tests:** shared 324, web 811, api 426, e2e 6. `pnpm harness --full` en verde.
+- **Gate 2:** «merge» del humano → PR.

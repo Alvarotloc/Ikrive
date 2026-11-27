@@ -1,7 +1,7 @@
 import type { AttachmentEntityType } from '@ikrive/shared';
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, or, sql } from 'drizzle-orm';
 import type { Db } from '../../db/client';
-import { attachments, maintenanceRecords } from '../../db/schema';
+import { attachments, maintenanceRecords, vehicleDocuments } from '../../db/schema';
 
 export type AttachmentRow = typeof attachments.$inferSelect;
 export type NewAttachmentRow = typeof attachments.$inferInsert;
@@ -36,15 +36,26 @@ export function createAttachmentsRepository(db: Db) {
     delete(id: string) {
       db.delete(attachments).where(eq(attachments.id, id)).run();
     },
-    /** Attachments of every maintenance record of a vehicle. */
+    /** Attachments of every maintenance record and document of a vehicle. */
     listByVehicle(vehicleId: string) {
+      const records = db
+        .select({ id: maintenanceRecords.id })
+        .from(maintenanceRecords)
+        .where(eq(maintenanceRecords.vehicleId, vehicleId));
+      const documents = db
+        .select({ id: vehicleDocuments.id })
+        .from(vehicleDocuments)
+        .where(eq(vehicleDocuments.vehicleId, vehicleId));
       return db
-        .select({ attachment: attachments })
+        .select()
         .from(attachments)
-        .innerJoin(maintenanceRecords, eq(attachments.entityId, maintenanceRecords.id))
-        .where(and(eq(attachments.entityType, 'maintenance'), eq(maintenanceRecords.vehicleId, vehicleId)))
-        .all()
-        .map(({ attachment }) => attachment);
+        .where(
+          or(
+            and(eq(attachments.entityType, 'maintenance'), inArray(attachments.entityId, records)),
+            and(eq(attachments.entityType, 'document'), inArray(attachments.entityId, documents)),
+          ),
+        )
+        .all();
     },
   };
 }

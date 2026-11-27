@@ -1,4 +1,4 @@
-import { and, asc, eq, getTableColumns, inArray, type SQL, sql } from 'drizzle-orm';
+import { and, asc, eq, getTableColumns, inArray, or, type SQL, sql } from 'drizzle-orm';
 import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
 import type { Db } from '../../db/client';
 import {
@@ -9,6 +9,7 @@ import {
   maintenanceSchedules,
   notificationChannels,
   odometerReadings,
+  vehicleDocuments,
   vehicles,
 } from '../../db/schema';
 
@@ -18,7 +19,7 @@ const rowid = (table: SQLiteTable): SQL => asc(sql`${table}.rowid`);
 /**
  * Reads everything a user exports, one query per table (no N+1). Every query is scoped to the user:
  * children through an inner join on `vehicles.owner_id`, attachments by `owner_id` and by belonging
- * to one of the user's maintenance records.
+ * to one of the user's maintenance records or documents.
  */
 export function createDataExportRepository(db: Db) {
   const ownedBy = (userId: string) => eq(vehicles.ownerId, userId);
@@ -72,10 +73,23 @@ export function createDataExportRepository(db: Db) {
         .orderBy(asc(expenses.date), asc(expenses.createdAt), rowid(expenses))
         .all();
 
+      const documentRows = db
+        .select(getTableColumns(vehicleDocuments))
+        .from(vehicleDocuments)
+        .innerJoin(vehicles, eq(vehicles.id, vehicleDocuments.vehicleId))
+        .where(ownedBy(userId))
+        .orderBy(asc(vehicleDocuments.createdAt), rowid(vehicleDocuments))
+        .all();
+
       const ownedRecordIds = db
         .select({ id: maintenanceRecords.id })
         .from(maintenanceRecords)
         .innerJoin(vehicles, eq(vehicles.id, maintenanceRecords.vehicleId))
+        .where(ownedBy(userId));
+      const ownedDocumentIds = db
+        .select({ id: vehicleDocuments.id })
+        .from(vehicleDocuments)
+        .innerJoin(vehicles, eq(vehicles.id, vehicleDocuments.vehicleId))
         .where(ownedBy(userId));
       const files = db
         .select()
@@ -83,8 +97,10 @@ export function createDataExportRepository(db: Db) {
         .where(
           and(
             eq(attachments.ownerId, userId),
-            eq(attachments.entityType, 'maintenance'),
-            inArray(attachments.entityId, ownedRecordIds),
+            or(
+              and(eq(attachments.entityType, 'maintenance'), inArray(attachments.entityId, ownedRecordIds)),
+              and(eq(attachments.entityType, 'document'), inArray(attachments.entityId, ownedDocumentIds)),
+            ),
           ),
         )
         .orderBy(asc(attachments.createdAt), rowid(attachments))
@@ -104,6 +120,7 @@ export function createDataExportRepository(db: Db) {
         maintenanceRecords: records,
         fuelLogs: fuel,
         expenses: expenseRows,
+        documents: documentRows,
         attachments: files,
         notificationChannels: channels,
       };

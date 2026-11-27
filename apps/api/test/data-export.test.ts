@@ -237,6 +237,13 @@ describe('data export', () => {
         description: 'Póliza',
         cost: 420.5,
       });
+      const vehicleDocument = await api.post(`/api/vehicles/${active.id}/documents`, {
+        type: 'insurance',
+        title: 'Póliza',
+        expiryDate: '2026-03-01',
+        warnDays: 15,
+        notes: 'Todo riesgo',
+      });
       await api.post('/api/notification-channels', {
         type: 'ntfy',
         config: { serverUrl: 'https://ntfy.example.com', topic: 'ikrive' },
@@ -321,6 +328,21 @@ describe('data export', () => {
         },
       ]);
       expect(second?.expenses).toEqual([]);
+      // Every field but the computed `status`, with its attachments.
+      expect(first?.documents).toEqual([
+        {
+          id: vehicleDocument.id,
+          type: 'insurance',
+          title: 'Póliza',
+          expiryDate: '2026-03-01',
+          warnDays: 15,
+          notes: 'Todo riesgo',
+          createdAt: vehicleDocument.createdAt,
+          updatedAt: vehicleDocument.updatedAt,
+          attachments: [],
+        },
+      ]);
+      expect(second?.documents).toEqual([]);
 
       // The references point to elements of the same vehicle.
       const readingIds = first?.odometerReadings.map((reading) => reading.id) ?? [];
@@ -394,6 +416,36 @@ describe('data export', () => {
       );
       expect(sha256(entries.get(`attachments/${pngAttachment.id}.png`) ?? Buffer.alloc(0))).toBe(
         sha256(picture),
+      );
+
+      // The attachments of a document go under it, with their file in the zip as well.
+      const vehicleDocument = await api.post(`/api/vehicles/${vehicle.id}/documents`, {
+        type: 'insurance',
+        title: 'Póliza',
+      });
+      const policy = pdf('poliza');
+      const documentAttachment = await api.upload(
+        `/api/vehicles/${vehicle.id}/documents/${vehicleDocument.id}/attachments`,
+        'POST',
+        policy,
+        'poliza.pdf',
+        'application/pdf',
+      );
+      const again = await download(app, cookie);
+      expect(again.document.vehicles[0]?.maintenanceRecords[0]?.attachments).toEqual(exported);
+      expect(again.document.vehicles[0]?.documents[0]?.attachments).toEqual([
+        {
+          id: documentAttachment.id,
+          originalName: 'poliza.pdf',
+          mimeType: 'application/pdf',
+          size: policy.length,
+          sha256: sha256(policy),
+          path: `attachments/${documentAttachment.id}.pdf`,
+          createdAt: documentAttachment.createdAt,
+        },
+      ]);
+      expect(sha256(again.entries.get(`attachments/${documentAttachment.id}.pdf`) ?? Buffer.alloc(0))).toBe(
+        sha256(policy),
       );
     });
 

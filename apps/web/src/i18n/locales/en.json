@@ -489,7 +489,9 @@
     "types": {
       "schedule_due_soon": "Maintenance due soon",
       "schedule_overdue": "Maintenance overdue",
-      "odometer_nudge": "Log your mileage"
+      "odometer_nudge": "Log your mileage",
+      "document_expiring": "Document expiring soon",
+      "document_expired": "Document expired"
     }
   },
   "notificationChannels": {
@@ -670,6 +672,7 @@
       "maintenanceRecords": "Maintenance records",
       "fuelLogs": "Refuels",
       "expenses": "Expenses",
+      "documents": "Documents",
       "attachments": "Attachments",
       "photos": "Photos",
       "notificationChannels": "Notification channels"

@@ -49,6 +49,14 @@ export type MaintenanceCategory = (typeof MAINTENANCE_CATEGORIES)[number];
 export const EXPENSE_CATEGORIES = ['insurance', 'tax', 'tolls', 'parking', 'fines', 'other'] as const;
 export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];
 
+/** Kinds of vehicle document with an expiry date (`vehicle_documents.type`). */
+export const DOCUMENT_TYPES = ['insurance', 'registration', 'inspection', 'other'] as const;
+export type VehicleDocumentType = (typeof DOCUMENT_TYPES)[number];
+
+/** Computed on read from a document's `expiryDate` and `warnDays`. */
+export const DOCUMENT_STATUSES = ['valid', 'expiring', 'expired'] as const;
+export type DocumentStatus = (typeof DOCUMENT_STATUSES)[number];
+
 /** Computed on read from a maintenance schedule's next due date and odometer. */
 export const SCHEDULE_STATUSES = ['ok', 'due_soon', 'overdue'] as const;
 export type ScheduleStatus = (typeof SCHEDULE_STATUSES)[number];
@@ -60,7 +68,13 @@ export const NOTIFICATION_CHANNEL_TYPES = ['ntfy', 'gotify', 'apprise', 'webhook
 export type NotificationChannelType = (typeof NOTIFICATION_CHANNEL_TYPES)[number];
 
 /** In-app notification kinds; the web translates them, the stored title and body are user data. */
-export const NOTIFICATION_TYPES = ['schedule_due_soon', 'schedule_overdue', 'odometer_nudge'] as const;
+export const NOTIFICATION_TYPES = [
+  'schedule_due_soon',
+  'schedule_overdue',
+  'odometer_nudge',
+  'document_expiring',
+  'document_expired',
+] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
 /** 0 = Sunday ... 6 = Saturday */
@@ -71,7 +85,7 @@ export const ATTACHMENT_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/pn
 export type AttachmentMimeType = (typeof ATTACHMENT_MIME_TYPES)[number];
 
 /** Entities that can own attachments (`attachments.entity_type`). */
-export const ATTACHMENT_ENTITY_TYPES = ['maintenance'] as const;
+export const ATTACHMENT_ENTITY_TYPES = ['maintenance', 'document'] as const;
 export type AttachmentEntityType = (typeof ATTACHMENT_ENTITY_TYPES)[number];
 
 /** Computed on read from a report share's `revokedAt`/`expiresAt`: revoked wins over expired. */

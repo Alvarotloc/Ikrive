@@ -1,6 +1,13 @@
 import { LOCAL_USER_ID } from '@ikrive/db';
-import { maintenanceSchedules, notifications, odometerReadings, vehicles } from '@ikrive/db/schema';
 import {
+  maintenanceSchedules,
+  notifications,
+  odometerReadings,
+  vehicleDocuments,
+  vehicles,
+} from '@ikrive/db/schema';
+import {
+  documentReminderNotification,
   isOdometerNudgeTime,
   isReminderTime,
   type Notification,
@@ -9,7 +16,7 @@ import {
   scheduleReminderNotification,
   todayIn,
 } from '@ikrive/shared';
-import { and, asc, count, desc, eq, isNull, max, type SQL, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, isNotNull, isNull, max, type SQL, sql } from 'drizzle-orm';
 import type { DataSource } from '../types';
 import type { LocalDb } from './database';
 import { notFound } from './problems';
@@ -86,6 +93,36 @@ async function scheduleReminders(db: LocalDb, today: string): Promise<Notificati
   return drafts;
 }
 
+/**
+ * Reminders of the expiring and expired documents of the active vehicles (the documents of the API's
+ * reminders job). Undated documents never remind. Columns picked one by one, as in `scheduleReminders`.
+ */
+async function documentReminders(db: LocalDb, today: string): Promise<NotificationDraft[]> {
+  const documents = await db
+    .select({
+      id: vehicleDocuments.id,
+      title: vehicleDocuments.title,
+      expiryDate: vehicleDocuments.expiryDate,
+      warnDays: vehicleDocuments.warnDays,
+      vehicleId: vehicleDocuments.vehicleId,
+      name: vehicles.name,
+      make: vehicles.make,
+      model: vehicles.model,
+    })
+    .from(vehicleDocuments)
+    .innerJoin(vehicles, eq(vehicles.id, vehicleDocuments.vehicleId))
+    .where(and(activeVehicle, isNotNull(vehicleDocuments.expiryDate)))
+    .orderBy(asc(vehicleDocuments.createdAt), asc(sql`${vehicleDocuments}.rowid`))
+    .all();
+
+  const drafts: NotificationDraft[] = [];
+  for (const { vehicleId, name, make, model, ...document } of documents) {
+    const draft = documentReminderNotification(document, { id: vehicleId, name, make, model }, today);
+    if (draft) drafts.push(draft);
+  }
+  return drafts;
+}
+
 /** The odometer nudge of the active vehicles (the API's odometer nudge job), or null when none is pending. */
 async function odometerNudge(
   db: LocalDb,
@@ -111,7 +148,7 @@ async function odometerNudge(
 }
 
 /**
- * Stores the schedule reminders and the odometer nudge due at `now`, with the same rules and settings as
+ * Stores the schedule and document reminders and the odometer nudge due at `now`, with the same rules and settings as
  * the API's hourly jobs (reminder hour, odometer weekday and time zone of the local user). A notification
  * whose `dedupeKey` is already stored, read or not, is skipped. Resolves to the number of new ones.
  */
@@ -120,7 +157,9 @@ export async function generateLocalReminders(db: LocalDb, now: Date): Promise<nu
   const today = todayIn(timezone, now);
 
   const drafts: NotificationDraft[] = [];
-  if (isReminderTime({ timezone, reminderHour }, now)) drafts.push(...(await scheduleReminders(db, today)));
+  if (isReminderTime({ timezone, reminderHour }, now)) {
+    drafts.push(...(await scheduleReminders(db, today)), ...(await documentReminders(db, today)));
+  }
   if (isOdometerNudgeTime({ timezone, reminderHour, weekday: odometerReminderWeekday }, now)) {
     const nudge = await odometerNudge(db, today, timezone);
     if (nudge) drafts.push(nudge);

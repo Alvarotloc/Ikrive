@@ -30,6 +30,7 @@ import {
   notifications,
   odometerReadings,
   userSettings,
+  vehicleDocuments,
   vehicles,
 } from '../src/db/schema';
 import { createFileStorage } from '../src/lib/storage';
@@ -326,6 +327,7 @@ function snapshot(db: Db, dataDir: string) {
     maintenanceRecords: rows(maintenanceRecords),
     fuelLogs: rows(fuelLogs),
     expenses: rows(expenses),
+    documents: rows(vehicleDocuments),
     attachments: rows(attachments),
     notificationChannels: rows(notificationChannels),
     notifications: rows(notifications),
@@ -385,8 +387,8 @@ function normalize(document: DataExport) {
 const referencedPaths = (document: DataExport) =>
   document.vehicles.flatMap((vehicle) => [
     ...(vehicle.photoPath ? [vehicle.photoPath] : []),
-    ...vehicle.maintenanceRecords.flatMap((record) =>
-      record.attachments.map((attachment) => attachment.path),
+    ...[...vehicle.maintenanceRecords, ...vehicle.documents].flatMap((parent) =>
+      parent.attachments.map((attachment) => attachment.path),
     ),
   ]);
 
@@ -480,6 +482,7 @@ describe('data import', () => {
         maintenanceRecords: 1,
         fuelLogs: 1,
         expenses: 1,
+        documents: 0,
         attachments: 2,
         photos: 1,
         notificationChannels: 1,
@@ -659,6 +662,76 @@ describe('data import', () => {
       ]);
     });
 
+    it('rejects duplicate document ids', async () => {
+      const { app, db, dataDir, a, b } = await setup();
+      const vehicleDocument = await a.api.post(`/api/vehicles/${a.active.id}/documents`, {
+        type: 'insurance',
+        title: 'Póliza',
+      });
+      const exported = await download(app, a.cookie);
+      const before = snapshot(db, dataDir);
+      const document = clone(exported.document);
+      const vehicle = document.vehicles[0];
+      const original = vehicle?.documents[0];
+      if (!vehicle || !original) throw new Error('seed without a document');
+      expect(original.id).toBe(vehicleDocument.id);
+      // The same id in another vehicle of the document.
+      (document.vehicles[1] as typeof vehicle).documents = [{ ...original, title: 'Copia' }];
+
+      const response = await upload(app, b.cookie, await rezip(exported.entries, { document }));
+
+      expectRejected(response, 400, before, snapshot(db, dataDir));
+      expect(response.json().errors).toEqual([
+        { path: 'vehicles.1.documents.0.id', message: 'Duplicate id in documents' },
+      ]);
+    });
+
+    it('rejects an invalid document attachment', async () => {
+      const { app, db, dataDir, a, b } = await setup();
+      const vehicleDocument = await a.api.post(`/api/vehicles/${a.active.id}/documents`, {
+        type: 'insurance',
+        title: 'Póliza',
+      });
+      await a.api.upload(
+        `/api/vehicles/${a.active.id}/documents/${vehicleDocument.id}/attachments`,
+        'POST',
+        pdf('poliza'),
+        'poliza.pdf',
+        'application/pdf',
+      );
+      const exported = await download(app, a.cookie);
+      const before = snapshot(db, dataDir);
+      const attachment = exported.document.vehicles[0]?.documents[0]?.attachments[0];
+      const recordAttachment = exported.document.vehicles[0]?.maintenanceRecords[0]?.attachments[0];
+      if (!attachment || !recordAttachment) throw new Error('seed without attachments');
+
+      const withAttachment = (changes: Partial<typeof attachment>) => {
+        const document = clone(exported.document);
+        const target = document.vehicles[0]?.documents[0];
+        if (target) target.attachments = [{ ...attachment, ...changes }];
+        return document;
+      };
+      for (const [document, error] of [
+        [
+          withAttachment({ path: '../poliza.pdf' }),
+          { path: 'vehicles.0.documents.0.attachments.0.path', message: 'Invalid attachment path' },
+        ],
+        // An id already used by a maintenance attachment (with its own path, so only the id clashes).
+        [
+          withAttachment({
+            id: recordAttachment.id,
+            path: recordAttachment.path,
+            mimeType: recordAttachment.mimeType,
+          }),
+          { path: 'vehicles.0.documents.0.attachments.0.id', message: 'Duplicate id in attachments' },
+        ],
+      ] as const) {
+        const response = await upload(app, b.cookie, await rezip(exported.entries, { document }));
+        expectRejected(response, 400, before, snapshot(db, dataDir));
+        expect(response.json().errors).toEqual([error]);
+      }
+    });
+
     it('rejects different currency or units', async () => {
       const { app, db, dataDir, b, exported } = await setup();
       await b.api.patch('/api/settings', { distanceUnit: 'mi' });
@@ -814,6 +887,100 @@ describe('data import', () => {
       expect(response.statusCode, response.body).toBe(201);
       expect(response.json()).toMatchObject({ vehicles: 3, fuelLogs: 1, maintenanceRecords: 1, expenses: 0 });
       expect(db.select({ n: count() }).from(expenses).get()?.n).toBe(before);
+    });
+
+    it('imports the documents of an export with their files', async () => {
+      const { app, db, dataDir, a, b } = await setup();
+      const vehicleDocument = await a.api.post(`/api/vehicles/${a.active.id}/documents`, {
+        type: 'insurance',
+        title: 'Póliza',
+        expiryDate: '2026-03-01',
+        warnDays: 15,
+        notes: 'Todo riesgo',
+      });
+      await a.api.post(`/api/vehicles/${a.sold.id}/documents`, { type: 'registration', title: 'Permiso' });
+      const policy = pdf('poliza');
+      const attachment = await a.api.upload(
+        `/api/vehicles/${a.active.id}/documents/${vehicleDocument.id}/attachments`,
+        'POST',
+        policy,
+        'poliza.pdf',
+        'application/pdf',
+      );
+      const exported = await download(app, a.cookie);
+
+      const response = await upload(app, b.cookie, exported.zip);
+
+      expect(response.statusCode, response.body).toBe(201);
+      expect(response.json()).toMatchObject({ documents: 2, attachments: 3 });
+      const bVehicles = db.select().from(vehicles).where(eq(vehicles.ownerId, b.userId)).all();
+      const imported = bVehicles.find((vehicle) => vehicle.plate === '1234ABC');
+      const rows = db
+        .select()
+        .from(vehicleDocuments)
+        .where(
+          inArray(
+            vehicleDocuments.vehicleId,
+            bVehicles.map((vehicle) => vehicle.id),
+          ),
+        )
+        .all();
+      const policyRow = rows.find((row) => row.title === 'Póliza');
+      expect(rows).toHaveLength(2);
+      expect(policyRow).toEqual({
+        id: expect.any(String),
+        vehicleId: imported?.id,
+        type: 'insurance',
+        title: 'Póliza',
+        expiryDate: '2026-03-01',
+        warnDays: 15,
+        notes: 'Todo riesgo',
+        createdAt: new Date(vehicleDocument.createdAt),
+        updatedAt: new Date(vehicleDocument.updatedAt),
+      });
+      expect(policyRow?.id).not.toBe(vehicleDocument.id);
+
+      const [file] = db
+        .select()
+        .from(attachments)
+        .where(and(eq(attachments.ownerId, b.userId), eq(attachments.entityType, 'document')))
+        .all();
+      expect(file).toMatchObject({
+        entityId: policyRow?.id,
+        originalName: 'poliza.pdf',
+        mimeType: 'application/pdf',
+        size: policy.length,
+        sha256: sha256(policy),
+      });
+      expect(file?.id).not.toBe(attachment.id);
+      expect(file?.storageKey).toMatch(/^attachments\/[0-9a-f-]{36}\.pdf$/);
+      expect(sha256(readFileSync(join(dataDir, 'uploads', file?.storageKey ?? '')))).toBe(sha256(policy));
+
+      // B can read it through the API like any other document attachment.
+      const served = await app.inject({
+        method: 'GET',
+        url: `/api/vehicles/${imported?.id}/documents/${policyRow?.id}/attachments/${file?.id}`,
+        headers: { cookie: b.cookie },
+      });
+      expect(served.statusCode).toBe(200);
+      expect(sha256(served.rawPayload)).toBe(sha256(policy));
+    });
+
+    it('imports a v1 zip without documents', async () => {
+      const { app, db, b, exported } = await setup();
+      // A document written before vehicle documents existed: no `documents` key in its vehicles.
+      const document = clone(exported.document);
+      const old = {
+        ...document,
+        vehicles: document.vehicles.map(({ documents: _documents, ...vehicle }) => vehicle),
+      };
+      expect(JSON.stringify(old)).not.toContain('"documents"');
+
+      const response = await upload(app, b.cookie, await rezip(exported.entries, { document: old }));
+
+      expect(response.statusCode, response.body).toBe(201);
+      expect(response.json()).toMatchObject({ vehicles: 3, expenses: 1, attachments: 2, documents: 0 });
+      expect(db.select({ n: count() }).from(vehicleDocuments).get()?.n).toBe(0);
     });
 
     it('adds to existing data', async () => {

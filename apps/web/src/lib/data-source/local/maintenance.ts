@@ -12,7 +12,7 @@ import {
 } from '@ikrive/shared';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import type { DataSource } from '../types';
-import { deleteMaintenanceAttachments } from './attachments';
+import { deleteAttachmentsOf } from './attachments';
 import type { LocalDb, LocalTx } from './database';
 import { type LocalDeps, removeFiles } from './files';
 import { badRequest, conflict, notFound, parseInput } from './problems';
@@ -211,7 +211,7 @@ export function localMaintenance(
     async remove(vehicleId, recordId) {
       const record = await requireRecord(db, vehicleId, recordId);
       const keys = await db.transaction(async (tx) => {
-        const removed = await deleteMaintenanceAttachments(tx, [record.id]);
+        const removed = await deleteAttachmentsOf(tx, 'maintenance', [record.id]);
         await tx.delete(maintenanceRecords).where(eq(maintenanceRecords.id, record.id));
         if (record.odometerReadingId) {
           await tx.delete(odometerReadings).where(eq(odometerReadings.id, record.odometerReadingId));

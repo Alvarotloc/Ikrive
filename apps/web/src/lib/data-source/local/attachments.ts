@@ -1,6 +1,11 @@
 import { LOCAL_USER_ID } from '@ikrive/db';
-import { attachments, maintenanceRecords } from '@ikrive/db/schema';
-import { type Attachment, detectAttachmentType, sanitizeFileName } from '@ikrive/shared';
+import { attachments, maintenanceRecords, vehicleDocuments } from '@ikrive/db/schema';
+import {
+  type Attachment,
+  type AttachmentEntityType,
+  detectAttachmentType,
+  sanitizeFileName,
+} from '@ikrive/shared';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import type { DataSource } from '../types';
 import type { LocalDb, LocalTx } from './database';
@@ -10,6 +15,13 @@ import { requireVehicle } from './vehicles';
 
 export type AttachmentRow = typeof attachments.$inferSelect;
 
+/** The entity that owns some attachments: a maintenance record or a document of a vehicle. */
+export interface AttachmentParent {
+  entityType: AttachmentEntityType;
+  vehicleId: string;
+  entityId: string;
+}
+
 const FOLDER = 'attachments';
 const UNSUPPORTED = 'Only PDF, JPEG, PNG and WebP files are allowed';
 
@@ -17,8 +29,8 @@ const unsupportedMediaType = () => problem(415, 'Unsupported Media Type', UNSUPP
 
 export const isImage = (row: Pick<AttachmentRow, 'mimeType'>) => row.mimeType.startsWith('image/');
 
-const toDto = (vehicleId: string, row: AttachmentRow): Attachment => {
-  const url = localAttachmentUrl(vehicleId, row.entityId, row.id);
+const toDto = (parent: AttachmentParent, row: AttachmentRow): Attachment => {
+  const url = localAttachmentUrl(parent.vehicleId, parent.entityType, row.entityId, row.id);
   return {
     id: row.id,
     originalName: row.originalName,
@@ -37,34 +49,41 @@ async function sha256(data: Uint8Array): Promise<string> {
   return Array.from(digest, (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
-/** Ownership chain: vehicle -> record. Anything missing is reported as the API does. */
-async function requireRecord(db: LocalDb, vehicleId: string, recordId: string) {
+/** Ownership chain: vehicle -> record or document. Anything missing is reported as the API does. */
+async function requireParent(db: LocalDb, { entityType, vehicleId, entityId }: AttachmentParent) {
   await requireVehicle(db, vehicleId);
-  const record = await db
-    .select()
-    .from(maintenanceRecords)
-    .where(and(eq(maintenanceRecords.id, recordId), eq(maintenanceRecords.vehicleId, vehicleId)))
+  if (entityType === 'maintenance') {
+    const record = await db
+      .select({ id: maintenanceRecords.id })
+      .from(maintenanceRecords)
+      .where(and(eq(maintenanceRecords.id, entityId), eq(maintenanceRecords.vehicleId, vehicleId)))
+      .get();
+    if (!record) throw notFound('Maintenance record not found');
+    return;
+  }
+  const document = await db
+    .select({ id: vehicleDocuments.id })
+    .from(vehicleDocuments)
+    .where(and(eq(vehicleDocuments.id, entityId), eq(vehicleDocuments.vehicleId, vehicleId)))
     .get();
-  if (!record) throw notFound('Maintenance record not found');
-  return record;
+  if (!document) throw notFound('Document not found');
 }
 
-/** Ownership chain: vehicle -> record -> attachment. */
+/** Ownership chain: vehicle -> record or document -> attachment. */
 export async function requireAttachment(
   db: LocalDb,
-  vehicleId: string,
-  recordId: string,
+  parent: AttachmentParent,
   attachmentId: string,
 ): Promise<AttachmentRow> {
-  await requireRecord(db, vehicleId, recordId);
+  await requireParent(db, parent);
   const row = await db
     .select()
     .from(attachments)
     .where(
       and(
         eq(attachments.id, attachmentId),
-        eq(attachments.entityType, 'maintenance'),
-        eq(attachments.entityId, recordId),
+        eq(attachments.entityType, parent.entityType),
+        eq(attachments.entityId, parent.entityId),
       ),
     )
     .get();
@@ -72,34 +91,52 @@ export async function requireAttachment(
   return row;
 }
 
-/** Deletes the attachment rows of the given maintenance records and returns their storage keys. */
-export async function deleteMaintenanceAttachments(tx: LocalTx, recordIds: readonly string[]) {
-  if (recordIds.length === 0) return [];
+/** Deletes the attachment rows of the given records or documents and returns their storage keys. */
+export async function deleteAttachmentsOf(
+  tx: LocalTx,
+  entityType: AttachmentEntityType,
+  entityIds: readonly string[],
+) {
+  if (entityIds.length === 0) return [];
   const rows = await tx
     .delete(attachments)
-    .where(and(eq(attachments.entityType, 'maintenance'), inArray(attachments.entityId, [...recordIds])))
+    .where(and(eq(attachments.entityType, entityType), inArray(attachments.entityId, [...entityIds])))
     .returning({ storageKey: attachments.storageKey })
     .all();
   return rows.map((row) => row.storageKey);
 }
 
-/** `attachments` of the local `DataSource`: the files go to the local store, their rows to `attachments`. */
-export function localAttachments(db: LocalDb, { files, images }: LocalDeps): DataSource['attachments'] {
+type AttachmentsGroup = DataSource['attachments'] & DataSource['documentAttachments'];
+
+/** The attachments of one kind of parent: the files go to the local store, their rows to `attachments`. */
+function attachmentsOf(
+  db: LocalDb,
+  { files, images }: LocalDeps,
+  entityType: AttachmentEntityType,
+): AttachmentsGroup {
+  const parentOf = (vehicleId: string, entityId: string): AttachmentParent => ({
+    entityType,
+    vehicleId,
+    entityId,
+  });
+
   return {
     /** In upload order (`rowid` breaks ties within the same millisecond). */
-    async list(vehicleId, recordId) {
-      await requireRecord(db, vehicleId, recordId);
+    async list(vehicleId, entityId) {
+      const parent = parentOf(vehicleId, entityId);
+      await requireParent(db, parent);
       const rows = await db
         .select()
         .from(attachments)
-        .where(and(eq(attachments.entityType, 'maintenance'), eq(attachments.entityId, recordId)))
+        .where(and(eq(attachments.entityType, entityType), eq(attachments.entityId, entityId)))
         .orderBy(asc(attachments.createdAt), asc(sql`${attachments}.rowid`))
         .all();
-      return rows.map((row) => toDto(vehicleId, row));
+      return rows.map((row) => toDto(parent, row));
     },
 
-    async upload(vehicleId, recordId, file) {
-      await requireRecord(db, vehicleId, recordId);
+    async upload(vehicleId, entityId, file) {
+      const parent = parentOf(vehicleId, entityId);
+      await requireParent(db, parent);
       assertUploadSize(file);
       const data = await fileBytes(file);
       const type = detectAttachmentType(data);
@@ -117,8 +154,8 @@ export function localAttachments(db: LocalDb, { files, images }: LocalDeps): Dat
           .insert(attachments)
           .values({
             ownerId: LOCAL_USER_ID,
-            entityType: 'maintenance',
-            entityId: recordId,
+            entityType,
+            entityId,
             originalName: sanitizeFileName(file.name, type.extension),
             mimeType: type.mimeType,
             size: data.length,
@@ -127,17 +164,27 @@ export function localAttachments(db: LocalDb, { files, images }: LocalDeps): Dat
           })
           .returning()
           .get();
-        return toDto(vehicleId, row);
+        return toDto(parent, row);
       } catch (error) {
         await removeFiles(files, [storageKey]);
         throw error;
       }
     },
 
-    async remove(vehicleId, recordId, attachmentId) {
-      const row = await requireAttachment(db, vehicleId, recordId, attachmentId);
+    async remove(vehicleId, entityId, attachmentId) {
+      const row = await requireAttachment(db, parentOf(vehicleId, entityId), attachmentId);
       await db.delete(attachments).where(eq(attachments.id, row.id));
       await removeFiles(files, [row.storageKey]);
     },
   };
+}
+
+/** `attachments` of the local `DataSource`: the attachments of maintenance records. */
+export function localAttachments(db: LocalDb, deps: LocalDeps): DataSource['attachments'] {
+  return attachmentsOf(db, deps, 'maintenance');
+}
+
+/** `documentAttachments` of the local `DataSource`: the attachments of documents. */
+export function localDocumentAttachments(db: LocalDb, deps: LocalDeps): DataSource['documentAttachments'] {
+  return attachmentsOf(db, deps, 'document');
 }

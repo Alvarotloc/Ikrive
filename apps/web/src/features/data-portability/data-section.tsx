@@ -31,6 +31,7 @@ const SUMMARY_KEYS = [
   'maintenanceRecords',
   'fuelLogs',
   'expenses',
+  'documents',
   'attachments',
   'photos',
   'notificationChannels',

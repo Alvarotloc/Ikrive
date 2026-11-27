@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { attachmentExportPath, photoExportPath } from '../domain/data-export';
 import {
   ATTACHMENT_MIME_TYPES,
+  DOCUMENT_TYPES,
   EXPENSE_CATEGORIES,
   FUEL_TYPES,
   MAINTENANCE_CATEGORIES,
@@ -105,6 +106,19 @@ const expenseExportSchema = z.object({
   updatedAt: timestampSchema,
 });
 
+/** A vehicle document; its `status` is computed on read, so it is not exported. */
+const documentExportSchema = z.object({
+  id: exportIdSchema,
+  type: z.enum(DOCUMENT_TYPES),
+  title: z.string(),
+  expiryDate: isoDateSchema.nullable(),
+  warnDays: nonNegativeIntSchema,
+  notes: z.string().nullable(),
+  createdAt: timestampSchema,
+  updatedAt: timestampSchema,
+  attachments: z.array(attachmentExportSchema),
+});
+
 const vehicleExportSchema = z.object({
   id: exportIdSchema,
   name: z.string().nullable(),
@@ -132,6 +146,8 @@ const vehicleExportSchema = z.object({
   fuelLogs: z.array(fuelLogExportSchema),
   /** Added after the first v1 exports: a document without the key is read as having no expenses. */
   expenses: z.array(expenseExportSchema).default([]),
+  /** Added after the first v1 exports: a document without the key is read as having no documents. */
+  documents: z.array(documentExportSchema).default([]),
 });
 
 const channelFields = {
@@ -159,6 +175,7 @@ const notificationChannelExportSchema = z.discriminatedUnion('type', [
 ]);
 
 type DataExportShape = z.infer<typeof dataExportObjectSchema>;
+type AttachmentExportShape = z.infer<typeof attachmentExportSchema>;
 
 const dataExportObjectSchema = z.object({
   formatVersion: z.literal(DATA_EXPORT_FORMAT_VERSION),
@@ -183,6 +200,7 @@ function checkIntegrity(document: DataExportShape, ctx: z.RefinementCtx) {
     maintenanceRecords: new Set<string>(),
     fuelLogs: new Set<string>(),
     expenses: new Set<string>(),
+    documents: new Set<string>(),
     attachments: new Set<string>(),
   };
   const linkedReadings = new Set<string>();
@@ -191,6 +209,16 @@ function checkIntegrity(document: DataExportShape, ctx: z.RefinementCtx) {
   const unique = (collection: keyof typeof seen, id: string, path: (string | number)[]) => {
     if (seen[collection].has(id)) issue(`Duplicate id in ${collection}`, [...path, 'id']);
     seen[collection].add(id);
+  };
+  /** Attachment ids are unique across records and documents, and their paths are the generated ones. */
+  const checkAttachments = (attachments: readonly AttachmentExportShape[], path: (string | number)[]) => {
+    attachments.forEach((attachment, a) => {
+      const attachmentPath = [...path, 'attachments', a];
+      unique('attachments', attachment.id, attachmentPath);
+      if (attachment.path !== attachmentExportPath(attachment.id, attachment.mimeType)) {
+        issue('Invalid attachment path', [...attachmentPath, 'path']);
+      }
+    });
   };
   const linkReading = (readings: Set<string>, readingId: string | null, path: (string | number)[]) => {
     if (readingId === null) return;
@@ -225,13 +253,7 @@ function checkIntegrity(document: DataExportShape, ctx: z.RefinementCtx) {
         issue('Unknown maintenance schedule', [...path, 'scheduleId']);
       }
       linkReading(readings, record.odometerReadingId, path);
-      record.attachments.forEach((attachment, a) => {
-        const attachmentPath = [...path, 'attachments', a];
-        unique('attachments', attachment.id, attachmentPath);
-        if (attachment.path !== attachmentExportPath(attachment.id, attachment.mimeType)) {
-          issue('Invalid attachment path', [...attachmentPath, 'path']);
-        }
-      });
+      checkAttachments(record.attachments, path);
     });
 
     vehicle.fuelLogs.forEach((fuelLog, i) => {
@@ -243,6 +265,12 @@ function checkIntegrity(document: DataExportShape, ctx: z.RefinementCtx) {
     vehicle.expenses.forEach((expense, i) => {
       unique('expenses', expense.id, [...base, 'expenses', i]);
     });
+
+    vehicle.documents.forEach((document, i) => {
+      const path = [...base, 'documents', i];
+      unique('documents', document.id, path);
+      checkAttachments(document.attachments, path);
+    });
   });
 }
 
@@ -252,4 +280,5 @@ export type DataExport = z.infer<typeof dataExportSchema>;
 export type DataExportVehicle = DataExport['vehicles'][number];
 export type DataExportMaintenanceRecord = DataExportVehicle['maintenanceRecords'][number];
 export type DataExportAttachment = DataExportMaintenanceRecord['attachments'][number];
+export type DataExportDocument = DataExportVehicle['documents'][number];
 export type DataExportNotificationChannel = DataExport['notificationChannels'][number];

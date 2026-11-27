@@ -4,7 +4,14 @@ import Fastify from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
 import { loadConfig } from '../src/config';
 import type { Db } from '../src/db/client';
-import { maintenanceSchedules, notifications, odometerReadings, user, userSettings } from '../src/db/schema';
+import {
+  maintenanceSchedules,
+  notifications,
+  odometerReadings,
+  user,
+  userSettings,
+  vehicleDocuments,
+} from '../src/db/schema';
 import {
   REMINDERS_CRON,
   reminderDedupeKey,
@@ -88,8 +95,62 @@ async function createUser(app: TestApp, email: string, settings: Record<string, 
     });
     expect(patched.statusCode).toBe(200);
   };
-  return { cookie, userId, createVehicle, createSchedule, patchSchedule };
+  const createDocument = async (vehicleId: string, payload: Record<string, unknown>) => {
+    const created = await app.inject({
+      method: 'POST',
+      url: `/api/vehicles/${vehicleId}/documents`,
+      headers: { cookie },
+      payload,
+    });
+    expect(created.statusCode).toBe(201);
+    return (created.json() as { id: string }).id;
+  };
+  const document = (vehicleId: string, documentId: string) => ({
+    method: 'PATCH' as const,
+    url: `/api/vehicles/${vehicleId}/documents/${documentId}`,
+    headers: { cookie },
+  });
+  const patchDocument = async (vehicleId: string, documentId: string, payload: Record<string, unknown>) => {
+    const patched = await app.inject({ ...document(vehicleId, documentId), payload });
+    expect(patched.statusCode).toBe(200);
+  };
+  const deleteDocument = async (vehicleId: string, documentId: string) => {
+    const deleted = await app.inject({ ...document(vehicleId, documentId), method: 'DELETE' });
+    expect(deleted.statusCode).toBe(204);
+  };
+  const addWebhook = async (url: string) => {
+    const channel = await app.inject({
+      method: 'POST',
+      url: '/api/notification-channels',
+      headers: { cookie },
+      payload: { type: 'webhook', config: { url } },
+    });
+    expect(channel.statusCode).toBe(201);
+  };
+  return {
+    cookie,
+    userId,
+    createVehicle,
+    createSchedule,
+    patchSchedule,
+    createDocument,
+    patchDocument,
+    deleteDocument,
+    addWebhook,
+  };
 }
+
+/** Expires 2026-11-10 with 30 warning days: expiring on NOW (2026-10-22). */
+const expiringDocument = {
+  type: 'insurance',
+  title: 'Seguro',
+  expiryDate: '2026-11-10',
+  warnDays: 30,
+} as const;
+/** Expired on NOW: its last valid day was 2026-10-21. */
+const expiredDocument = { type: 'inspection', title: 'ITV', expiryDate: '2026-10-21' } as const;
+/** Expires 2027-06-01: valid on NOW. */
+const validDocument = { type: 'insurance', title: 'Póliza', expiryDate: '2027-06-01' } as const;
 
 const rows = (db: Db) => db.select().from(notifications).orderBy(asc(notifications.title)).all();
 
@@ -501,6 +562,203 @@ describe('runReminders', () => {
         ).created,
       ).toBe(0);
       expect(rows(db)).toHaveLength(1);
+    });
+  });
+
+  describe('documents', () => {
+    it('notifies expiring and expired documents once', async () => {
+      const { app, db } = await createTestApp();
+      const ada = await createUser(app, 'ada@example.com');
+      const named = await ada.createVehicle({ name: 'Mi coche' });
+      const unnamed = await ada.createVehicle({ make: 'Honda', model: 'Civic' });
+      const expiringId = await ada.createDocument(named, expiringDocument);
+      const expiredId = await ada.createDocument(unnamed, expiredDocument);
+      await ada.createDocument(named, validDocument);
+      // Undated documents never remind and are not evaluated.
+      await ada.createDocument(named, { type: 'registration', title: 'Permiso' });
+
+      expect(await runReminders({ db, now: NOW, dispatcher: createTestDispatcher(db) })).toEqual({
+        evaluated: 3,
+        created: 2,
+        failed: 0,
+      });
+      expect(rows(db)).toEqual([
+        {
+          id: expect.any(String),
+          userId: ada.userId,
+          vehicleId: unnamed,
+          type: 'document_expired',
+          title: 'ITV',
+          body: 'Honda Civic',
+          link: `/vehicles/${unnamed}`,
+          dedupeKey: `document:${expiredId}:expired:2026-10-21`,
+          readAt: null,
+          createdAt: NOW,
+        },
+        {
+          id: expect.any(String),
+          userId: ada.userId,
+          vehicleId: named,
+          type: 'document_expiring',
+          title: 'Seguro',
+          body: 'Mi coche',
+          link: `/vehicles/${named}`,
+          dedupeKey: `document:${expiringId}:expiring:2026-11-10`,
+          readAt: null,
+          createdAt: NOW,
+        },
+      ]);
+
+      // Later runs of the same and the next day do not notify again.
+      const later = at('2026-10-23T10:00:00.000Z');
+      expect((await runReminders({ db, now: later, dispatcher: createTestDispatcher(db) })).created).toBe(0);
+      expect(rows(db)).toHaveLength(2);
+
+      // Once the expiring one is past its date, it is notified as expired.
+      const expiredLater = at('2026-11-11T10:00:00.000Z');
+      expect(
+        (await runReminders({ db, now: expiredLater, dispatcher: createTestDispatcher(db) })).created,
+      ).toBe(1);
+      expect(rows(db).map((row) => row.dedupeKey)).toContain(`document:${expiringId}:expired:2026-11-10`);
+    });
+
+    it("waits for the owner's reminder hour in their time zone", async () => {
+      const { app, db } = await createTestApp();
+      const eve = await createUser(app, 'eve@example.com', {
+        timezone: 'America/New_York',
+        reminderHour: 9,
+      });
+      await eve.createDocument(await eve.createVehicle(), expiringDocument);
+
+      // 08:59 in New York (12:59 UTC): not yet.
+      expect(
+        await runReminders({ db, now: at('2026-10-22T12:59:00.000Z'), dispatcher: createTestDispatcher(db) }),
+      ).toEqual({ evaluated: 0, created: 0, failed: 0 });
+      expect(rows(db)).toEqual([]);
+
+      // 09:00 in New York: the expiring document is notified.
+      expect(
+        await runReminders({ db, now: at('2026-10-22T13:00:00.000Z'), dispatcher: createTestDispatcher(db) }),
+      ).toEqual({ evaluated: 1, created: 1, failed: 0 });
+      expect(rows(db)).toMatchObject([{ userId: eve.userId, type: 'document_expiring' }]);
+    });
+
+    it("sends document notifications through the owner's channels", async () => {
+      const { app, db } = await createTestApp();
+      const ada = await createUser(app, 'ada@example.com');
+      const bob = await createUser(app, 'bob@example.com', { locale: 'en' });
+      await ada.createDocument(await ada.createVehicle({ name: 'Mi coche' }), expiringDocument);
+      await bob.createDocument(await bob.createVehicle({ name: 'Bob car' }), expiredDocument);
+      await ada.addWebhook('https://hooks.example.com/ada');
+      await bob.addWebhook('https://hooks.example.com/bob');
+      const fetch = vi.fn<typeof globalThis.fetch>(async () => new Response(null, { status: 200 }));
+
+      expect(await runReminders({ db, now: NOW, dispatcher: createTestDispatcher(db, fetch) })).toEqual({
+        evaluated: 2,
+        created: 2,
+        failed: 0,
+      });
+      const sent = fetch.mock.calls
+        .map(([url, init]) => ({ url: String(url), body: JSON.parse(String(init?.body)) }))
+        .sort((a, b) => a.url.localeCompare(b.url));
+      expect(sent).toEqual([
+        {
+          url: 'https://hooks.example.com/ada',
+          body: expect.objectContaining({
+            type: 'document_expiring',
+            title: 'Documento a punto de caducar: Seguro',
+            body: 'Mi coche',
+          }),
+        },
+        {
+          url: 'https://hooks.example.com/bob',
+          body: expect.objectContaining({
+            type: 'document_expired',
+            title: 'Document expired: ITV',
+            body: 'Bob car',
+          }),
+        },
+      ]);
+
+      // A deduplicated run sends nothing.
+      fetch.mockClear();
+      expect(
+        (await runReminders({ db, now: NOW, dispatcher: createTestDispatcher(db, fetch) })).created,
+      ).toBe(0);
+      expect(fetch).not.toHaveBeenCalled();
+    });
+
+    it('notifies again after renewing a document', async () => {
+      const { app, db } = await createTestApp();
+      const ada = await createUser(app, 'ada@example.com');
+      const vehicle = await ada.createVehicle();
+      const id = await ada.createDocument(vehicle, expiredDocument);
+      expect((await runReminders({ db, now: NOW, dispatcher: createTestDispatcher(db) })).created).toBe(1);
+
+      // Editing the title or the warning days does not notify again.
+      await ada.patchDocument(vehicle, id, { title: 'ITV 2026', warnDays: 10 });
+      expect((await runReminders({ db, now: NOW, dispatcher: createTestDispatcher(db) })).created).toBe(0);
+
+      // Renewed for a year: valid now, so nothing until it is in its warning period again.
+      await ada.patchDocument(vehicle, id, { expiryDate: '2027-10-21', warnDays: 30 });
+      expect((await runReminders({ db, now: NOW, dispatcher: createTestDispatcher(db) })).created).toBe(0);
+      const nextYear = at('2027-10-01T10:00:00.000Z');
+      expect((await runReminders({ db, now: nextYear, dispatcher: createTestDispatcher(db) })).created).toBe(
+        1,
+      );
+      expect(rows(db).map((row) => row.dedupeKey)).toEqual([
+        `document:${id}:expired:2026-10-21`,
+        `document:${id}:expiring:2027-10-21`,
+      ]);
+    });
+
+    it('skips valid documents, sold or archived vehicles and disabled owners', async () => {
+      const { app, db } = await createTestApp();
+      const ada = await createUser(app, 'ada@example.com');
+      const bob = await createUser(app, 'bob@example.com');
+      const active = await ada.createVehicle();
+      const archived = await ada.createVehicle();
+      const sold = await ada.createVehicle();
+      await ada.createDocument(active, validDocument);
+      await ada.createDocument(archived, expiredDocument);
+      await ada.createDocument(sold, expiringDocument);
+      await bob.createDocument(await bob.createVehicle(), expiredDocument);
+      const headers = { cookie: ada.cookie };
+      for (const [id, payload] of [
+        [archived, { archived: true }],
+        [sold, { soldAt: '2026-03-01' }],
+      ] as const) {
+        expect(
+          (await app.inject({ method: 'PATCH', url: `/api/vehicles/${id}`, headers, payload })).statusCode,
+        ).toBe(200);
+      }
+      setDisabled(db, bob.userId, true);
+
+      expect(await runReminders({ db, now: NOW, dispatcher: createTestDispatcher(db) })).toEqual({
+        evaluated: 1,
+        created: 0,
+        failed: 0,
+      });
+      expect(rows(db)).toEqual([]);
+    });
+
+    it('keeps the notifications of a deleted document', async () => {
+      const { app, db } = await createTestApp();
+      const ada = await createUser(app, 'ada@example.com');
+      const vehicle = await ada.createVehicle();
+      const id = await ada.createDocument(vehicle, expiredDocument);
+      expect((await runReminders({ db, now: NOW, dispatcher: createTestDispatcher(db) })).created).toBe(1);
+
+      await ada.deleteDocument(vehicle, id);
+      expect(db.select().from(vehicleDocuments).all()).toEqual([]);
+      expect(rows(db)).toMatchObject([
+        { type: 'document_expired', dedupeKey: `document:${id}:expired:2026-10-21` },
+      ]);
+      expect(await runReminders({ db, now: NOW, dispatcher: createTestDispatcher(db) })).toEqual({
+        evaluated: 0,
+        created: 0,
+        failed: 0,
+      });
     });
   });
 
