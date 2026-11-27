@@ -1,7 +1,10 @@
 import {
+  type AttachmentEntityType,
   type AttachmentMimeType,
   attachmentFileQuerySchema,
   attachmentSchema,
+  documentAttachmentListParamsSchema,
+  documentAttachmentParamsSchema,
   maintenanceAttachmentListParamsSchema,
   maintenanceAttachmentParamsSchema,
 } from '@ikrive/shared';
@@ -11,9 +14,23 @@ import { BadRequestError } from '../../lib/errors';
 import { contentDisposition } from '../../lib/http';
 import { receiveToBuffer } from '../../lib/uploads';
 import { currentUser } from '../../plugins/auth';
-import type { AttachmentsService } from './service';
+import type { AttachmentParent, AttachmentsService } from './service';
 
-const BASE = '/vehicles/:id/maintenance/:recordId/attachments';
+/** Routes and params of the attachments of each parent entity. */
+const PARENTS = {
+  maintenance: {
+    base: '/vehicles/:id/maintenance/:recordId/attachments',
+    listParams: maintenanceAttachmentListParamsSchema,
+    params: maintenanceAttachmentParamsSchema,
+  },
+  document: {
+    base: '/vehicles/:id/documents/:documentId/attachments',
+    listParams: documentAttachmentListParamsSchema,
+    params: documentAttachmentParamsSchema,
+  },
+} as const;
+
+type ParentParams = { id: string; recordId: string } | { id: string; documentId: string };
 
 /** The contents behind an attachment id never change, so the browser may keep them for good. */
 const IMMUTABLE = 'private, max-age=31536000, immutable';
@@ -41,33 +58,39 @@ export function userContentPolicy(mimeType: AttachmentMimeType): string {
   return [...USER_CONTENT_BASE, 'sandbox'].join('; ');
 }
 
-export const attachmentsRoutes: FastifyPluginAsyncZod<{ service: AttachmentsService }> = async (
-  app,
-  { service },
-) => {
+/** Registered once per parent entity type (`entityType`), with the same handlers and policy. */
+export const attachmentsRoutes: FastifyPluginAsyncZod<{
+  service: AttachmentsService;
+  entityType: AttachmentEntityType;
+}> = async (app, { service, entityType }) => {
   app.addHook('preHandler', app.authenticate);
 
+  const { base, listParams, params } = PARENTS[entityType];
+  const parentOf = (path: ParentParams): AttachmentParent => ({
+    entityType,
+    vehicleId: path.id,
+    entityId: 'recordId' in path ? path.recordId : path.documentId,
+  });
+
   app.get(
-    BASE,
+    base,
     {
-      schema: { params: maintenanceAttachmentListParamsSchema, response: { 200: z.array(attachmentSchema) } },
+      schema: { params: listParams, response: { 200: z.array(attachmentSchema) } },
     },
     async (request) => {
-      const { id, recordId } = request.params;
-      return service.list(currentUser(request).id, id, recordId);
+      return service.list(currentUser(request).id, parentOf(request.params));
     },
   );
 
   app.post(
-    BASE,
-    { schema: { params: maintenanceAttachmentListParamsSchema, response: { 201: attachmentSchema } } },
+    base,
+    { schema: { params: listParams, response: { 201: attachmentSchema } } },
     async (request, reply) => {
-      const { id, recordId } = request.params;
       const file = await request.file();
       if (!file) throw new BadRequestError('Expected a file in the "file" field');
       // Buffered before anything is written, so a file over the size limit (413) leaves nothing on disk.
       const data = await receiveToBuffer(file);
-      const attachment = await service.upload(currentUser(request).id, id, recordId, {
+      const attachment = await service.upload(currentUser(request).id, parentOf(request.params), {
         filename: file.filename,
         data,
       });
@@ -76,12 +99,15 @@ export const attachmentsRoutes: FastifyPluginAsyncZod<{ service: AttachmentsServ
   );
 
   app.get(
-    `${BASE}/:attachmentId`,
-    { schema: { params: maintenanceAttachmentParamsSchema, querystring: attachmentFileQuerySchema } },
+    `${base}/:attachmentId`,
+    { schema: { params, querystring: attachmentFileQuerySchema } },
     async (request, reply) => {
-      const { id, recordId, attachmentId } = request.params;
       const disposition = request.query.inline === '1' ? 'inline' : 'attachment';
-      const { row, stream } = service.open(currentUser(request).id, id, recordId, attachmentId);
+      const { row, stream } = service.open(
+        currentUser(request).id,
+        parentOf(request.params),
+        request.params.attachmentId,
+      );
       // The type comes from the database (detected by content on upload), never from the client.
       // `nosniff` and the CSP also go with downloads: harmless, and a guard if `attachment` is ignored.
       return reply
@@ -95,23 +121,18 @@ export const attachmentsRoutes: FastifyPluginAsyncZod<{ service: AttachmentsServ
     },
   );
 
-  app.get(
-    `${BASE}/:attachmentId/thumbnail`,
-    { schema: { params: maintenanceAttachmentParamsSchema } },
-    async (request, reply) => {
-      const { id, recordId, attachmentId } = request.params;
-      const thumbnail = await service.thumbnail(currentUser(request).id, id, recordId, attachmentId);
-      return reply.type('image/webp').header('cache-control', IMMUTABLE).send(thumbnail);
-    },
-  );
+  app.get(`${base}/:attachmentId/thumbnail`, { schema: { params } }, async (request, reply) => {
+    const { attachmentId } = request.params;
+    const thumbnail = await service.thumbnail(
+      currentUser(request).id,
+      parentOf(request.params),
+      attachmentId,
+    );
+    return reply.type('image/webp').header('cache-control', IMMUTABLE).send(thumbnail);
+  });
 
-  app.delete(
-    `${BASE}/:attachmentId`,
-    { schema: { params: maintenanceAttachmentParamsSchema } },
-    async (request, reply) => {
-      const { id, recordId, attachmentId } = request.params;
-      await service.remove(currentUser(request).id, id, recordId, attachmentId);
-      return reply.status(204).send();
-    },
-  );
+  app.delete(`${base}/:attachmentId`, { schema: { params } }, async (request, reply) => {
+    await service.remove(currentUser(request).id, parentOf(request.params), request.params.attachmentId);
+    return reply.status(204).send();
+  });
 };

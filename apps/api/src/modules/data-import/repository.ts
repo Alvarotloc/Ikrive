@@ -11,6 +11,7 @@ import {
   maintenanceSchedules,
   notificationChannels,
   odometerReadings,
+  vehicleDocuments,
   vehicles,
 } from '../../db/schema';
 import { ConflictError } from '../../lib/errors';
@@ -29,6 +30,9 @@ export interface ImportPlan {
   maintenanceRecords: Insert<typeof maintenanceRecords>[];
   fuelLogs: Insert<typeof fuelLogs>[];
   expenses: Insert<typeof expenses>[];
+  /** Before the attachments, some of which belong to them. */
+  documents: Insert<typeof vehicleDocuments>[];
+  /** Of the maintenance records and the documents. */
   attachments: Omit<Insert<typeof attachments>, 'ownerId'>[];
   notificationChannels: Omit<Insert<typeof notificationChannels>, 'userId'>[];
 }
@@ -127,6 +131,7 @@ export function createDataImportRepository(db: Db) {
         maintenanceRecords: insertAll(maintenanceRecords, plan.maintenanceRecords),
         fuelLogs: insertAll(fuelLogs, plan.fuelLogs),
         expenses: insertAll(expenses, plan.expenses),
+        documents: insertAll(vehicleDocuments, plan.documents),
         attachments: insertAll(
           attachments,
           plan.attachments.map((row) => ({ ...row, ownerId: userId })),
