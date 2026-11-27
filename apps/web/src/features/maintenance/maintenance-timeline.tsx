@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
+import { badgeListClassName, badgeListRowClassName } from '@/components/ui/badge-list';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -19,6 +20,7 @@ import {
 } from '@/components/ui/dialog';
 import { useRestoredCapture } from '@/features/mobile/camera-restore';
 import { useFormat } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import { MaintenanceAttachmentsDialog } from './maintenance-attachments';
 import { MaintenanceFormDialog, type RestoredDraft } from './maintenance-form';
 import { maintenanceQuery, useDeleteMaintenance } from './queries';
@@ -114,22 +116,25 @@ export function MaintenanceSection({ vehicle }: { vehicle: Pick<Vehicle, 'id' | 
                 </button>
               ))}
             </nav>
-            {groups.map((group) => (
-              <section key={group.year} className="grid gap-1">
-                <h3 className="label-caps">{group.year}</h3>
-                <ol className="divide-y">
-                  {group.records.map((record) => (
-                    <MaintenanceRow
-                      key={record.id}
-                      vehicleId={vehicle.id}
-                      record={record}
-                      onEdit={() => openForm(record)}
-                      onAttachments={() => openAttachments(record)}
-                    />
-                  ))}
-                </ol>
-              </section>
-            ))}
+            {/* The years are groups of one badge list: the badge column is shared by all of them. */}
+            <div className={cn('grid gap-y-5', badgeListClassName)}>
+              {groups.map((group) => (
+                <section key={group.year} className={cn('grid gap-y-1', badgeListRowClassName)}>
+                  <h3 className="label-caps sm:col-span-full">{group.year}</h3>
+                  <ol className={cn('divide-y', badgeListRowClassName)}>
+                    {group.records.map((record) => (
+                      <MaintenanceRow
+                        key={record.id}
+                        vehicleId={vehicle.id}
+                        record={record}
+                        onEdit={() => openForm(record)}
+                        onAttachments={() => openAttachments(record)}
+                      />
+                    ))}
+                  </ol>
+                </section>
+              ))}
+            </div>
           </>
         )}
       </CardContent>
@@ -177,7 +182,9 @@ function MaintenanceRow({
 
   // On phones the badge and the actions share the first line, so the text below keeps the full width.
   return (
-    <li className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1.5 py-3 sm:grid-cols-[auto_1fr_auto]">
+    <li
+      className={cn('grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1.5 py-3', badgeListRowClassName)}
+    >
       <Badge
         variant="stamp"
         className="col-start-1 row-start-1 min-w-20 justify-center justify-self-start uppercase sm:justify-self-auto"

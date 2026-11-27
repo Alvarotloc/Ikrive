@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
+import { badgeListClassName, badgeListRowClassName } from '@/components/ui/badge-list';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -18,6 +19,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { useFormat } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import { ExpenseFormDialog } from './expense-form';
 import {
   availableExpenseCategories,
@@ -78,7 +80,7 @@ export function ExpensesSection({ vehicle }: { vehicle: Pick<Vehicle, 'id' | 'st
                 </button>
               ))}
             </nav>
-            <ol className="divide-y">
+            <ol className={cn('divide-y', badgeListClassName)}>
               {sortExpenses(filterExpenses(expenses, filter)).map((expense) => (
                 <ExpenseRow
                   key={expense.id}
@@ -117,7 +119,9 @@ function ExpenseRow({
 
   // On phones the badge and the actions share the first line, so the text below keeps the full width.
   return (
-    <li className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1.5 py-3 sm:grid-cols-[auto_1fr_auto]">
+    <li
+      className={cn('grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1.5 py-3', badgeListRowClassName)}
+    >
       <Badge
         variant="stamp"
         className="col-start-1 row-start-1 min-w-20 justify-center justify-self-start uppercase sm:justify-self-auto"

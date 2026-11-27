@@ -2,8 +2,10 @@ import type { OdometerReading } from '@ikrive/shared';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
+import { badgeListClassName, badgeListRowClassName } from '@/components/ui/badge-list';
 import { Button } from '@/components/ui/button';
 import { useFormat } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import { useDeleteOdometerReading } from './queries';
 
 const VISIBLE_READINGS = 8;
@@ -25,11 +27,14 @@ export function OdometerTimeline({
   }
 
   return (
-    <ol className="divide-y">
+    <ol className={cn('divide-y', badgeListClassName)}>
       {readings.slice(0, VISIBLE_READINGS).map((reading, index) => {
         const previous = readings[index + 1];
         return (
-          <li key={reading.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-3 py-3">
+          <li
+            key={reading.id}
+            className={cn('grid grid-cols-[auto_1fr_auto] items-center gap-3 py-3', badgeListRowClassName)}
+          >
             <Badge variant="stamp" className="min-w-20 justify-center uppercase">
               {t(`odometer.sources.${reading.source}`)}
             </Badge>
