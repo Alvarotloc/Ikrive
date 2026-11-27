@@ -102,6 +102,23 @@ const expense = (overrides: Partial<Vehicle['expenses'][number]> = {}): Vehicle[
   ...overrides,
 });
 
+const DOCUMENT_ATTACHMENT = 'a-d1';
+
+const vehicleDocument = (
+  overrides: Partial<Vehicle['documents'][number]> = {},
+): Vehicle['documents'][number] => ({
+  id: 'd-1',
+  type: 'insurance',
+  title: 'Póliza',
+  expiryDate: '2025-03-01',
+  warnDays: 30,
+  notes: null,
+  createdAt: AT,
+  updatedAt: AT,
+  attachments: [attachment({ id: DOCUMENT_ATTACHMENT, path: `attachments/${DOCUMENT_ATTACHMENT}.pdf` })],
+  ...overrides,
+});
+
 /** A valid vehicle with every kind of child. */
 const vehicle = (overrides: Partial<Vehicle> = {}): Vehicle => ({
   id: V1,
@@ -128,6 +145,7 @@ const vehicle = (overrides: Partial<Vehicle> = {}): Vehicle => ({
   maintenanceRecords: [record()],
   fuelLogs: [fuelLog()],
   expenses: [expense()],
+  documents: [vehicleDocument()],
   ...overrides,
 });
 
@@ -141,6 +159,7 @@ const emptyVehicle = (id = V2): Vehicle =>
     maintenanceRecords: [],
     fuelLogs: [],
     expenses: [],
+    documents: [],
   });
 
 /** A valid document: one vehicle with every kind of child, one channel. */
@@ -211,6 +230,55 @@ describe('dataExportSchema', () => {
     const parsed = dataExportSchema.parse(document);
     expect(parsed.vehicles[0]?.expenses).toEqual([]);
     expect(parsed).toEqual({ ...document, vehicles: [{ ...old, expenses: [] }] });
+  });
+
+  it('defaults documents to an empty array in a v1 document', () => {
+    // A document written before vehicle documents existed: its vehicles have no `documents` key.
+    const { documents: _documents, ...old } = vehicle();
+    const document = { ...fixture(), vehicles: [old] };
+    const parsed = dataExportSchema.parse(document);
+    expect(parsed.vehicles[0]?.documents).toEqual([]);
+    expect(parsed).toEqual({ ...document, vehicles: [{ ...old, documents: [] }] });
+  });
+
+  it('rejects duplicate document ids', () => {
+    rejects(fixture([vehicle({ documents: [vehicleDocument(), vehicleDocument({ attachments: [] })] })]));
+    // Unique in the whole document, not only inside one vehicle.
+    rejects(
+      fixture([vehicle(), vehicle({ ...emptyVehicle(), documents: [vehicleDocument({ attachments: [] })] })]),
+    );
+    // A document attachment cannot reuse the id of a maintenance attachment.
+    rejects(fixture([vehicle({ documents: [vehicleDocument({ attachments: [attachment()] })] })]));
+    expect(
+      dataExportSchema.safeParse(
+        fixture([
+          vehicle({ documents: [vehicleDocument(), vehicleDocument({ id: 'd-2', attachments: [] })] }),
+        ]),
+      ).success,
+    ).toBe(true);
+  });
+
+  it('rejects an invalid document attachment path', () => {
+    const withDocumentAttachment = (overrides: Partial<Attachment>) =>
+      fixture([
+        vehicle({
+          documents: [
+            vehicleDocument({
+              attachments: [
+                attachment({
+                  id: DOCUMENT_ATTACHMENT,
+                  path: `attachments/${DOCUMENT_ATTACHMENT}.pdf`,
+                  ...overrides,
+                }),
+              ],
+            }),
+          ],
+        }),
+      ]);
+    expect(dataExportSchema.safeParse(withDocumentAttachment({})).success).toBe(true);
+    rejects(withDocumentAttachment({ path: '../x.pdf' }));
+    rejects(withDocumentAttachment({ path: `attachments/${ATTACHMENT}.pdf` }));
+    rejects(withDocumentAttachment({ mimeType: 'image/png' }));
   });
 
   it('rejects dangling scheduleId and odometerReadingId', () => {

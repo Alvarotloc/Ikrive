@@ -4,9 +4,11 @@ import {
   notifications,
   odometerReadings,
   userSettings,
+  vehicleDocuments,
   vehicles,
 } from '@ikrive/db/schema';
 import {
+  documentReminderNotification,
   notificationListSchema,
   notificationSchema,
   odometerNudgeNotification,
@@ -275,6 +277,66 @@ describe('generateLocalReminders', () => {
       expect(await generateLocalReminders(db, at(`2026-11-0${day + 1}T12:00:00.000Z`))).toBe(0);
     }
     expect(await rows()).toEqual([]);
+  });
+
+  it('stores document reminders with the shared drafts once', async () => {
+    const named = await addVehicle({ name: 'Mi coche' });
+    const unnamed = await addVehicle({ make: 'Honda', model: 'Civic' });
+    const archived = await addVehicle({ archivedAt: LONG_AGO });
+    const addDocument = (vehicleId: string, fields: Partial<typeof vehicleDocuments.$inferInsert>) =>
+      db
+        .insert(vehicleDocuments)
+        .values({ vehicleId, type: 'insurance', title: 'Seguro', warnDays: 30, ...fields })
+        .returning()
+        .get();
+    // Expiring on NOW (2026-10-22), expired since 2026-10-22, valid, undated and of an archived vehicle.
+    const expiring = await addDocument(named.id, { expiryDate: '2026-11-10' });
+    const expired = await addDocument(unnamed.id, {
+      type: 'inspection',
+      title: 'ITV',
+      expiryDate: '2026-10-21',
+    });
+    await addDocument(named.id, { title: 'Póliza', expiryDate: '2027-06-01' });
+    await addDocument(named.id, { type: 'registration', title: 'Permiso', expiryDate: null });
+    await addDocument(archived.id, { expiryDate: '2026-10-01' });
+
+    expect(await generateLocalReminders(db, NOW)).toBe(2);
+    const expected = [
+      documentReminderNotification(expired, unnamed, '2026-10-22'),
+      documentReminderNotification(expiring, named, '2026-10-22'),
+    ];
+    expect(expected).toEqual([
+      expect.objectContaining({ type: 'document_expired', title: 'ITV', body: 'Honda Civic' }),
+      expect.objectContaining({ type: 'document_expiring', title: 'Seguro', body: 'Mi coche' }),
+    ]);
+    expect(await rows()).toEqual(
+      expected.map((draft) => ({
+        ...draft,
+        id: expect.any(String),
+        userId: LOCAL_USER_ID,
+        readAt: null,
+        createdAt: NOW,
+      })),
+    );
+    expect((await rows()).map((row) => row.dedupeKey)).toEqual([
+      `document:${expired.id}:expired:2026-10-21`,
+      `document:${expiring.id}:expiring:2026-11-10`,
+    ]);
+
+    // A second run does not duplicate them.
+    expect(await generateLocalReminders(db, at('2026-10-22T18:00:00.000Z'))).toBe(0);
+
+    // Renewing the expired one: nothing while it is valid, a new reminder once it is in its period again.
+    await db
+      .update(vehicleDocuments)
+      .set({ expiryDate: '2027-10-21' })
+      .where(eq(vehicleDocuments.id, expired.id));
+    expect(await generateLocalReminders(db, at('2026-10-23T10:00:00.000Z'))).toBe(0);
+    // By then the other two dated documents have expired too.
+    expect(await generateLocalReminders(db, at('2027-10-01T10:00:00.000Z'))).toBe(3);
+    expect((await rows()).map((row) => row.dedupeKey)).toContain(
+      `document:${expired.id}:expiring:2027-10-21`,
+    );
   });
 
   it('never stores the same reminder twice', async () => {

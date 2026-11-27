@@ -6,6 +6,7 @@ import {
   type Problem,
   photoExportPath,
   todayIn,
+  type VehicleDocument,
 } from '@ikrive/shared';
 import { createDataExportZip } from '@ikrive/shared/data-export-zip';
 import { strFromU8, unzipSync } from 'fflate';
@@ -98,6 +99,9 @@ async function seed() {
   const empty = await local.vehicles.create({ make: 'Renault', model: 'Clio' });
   return { vehicle, empty, schedule, record, pdf, jpeg };
 }
+
+/** A document DTO as the export writes it: without its vehicle id and its computed status. */
+const exportedFields = ({ vehicleId: _vehicleId, status: _status, ...fields }: VehicleDocument) => fields;
 
 describe('local data export', () => {
   it('exports a zip whose data.json satisfies dataExportSchema', async () => {
@@ -193,6 +197,56 @@ describe('local data export', () => {
     expect(second?.id).toBe(empty.id);
     expect(second?.expenses).toEqual([]);
     expect((await loadLocalExportRows(db)).expenses.map((row) => row.id)).toEqual([earlier.id, later.id]);
+  });
+
+  it('exports documents and their files', async () => {
+    const { vehicle, empty } = await seed();
+    const later = await local.documents.create(vehicle.id, {
+      type: 'inspection',
+      title: 'ITV',
+      expiryDate: '2026-05-01',
+    });
+    const policy = await local.documents.create(vehicle.id, {
+      type: 'insurance',
+      title: 'Póliza',
+      expiryDate: '2025-03-01',
+      warnDays: 15,
+      notes: 'Todo riesgo',
+    });
+    const policyPdf = encode('%PDF-1.7\npoliza');
+    const attachment = await local.documentAttachments.upload(
+      vehicle.id,
+      policy.id,
+      file(policyPdf, 'poliza.pdf'),
+    );
+
+    const { document, entries } = await unzip((await exportBlob()).blob);
+
+    expect(dataExportSchema.safeParse(document).success).toBe(true);
+    const [first, second] = document.vehicles;
+    const path = `attachments/${attachment.id}.pdf`;
+    // In creation order, like the API's export; `status` is computed, so it is not exported.
+    expect(first?.documents).toEqual([
+      { ...exportedFields(later), attachments: [] },
+      {
+        ...exportedFields(policy),
+        attachments: [
+          {
+            id: attachment.id,
+            originalName: 'poliza.pdf',
+            mimeType: 'application/pdf',
+            size: policyPdf.length,
+            sha256: attachment.sha256,
+            path,
+            createdAt: attachment.createdAt,
+          },
+        ],
+      },
+    ]);
+    expect(second?.id).toBe(empty.id);
+    expect(second?.documents).toEqual([]);
+    expect(entries[path]).toEqual(policyPdf);
+    expect((await loadLocalExportRows(db)).documents.map((row) => row.id)).toEqual([later.id, policy.id]);
   });
 
   it('names the zip after today in the settings time zone', async () => {

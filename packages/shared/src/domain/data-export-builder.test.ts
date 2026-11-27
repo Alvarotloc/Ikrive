@@ -55,10 +55,14 @@ const record = (id: string, vehicleId: string, odometerReadingId: string | null 
   updatedAt: at(3),
 });
 
-const attachment = (id: string, entityId: string) => ({
+const attachment = (
+  id: string,
+  entityId: string,
+  entityType: 'maintenance' | 'document' = 'maintenance',
+) => ({
   id,
   ownerId: 'owner-1',
-  entityType: 'maintenance' as const,
+  entityType,
   entityId,
   originalName: `${id}.pdf`,
   mimeType: 'application/pdf' as const,
@@ -78,6 +82,18 @@ const expense = (id: string, vehicleId: string) => ({
   cost: 12.4,
   createdAt: at(9),
   updatedAt: at(10),
+});
+
+const vehicleDocument = (id: string, vehicleId: string) => ({
+  id,
+  vehicleId,
+  type: 'insurance' as const,
+  title: `Póliza ${id}`,
+  expiryDate: '2026-06-30',
+  warnDays: 30,
+  notes: null,
+  createdAt: at(11),
+  updatedAt: at(12),
 });
 
 function rows(): DataExportInputRows {
@@ -118,7 +134,15 @@ function rows(): DataExportInputRows {
       },
     ],
     expenses: [expense('e2', 'v1'), expense('e3', 'v2'), expense('e1', 'v1')],
-    attachments: [attachment('a2', 'm1'), attachment('a1', 'm1'), attachment('a3', 'm3')],
+    documents: [vehicleDocument('d2', 'v1'), vehicleDocument('d1', 'v2')],
+    attachments: [
+      attachment('a2', 'm1'),
+      attachment('a1', 'm1'),
+      attachment('a3', 'm3'),
+      attachment('a4', 'd2', 'document'),
+      // A document attachment whose entity id is a record's: grouped by type and id, so it is not the record's.
+      attachment('a5', 'm1', 'document'),
+    ],
     notificationChannels: [
       {
         type: 'ntfy',
@@ -145,7 +169,7 @@ function input(overrides: Partial<BuildDataExportInput> = {}): BuildDataExportIn
     appVersion: '1.2.3',
     exportedAt: at(30),
     present: {
-      attachmentIds: new Set(['a1', 'a2', 'a3']),
+      attachmentIds: new Set(['a1', 'a2', 'a3', 'a4', 'a5']),
       photoVehicleIds: new Set(['v1']),
     },
     ...overrides,
@@ -201,6 +225,46 @@ describe('buildDataExport', () => {
     expect(empty.vehicles.map((v) => v.expenses)).toEqual([[], []]);
   });
 
+  it('groups documents and their files by vehicle', () => {
+    const { document, files } = buildDataExport(input());
+    const [v1, v2] = document.vehicles;
+    expect(v1?.documents).toEqual([
+      {
+        id: 'd2',
+        type: 'insurance',
+        title: 'Póliza d2',
+        expiryDate: '2026-06-30',
+        warnDays: 30,
+        notes: null,
+        createdAt: '2026-01-01T10:11:00.000Z',
+        updatedAt: '2026-01-01T10:12:00.000Z',
+        attachments: [
+          {
+            id: 'a4',
+            originalName: 'a4.pdf',
+            mimeType: 'application/pdf',
+            size: 10,
+            sha256: SHA,
+            path: 'attachments/a4.pdf',
+            createdAt: '2026-01-01T10:04:00.000Z',
+          },
+        ],
+      },
+    ]);
+    expect(v2?.documents.map((d) => [d.id, d.attachments])).toEqual([['d1', []]]);
+    // A document attachment never goes under a maintenance record with the same id.
+    expect(v1?.maintenanceRecords[1]?.attachments.map((a) => a.id)).toEqual(['a2', 'a1']);
+    expect(files).toContainEqual({ key: 'attachments/key-a4.pdf', path: 'attachments/a4.pdf' });
+
+    const missing = buildDataExport(
+      input({ present: { attachmentIds: new Set(['a1', 'a2', 'a3']), photoVehicleIds: new Set(['v1']) } }),
+    );
+    expect(missing.document.vehicles[0]?.documents[0]?.attachments).toEqual([]);
+    expect(missing.files.map((file) => file.path)).not.toContain('attachments/a4.pdf');
+    const empty = buildDataExport(input({ rows: { ...rows(), documents: [] } })).document;
+    expect(empty.vehicles.map((v) => v.documents)).toEqual([[], []]);
+  });
+
   it('drops owner ids and storage keys', () => {
     const { document } = buildDataExport(input());
     const json = JSON.stringify(document);
@@ -254,6 +318,7 @@ describe('buildDataExport', () => {
       { key: 'photos/key-v1.webp', path: 'photos/v1.webp' },
       { key: 'attachments/key-a2.pdf', path: 'attachments/a2.pdf' },
       { key: 'attachments/key-a1.pdf', path: 'attachments/a1.pdf' },
+      { key: 'attachments/key-a4.pdf', path: 'attachments/a4.pdf' },
       { key: 'attachments/key-a3.pdf', path: 'attachments/a3.pdf' },
     ]);
   });

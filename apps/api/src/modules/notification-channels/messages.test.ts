@@ -75,3 +75,23 @@ describe('testMessage', () => {
     expect(testMessage('en', now)).toMatchObject({ event: 'test', title: 'Ikrive: test notification' });
   });
 });
+
+describe('toChannelMessage documents', () => {
+  it('labels document notifications in each locale', () => {
+    const expiring: NotificationRow = { ...row, type: 'document_expiring', title: 'Seguro', body: 'Golf' };
+    expect(toChannelMessage(expiring, 'es', 'https://ikrive.example.com')).toEqual({
+      event: 'notification',
+      type: 'document_expiring',
+      title: 'Documento a punto de caducar: Seguro',
+      body: 'Golf',
+      link: 'https://ikrive.example.com/vehicles/v1',
+      createdAt: '2026-10-23T08:00:00.000Z',
+    });
+    expect(toChannelMessage(expiring, 'en', 'http://localhost:3000').title).toBe(
+      'Document expiring soon: Seguro',
+    );
+    const expired: NotificationRow = { ...expiring, type: 'document_expired' };
+    expect(toChannelMessage(expired, 'es', 'http://localhost:3000').title).toBe('Documento caducado: Seguro');
+    expect(toChannelMessage(expired, 'en', 'http://localhost:3000').title).toBe('Document expired: Seguro');
+  });
+});
