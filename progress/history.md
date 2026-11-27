@@ -879,3 +879,12 @@
 - **Revisión:** APPROVED a la primera (`progress/review_vehicle-expenses-web.md`). Avisos: badge de ancho variable desalinea títulos en escritorio (igual en mantenimientos/repostajes; pulido conjunto aparte); token `--chart-*` propio si `--color-warning` se usa para avisos en stats; importe 0 con mensaje genérico; «Tax» singular en en; radio superior en meses sin gastos.
 - **Tests:** shared 313, web 803, api 401, e2e 7. `pnpm harness --full` en verde.
 - **Gate 2:** «merge» del humano → PR.
+
+## 2026-11-27 — #97 list-badge-column-alignment
+
+- **Rama:** `feat/list-badge-column-alignment` (`sdd: false`). Aviso del reviewer de #88; adelantada a #89 a petición del humano.
+- **Causa:** cada fila era su propia rejilla `grid-cols-[auto_1fr_auto]`, así que la columna del badge (`min-w-20`) se calculaba por fila y las etiquetas largas desplazaban el título.
+- **Cambios:** `components/ui/badge-list.ts` (`badgeListClassName` + `badgeListRowClassName`: lista en rejilla de 3 columnas desde `sm` y filas con `subgrid`) en otros gastos, repostajes, mantenimientos (alineación por listado completo, años incluidos) y odómetro. Móvil idéntico píxel a píxel. E2E `e2e/tests/list-alignment.spec.ts` (falla sin el cambio). Documentado en `CONTRIBUTING.md` › Diseño.
+- **Revisión:** APPROVED a la primera (`progress/review_list-badge-column-alignment.md`). Avisos: `subgrid` requiere Chrome/WebView 117 (hueco 111–116; degrada a la disposición móvil o la anterior sin perder contenido); E2E solo en es; odómetro sigue sin alinear en móvil a propósito.
+- **Tests:** `pnpm harness --full` en verde; `pnpm test:e2e` 8/8.
+- **Gate 2:** «merge» del humano → PR.

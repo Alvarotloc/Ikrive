@@ -1623,6 +1623,22 @@
       ],
       "sdd": false,
       "status": "done"
+    },
+    {
+      "id": 97,
+      "name": "list-badge-column-alignment",
+      "phase": "9",
+      "title": "Columna de badges alineada en los listados de la ficha",
+      "description": "Aviso del reviewer de #88. En escritorio, el badge de categoría de las filas (Badge stamp con min-w-20) tiene ancho variable y etiquetas como «IMPUESTOS», «INSPECCIÓN» o «NEUMÁTICOS» desplazan el título de su fila. Afecta a otros gastos, repostajes, mantenimientos (expenses-section, fuel-logs-section, maintenance-timeline) y al historial de odómetro (odometer-timeline). Se da a la columna del badge un ancho común dentro de cada listado.",
+      "acceptance": [
+        "En escritorio, los títulos de todas las filas de un mismo listado empiezan en la misma posición horizontal, con la etiqueta de categoría más larga en es y en en, en otros gastos, repostajes, mantenimientos y odómetro",
+        "En móvil la disposición actual no cambia (el badge sigue en su propia línea)",
+        "La solución es común a los cuatro listados (clase o componente compartido), sin anchos fijos por idioma",
+        "Capturas antes y después en claro, oscuro y móvil en el informe",
+        "pnpm harness --full pasa en verde"
+      ],
+      "sdd": false,
+      "status": "done"
     }
   ]
 }

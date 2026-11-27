@@ -53,6 +53,7 @@ La interfaz sigue la identidad de la landing (ikrive.com). Los tokens están en 
 - Radios de 8, 12, 16 y 24 px; tarjetas con borde fino; botones con elevación de 1px al pasar el ratón.
 - Utilidades propias: `eyebrow`, `label-caps`, `glow-shell` (resplandor menta) y `reveal` (animación de entrada).
 - Componentes de marca reutilizables: `Brand`, `PageHeader`, `Badge` (`status` y `stamp`) y `CheckItem`.
+- Listas con badge inicial (`components/ui/badge-list.ts`): `badgeListClassName` en la lista y `badgeListRowClassName` en cada fila alinean la columna del badge en toda la lista desde `sm` (CSS `subgrid`).
 
 ## Flujo de trabajo
 
