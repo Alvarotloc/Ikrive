@@ -6,7 +6,8 @@ import { isoDateSchema } from './vehicles';
 const intervalMonthsSchema = z.number().int().min(1).max(240);
 /** Distance interval in the user's distance unit, like `odometer`. */
 const intervalDistanceSchema = z.number().int().min(1).max(1_000_000);
-const warnDaysSchema = z.number().int().min(0).max(365);
+/** Days before a due or expiry date from which a reminder is sent. */
+export const warnDaysSchema = z.number().int().min(0).max(365);
 const warnDistanceSchema = z.number().int().min(0).max(100_000);
 
 const scheduleFieldsSchema = z.object({

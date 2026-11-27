@@ -16,7 +16,8 @@ export interface NotificationDraft {
   dedupeKey: string;
 }
 
-const vehicleName = (vehicle: { name: string | null; make: string; model: string }) =>
+/** Display name of a vehicle: its name, or make and model when it has none. */
+export const vehicleName = (vehicle: { name: string | null; make: string; model: string }) =>
   vehicle.name ?? `${vehicle.make} ${vehicle.model}`;
 
 /** True once the owner's local hour has reached their reminder hour (until midnight). */
